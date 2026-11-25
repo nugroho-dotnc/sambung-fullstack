@@ -1,0 +1,518 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* Dark mode lewat class `.dark` di <html>, bukan prefers-color-scheme */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ==========================================================================
+   Design tokens (light)
+   ========================================================================== */
+:root {
+  color-scheme: light;
+
+  /* Brand Core - Agrarian Forest & Harvest Amber */
+  --brand-forest: #1B4D2E;
+  --brand-forest-light: #2A6A3B;
+  --brand-olive: #657D28;
+  --brand-sunflower: #F59E0B;
+  --brand-honey: #D97706;
+  --brand-terracotta: #C2410C;
+  --brand-cream: #FEF9EE;
+
+  /* Surfaces & Canvas */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --canvas: #F1F5F9;
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --highlight: #F59E0B;
+  --highlight-foreground: #0F172A;
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+
+  /* Primary Interactive */
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --primary-hover: #153E24;
+
+  /* Destructive */
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: #FFFFFF;
+  --destructive-surface: #FEF2F2;
+
+  /* Domain Price & Lamp tokens */
+  --price-within: #15803D;
+  --price-within-surface: #F0FDF4;
+  --price-caution: #B45309;
+  --price-caution-surface: #FFFBEB;
+  --price-low: #B91C1C;
+  --price-low-surface: #FEF2F2;
+  --review: #92400E;
+  --review-surface: #FEF3C7;
+
+  /* Charts & Map */
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --interval: #E2E8F0;
+  --map-low: #15803D;
+  --map-mid: #F8FAFC;
+  --map-high: #B91C1C;
+  --map-missing: #CBD5E1;
+
+  /* Sidebar */
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+
+  --contract: var(--secondary-foreground);
+  --contract-surface: var(--secondary);
+
+  --radius: 0.625rem;
+  --layout-max: 78rem;
+  --layout-form: 44rem;
+  --control-min: 2.75rem;
+  --focus-width: 2px;
+  --focus-offset: 2px;
+  --motion-feedback: 160ms;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+
+  /* Golden Ratio Typography Scale (phi = 1.618)
+     Dasar: 16px (1rem), Minimal font: 12px (0.75rem) */
+  --type-display: 4.25rem;     /* ~68px (41.89px * 1.618) */
+  --type-heading: 2.625rem;    /* ~42px (25.89px * 1.618) */
+  --type-subheading: 1.625rem; /* ~26px (16px * 1.618) */
+  --type-body: 1rem;           /* 16px (Ukuran dasar) */
+  --type-caption: 0.75rem;     /* 12px (Batas minimal 12px; 16px / 1.618 di-clamp ke 12px) */
+}
+
+/* ==========================================================================
+   Design tokens (dark)
+   ========================================================================== */
+.dark {
+  color-scheme: dark;
+
+  --brand-forest: #4ADE80;
+  --brand-forest-light: #22C55E;
+  --brand-olive: #A3E635;
+  --brand-sunflower: #FBBF24;
+  --brand-honey: #F59E0B;
+  --brand-terracotta: #FB923C;
+  --brand-cream: #292015;
+
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --canvas: #17231B;
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --highlight: #FBBF24;
+  --highlight-foreground: #09100C;
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --primary-hover: #38C46E;
+
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: #2A0808;
+  --destructive-surface: #380E0E;
+
+  --price-within: #4ADE80;
+  --price-within-surface: #072B15;
+  --price-caution: #FBBF24;
+  --price-caution-surface: #332007;
+  --price-low: #F87171;
+  --price-low-surface: #380E0E;
+  --review: #FCD34D;
+  --review-surface: #2E1F09;
+
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --interval: #1E3125;
+  --map-low: #4ADE80;
+  --map-mid: #17231B;
+  --map-high: #F87171;
+  --map-missing: #334155;
+
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+
+  --contract: var(--secondary-foreground);
+  --contract-surface: var(--secondary);
+}
+
+/* ==========================================================================
+   Tailwind v4 theme mapping
+   Membuat utility seperti bg-background, text-primary, border-border,
+   bg-price-within-surface, font-display, dll.
+   ========================================================================== */
+@theme inline {
+  /* Fonts: variabel --font-inter & --font-jakarta datang dari next/font di layout.tsx */
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-jakarta);
+  --font-display: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+
+  /* Brand */
+  --color-brand-forest: var(--brand-forest);
+  --color-brand-forest-light: var(--brand-forest-light);
+  --color-brand-olive: var(--brand-olive);
+  --color-brand-sunflower: var(--brand-sunflower);
+  --color-brand-honey: var(--brand-honey);
+  --color-brand-terracotta: var(--brand-terracotta);
+  --color-brand-cream: var(--brand-cream);
+
+  /* Surfaces */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-canvas: var(--canvas);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-highlight: var(--highlight);
+  --color-highlight-foreground: var(--highlight-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Primary & destructive */
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-surface: var(--destructive-surface);
+
+  /* Domain: price & review */
+  --color-price-within: var(--price-within);
+  --color-price-within-surface: var(--price-within-surface);
+  --color-price-caution: var(--price-caution);
+  --color-price-caution-surface: var(--price-caution-surface);
+  --color-price-low: var(--price-low);
+  --color-price-low-surface: var(--price-low-surface);
+  --color-review: var(--review);
+  --color-review-surface: var(--review-surface);
+  --color-contract: var(--contract);
+  --color-contract-surface: var(--contract-surface);
+
+  /* Charts & map */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-interval: var(--interval);
+  --color-map-low: var(--map-low);
+  --color-map-mid: var(--map-mid);
+  --color-map-high: var(--map-high);
+  --color-map-missing: var(--map-missing);
+
+  /* Sidebar */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Radius */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+@layer base {
+  html {
+    font-size: 100%;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    @apply font-sans;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading;
+  }
+
+  table,
+  .tabular-nums {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+
+  ::selection {
+    background-color: color-mix(in srgb, var(--primary) 24%, transparent);
+    color: inherit;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--muted-foreground) 30%, transparent) transparent;
+    @apply border-border outline-ring/50;
+  }
+
+  button:not(:disabled),
+  a {
+    transition:
+      color var(--motion-feedback) ease,
+      background-color var(--motion-feedback) ease,
+      border-color var(--motion-feedback) ease,
+      box-shadow var(--motion-feedback) ease,
+      transform var(--motion-feedback) ease;
+  }
+
+  button:not(:disabled):active {
+    transform: translateY(1px);
+  }
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--muted-foreground) 25%, transparent);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--muted-foreground) 45%, transparent);
+}
+
+/* Sengaja di luar @layer agar menimpa ring component yang transparan.
+   Offset memperlihatkan permukaan di antara kontrol dan outline. */
+:focus-visible {
+  outline: var(--focus-width) solid var(--ring);
+  outline-offset: var(--focus-offset);
+}
+
+/* ==========================================================================
+   Custom utilities (v4: pakai @utility agar bisa dipakai dengan variant)
+   ========================================================================== */
+@utility control-target {
+  min-block-size: var(--control-min);
+  min-inline-size: var(--control-min);
+}
+
+@utility price-value {
+  font-variant-numeric: lining-nums tabular-nums;
+  font-feature-settings: "lnum" 1, "tnum" 1;
+}
+
+@utility app-wrap {
+  inline-size: 100%;
+  max-inline-size: var(--layout-max);
+  margin-inline: auto;
+  padding-inline: 1rem;
+
+  @media (min-width: 64rem) {
+    padding-inline: 1.5rem;
+  }
+}
+
+/* Golden Ratio Typography Utilities (phi = 1.618, min = 12px) */
+@utility type-display {
+  font-size: var(--type-display);
+  line-height: 1.1;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+@utility type-heading {
+  font-size: var(--type-heading);
+  line-height: 1.2;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+@utility type-subheading {
+  font-size: var(--type-subheading);
+  line-height: 1.35;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+@utility type-body {
+  font-size: var(--type-body);
+  line-height: 1.618;
+}
+
+@utility type-caption {
+  font-size: var(--type-caption);
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   Accessibility
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (forced-colors: active) {
+  :focus-visible {
+    outline-color: Highlight;
+  }
+}
+
+/* ==========================================================================
+   Leaflet maps
+   ========================================================================== */
+.dark .leaflet-tile-pane {
+  filter: brightness(0.75) invert(1) contrast(2.2) hue-rotate(200deg) saturate(0.25);
+}
+
+.leaflet-container {
+  background-color: var(--card) !important;
+  font-family: inherit;
+}
+
+.leaflet-sambung-tooltip {
+  background: var(--card) !important;
+  color: var(--card-foreground) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* ==========================================================================
+   Price slider
+   ========================================================================== */
+.price-slider-track {
+  position: absolute;
+  inset-inline: 0;
+  top: 50%;
+  height: 0.625rem;
+  transform: translateY(-50%);
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--muted);
+}
+
+.price-slider-zone { position: absolute; inset-block: 0; }
+.price-slider-zone-red { background: var(--price-low); }
+.price-slider-zone-yellow { background: var(--highlight); }
+.price-slider-zone-green { background: var(--price-within); }
+
+.price-slider-input {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  min-height: 2.75rem;
+  margin: 0;
+  cursor: pointer;
+  appearance: none;
+  background: transparent;
+}
+
+.price-slider-input:focus-visible { outline: none; }
+.price-slider-input:hover::-webkit-slider-thumb { box-shadow: 0 0 0 3px var(--primary); }
+
+.price-slider-input:focus-visible::-webkit-slider-thumb,
+.price-slider-input:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 3px var(--primary), 0 0 0 6px color-mix(in srgb, var(--ring) 24%, transparent);
+}
+
+.price-slider-input::-webkit-slider-runnable-track { height: 0.625rem; background: transparent; }
+.price-slider-input::-moz-range-track { height: 0.625rem; background: transparent; }
+
+.price-slider-input::-webkit-slider-thumb {
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-top: -0.4375rem;
+  appearance: none;
+  border: 3px solid var(--card);
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+.price-slider-input::-moz-range-thumb {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 3px solid var(--card);
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+.price-slider-thumb,
+.price-slider-marker {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.price-slider-thumb { display: none; }
+
+.price-slider-marker {
+  width: 0.125rem;
+  height: 1.25rem;
+  background: var(--foreground);
+  opacity: 0.7;
+}
