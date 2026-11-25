@@ -1,0 +1,589 @@
+{
+  "generatedAtUtc": "2026-11-24T12:16:32.205117+00:00",
+  "updatedAt": "16 November 2026",
+  "formulaNote": "L_asal = P_beras * R * P10(q); U_asal = P_beras * R * P90(q); dibulatkan half-up ke Rp terdekat. Bukan fitur ML/SHAP.",
+  "hppActive2026": {
+    "GKP": 6500,
+    "GKG": 8000,
+    "noRafaksi": true,
+    "regulation": "Inpres No. 4/2026 & Kepbadan No. 2/2025"
+  },
+  "empiricalParams": {
+    "GKP": {
+      "rendemenSkgb": 0.5338,
+      "p10": 0.8866,
+      "p50": 0.9669,
+      "p90": 1.0314,
+      "samplePairs": 689
+    },
+    "GKG": {
+      "rendemenSkgb": 0.6274,
+      "p10": 0.8952,
+      "p50": 0.9662,
+      "p90": 1.0328,
+      "samplePairs": 688
+    }
+  },
+  "provinces": {
+    "Aceh": {
+      "province": "Aceh",
+      "riceReferencePrice": 14650,
+      "isDirectProducerPrice": true,
+      "referenceSource": "PIHPS BI Produsen Beras Medium I (Aktual Terkini)",
+      "GKP": {
+        "lowerBound": 6934,
+        "medianPrice": 7561,
+        "upperBound": 8066
+      },
+      "GKG": {
+        "lowerBound": 8228,
+        "medianPrice": 8881,
+        "upperBound": 9492
+      }
+    },
+    "Bali": {
+      "province": "Bali",
+      "riceReferencePrice": 14300,
+      "isDirectProducerPrice": true,
+      "referenceSource": "PIHPS BI Produsen Beras Medium I (Aktual Terkini)",
+      "GKP": {
+        "lowerBound": 6768,
+        "medianPrice": 7381,
+        "upperBound": 7873
+      },
+      "GKG": {
+        "lowerBound": 8031,
+        "medianPrice": 8669,
+        "upperBound": 9266
+      }
+    },
+    "Banten": {
+      "province": "Banten",
+      "riceReferencePrice": 13500,
+      "isDirectProducerPrice": true,
+      "referenceSource": "PIHPS BI Produsen Beras Medium I (Aktual Terkini)",
+      "GKP": {
+        "lowerBound": 6389,
+        "medianPrice": 6968,
+        "upperBound": 7433
+      },
+      "GKG": {
+        "lowerBound": 7582,
+        "medianPrice": 8184,
+        "upperBound": 8747
+      }
+    },
+    "Bengkulu": {
+      "province": "Bengkulu",
+      "riceReferencePrice": 14400,
+      "isDirectProducerPrice": true,
+      "referenceSource": "PIHPS BI Produsen Beras Medium I (Aktual Terkini)",
+      "GKP": {
+        "lowerBound": 6815,
+        "medianPrice": 7432,
+        "upperBound": 7928
+      },
+      "GKG": {
+        "lowerBound": 8087,
+        "medianPrice": 8729,
+        "upperBound": 9330
+      }
+    },
+    "DI Yogyakarta": {
+      "province": "DI Yogyakarta",
+      "riceReferencePrice": 14000,
+      "isDirectProducerPrice": true,
+      "referenceSource": "PIHPS BI Produsen Beras Medium I (Aktual Terkini)",
+      "GKP": {
+        "lowerBound": 6626,
+        "medianPrice": 7226,
+        "upperBound": 7708
+      },
+      "GKG": {
+        "lowerBound": 7863,
+        "medianPrice": 8487,
+        "upperBound": 9071
+      }
+    },
+    "DKI Jakarta": {
+      "province": "DKI Jakarta",
+      "riceReferencePrice": 15038,
+      "isDirectProducerPrice": false,
+      "referenceSource": "Estimasi setara produsen dari Pasar Tradisional PIHPS (rasio median nasional 0.8820)",
+      "GKP": {
+        "lowerBound": 7117,
+        "medianPrice": 7761,
+        "upperBound": 8279
+      },
+      "GKG": {
+        "lowerBound": 8446,
+        "medianPrice": 9116,
+        "upperBound": 9744
+      }
+    },
+    "Gorontalo": {
+      "province": "Gorontalo",
+      "riceReferencePrice": 15000,
+      "isDirectProducerPrice": true,
+      "referenceSource": "PIHPS BI Produsen Beras Medium I (Aktual Terkini)",
+      "GKP": {
+        "lowerBound": 7099,
+        "medianPrice": 7742,
+        "upperBound": 8259
+      },
+      "GKG": {
+        "lowerBound": 8424,
+        "medianPrice": 9093,
+        "upperBound": 9719
+      }
+    },
+    "Jambi": {
+      "province": "Jambi",
+      "riceReferencePrice": 12650,
+      "isDirectProducerPrice": true,
+      "referenceSource": "PIHPS BI Produsen Beras Medium I (Aktual Terkini)",
+      "GKP": {
+        "lowerBound": 5987,
+        "medianPrice": 6529,
+        "upperBound": 6965
+      },
+      "GKG": {
+        "lowerBound": 7105,
+        "medianPrice": 7668,
+        "upperBound": 8197
+      }
+    },
+    "Jawa Barat": {
+      "province": "Jawa Barat",
+      "riceReferencePrice": 13000,
+      "isDirectProducerPrice": true,
+      "referenceSource": "PIHPS BI Produsen Beras Medium I (Aktual Terkini)",
+      "GKP": {
+        "lowerBound": 6153,
+        "medianPrice": 6710,
+        "upperBound": 7157
+      },
+      "GKG": {
+        "lowerBound": 7301,
+        "medianPrice": 7880,
+        "upperBound": 8423
+      }
+    },
+    "Jawa Tengah": {
+      "province": "Jawa Tengah",
+      "riceReferencePrice": 14400,
+      "isDirectProducerPrice": true,
+      "referenceSource": "PIHPS BI Produsen Beras Medium I (Aktual Terkini)",
+      "GKP": {
+        "lowerBound": 6815,
+        "medianPrice": 7432,
+        "upperBound": 7928
+      },
+      "GKG": {
+        "lowerBound": 8087,
+        "medianPrice": 8729,
+        "upperBound": 9330
+      }
+    },
+    "Jawa Timur": {
+      "province": "Jawa Timur",
+      "riceReferencePrice": 13450,
+      "isDirectProducerPrice": true,
+      "referenceSource": "PIHPS BI Produsen Beras Medium I (Aktual Terkini)",
+      "GKP": {
+        "lowerBound": 6366,
+        "medianPrice": 6942,
+        "upperBound": 7405
+      },
+      "GKG": {
+        "lowerBound": 7554,
+        "medianPrice": 8153,
+        "upperBound": 8715
+      }
+    },
+    "Kalimantan Barat": {
+      "province": "Kalimantan Barat",
+      "riceReferencePrice": 15408,
+      "isDirectProducerPrice": false,
+      "referenceSource": "Estimasi setara produsen dari Pasar Tradisional PIHPS (rasio median nasional 0.8820)",
+      "GKP": {
+        "lowerBound": 7292,
+        "medianPrice": 7952,
+        "upperBound": 8483
+      },
+      "GKG": {
+        "lowerBound": 8654,
+        "medianPrice": 9340,
+        "upperBound": 9984
+      }
+    },
+    "Kalimantan Selatan": {
+      "province": "Kalimantan Selatan",
+      "riceReferencePrice": 18600,
+      "isDirectProducerPrice": true,
+      "referenceSource": "PIHPS BI Produsen Beras Medium I (Aktual Terkini)",
+      "GKP": {
+        "lowerBound": 8803,
+        "medianPrice": 9600,
+        "upperBound": 10241
+      },
+      "GKG": {
+        "lowerBound": 10446,
+        "medianPrice": 11275,
+        "upperBound": 12052
+      }
+    },
+    "Kalimantan Tengah": {
+      "province": "Kalimantan Tengah",
+      "riceReferencePrice": 16500,
+      "isDirectProducerPrice": true,
+      "referenceSource": "PIHPS BI Produsen Beras Medium I (Aktual Terkini)",
+      "GKP": {
+        "lowerBound": 7809,
+        "medianPrice": 8516,
+        "upperBound": 9084
+      },
+      "GKG": {
+        "lowerBound": 9267,
+        "medianPrice": 10002,
+        "upperBound": 10691
+      }
+    },
+    "Kalimantan Timur": {
+      "province": "Kalimantan Timur",
+      "riceReferencePrice": 14700,
+      "isDirectProducerPrice": true,
+      "referenceSource": "PIHPS BI Produsen Beras Medium I (Aktual Terkini)",
+      "GKP": {
+        "lowerBound": 6957,
+        "medianPrice": 7587,
+        "upperBound": 8093
+      },
+      "GKG": {
+        "lowerBound": 8256,
+        "medianPrice": 8911,
+        "upperBound": 9525
+      }
+    },
+    "Kalimantan Utara": {
+      "province": "Kalimantan Utara",
+      "riceReferencePrice": 15000,
+      "isDirectProducerPrice": true,
+      "referenceSource": "PIHPS BI Produsen Beras Medium I (Aktual Terkini)",
+      "GKP": {
+        "lowerBound": 7099,
+        "medianPrice": 7742,
+        "upperBound": 8259
+      },
+      "GKG": {
+        "lowerBound": 8424,
+        "medianPrice": 9093,
+        "upperBound": 9719
+      }
+    },
+    "Kepulauan Bangka Belitung": {
+      "province": "Kepulauan Bangka Belitung",
+      "riceReferencePrice": 14729,
+      "isDirectProducerPrice": false,
+      "referenceSource": "Estimasi setara produsen dari Pasar Tradisional PIHPS (rasio median nasional 0.8820)",
+      "GKP": {
+        "lowerBound": 6971,
+        "medianPrice": 7602,
+        "upperBound": 8109
+      },
+      "GKG": {
+        "lowerBound": 8272,
+        "medianPrice": 8929,
+        "upperBound": 9544
+      }
+    },
+    "Kepulauan Riau": {
+      "province": "Kepulauan Riau",
+      "riceReferencePrice": 13406,
+      "isDirectProducerPrice": false,
+      "referenceSource": "Estimasi setara produsen dari Pasar Tradisional PIHPS (rasio median nasional 0.8820)",
+      "GKP": {
+        "lowerBound": 6345,
+        "medianPrice": 6919,
+        "upperBound": 7381
+      },
+      "GKG": {
+        "lowerBound": 7529,
+        "medianPrice": 8127,
+        "upperBound": 8686
+      }
+    },
+    "Lampung": {
+      "province": "Lampung",
+      "riceReferencePrice": 16300,
+      "isDirectProducerPrice": true,
+      "referenceSource": "PIHPS BI Produsen Beras Medium I (Aktual Terkini)",
+      "GKP": {
+        "lowerBound": 7715,
+        "medianPrice": 8413,
+        "upperBound": 8974
+      },
+      "GKG": {
+        "lowerBound": 9155,
+        "medianPrice": 9881,
+        "upperBound": 10562
+      }
+    },
+    "Maluku": {
+      "province": "Maluku",
+      "riceReferencePrice": 14000,
+      "isDirectProducerPrice": true,
+      "referenceSource": "PIHPS BI Produsen Beras Medium I (Aktual Terkini)",
+      "GKP": {
+        "lowerBound": 6626,
+        "medianPrice": 7226,
+        "upperBound": 7708
+      },
+      "GKG": {
+        "lowerBound": 7863,
+        "medianPrice": 8487,
+        "upperBound": 9071
+      }
+    },
+    "Maluku Utara": {
+      "province": "Maluku Utara",
+      "riceReferencePrice": 16052,
+      "isDirectProducerPrice": false,
+      "referenceSource": "Estimasi setara produsen dari Pasar Tradisional PIHPS (rasio median nasional 0.8820)",
+      "GKP": {
+        "lowerBound": 7597,
+        "medianPrice": 8285,
+        "upperBound": 8838
+      },
+      "GKG": {
+        "lowerBound": 9015,
+        "medianPrice": 9730,
+        "upperBound": 10401
+      }
+    },
+    "Nusa Tenggara Barat": {
+      "province": "Nusa Tenggara Barat",
+      "riceReferencePrice": 12480,
+      "isDirectProducerPrice": false,
+      "referenceSource": "Estimasi setara produsen dari Pasar Tradisional PIHPS (rasio median nasional 0.8820)",
+      "GKP": {
+        "lowerBound": 5907,
+        "medianPrice": 6441,
+        "upperBound": 6871
+      },
+      "GKG": {
+        "lowerBound": 7009,
+        "medianPrice": 7565,
+        "upperBound": 8086
+      }
+    },
+    "Nusa Tenggara Timur": {
+      "province": "Nusa Tenggara Timur",
+      "riceReferencePrice": 13141,
+      "isDirectProducerPrice": false,
+      "referenceSource": "Estimasi setara produsen dari Pasar Tradisional PIHPS (rasio median nasional 0.8820)",
+      "GKP": {
+        "lowerBound": 6220,
+        "medianPrice": 6783,
+        "upperBound": 7235
+      },
+      "GKG": {
+        "lowerBound": 7381,
+        "medianPrice": 7966,
+        "upperBound": 8515
+      }
+    },
+    "Papua": {
+      "province": "Papua",
+      "riceReferencePrice": 14350,
+      "isDirectProducerPrice": true,
+      "referenceSource": "PIHPS BI Produsen Beras Medium I (Aktual Terkini)",
+      "GKP": {
+        "lowerBound": 6792,
+        "medianPrice": 7406,
+        "upperBound": 7901
+      },
+      "GKG": {
+        "lowerBound": 8059,
+        "medianPrice": 8699,
+        "upperBound": 9298
+      }
+    },
+    "Papua Barat": {
+      "province": "Papua Barat",
+      "riceReferencePrice": 15743,
+      "isDirectProducerPrice": false,
+      "referenceSource": "Estimasi setara produsen dari Pasar Tradisional PIHPS (rasio median nasional 0.8820)",
+      "GKP": {
+        "lowerBound": 7451,
+        "medianPrice": 8125,
+        "upperBound": 8668
+      },
+      "GKG": {
+        "lowerBound": 8842,
+        "medianPrice": 9543,
+        "upperBound": 10201
+      }
+    },
+    "Riau": {
+      "province": "Riau",
+      "riceReferencePrice": 15567,
+      "isDirectProducerPrice": false,
+      "referenceSource": "Estimasi setara produsen dari Pasar Tradisional PIHPS (rasio median nasional 0.8820)",
+      "GKP": {
+        "lowerBound": 7368,
+        "medianPrice": 8034,
+        "upperBound": 8571
+      },
+      "GKG": {
+        "lowerBound": 8743,
+        "medianPrice": 9436,
+        "upperBound": 10086
+      }
+    },
+    "Sulawesi Barat": {
+      "province": "Sulawesi Barat",
+      "riceReferencePrice": 14000,
+      "isDirectProducerPrice": true,
+      "referenceSource": "PIHPS BI Produsen Beras Medium I (Aktual Terkini)",
+      "GKP": {
+        "lowerBound": 6626,
+        "medianPrice": 7226,
+        "upperBound": 7708
+      },
+      "GKG": {
+        "lowerBound": 7863,
+        "medianPrice": 8487,
+        "upperBound": 9071
+      }
+    },
+    "Sulawesi Selatan": {
+      "province": "Sulawesi Selatan",
+      "riceReferencePrice": 14550,
+      "isDirectProducerPrice": true,
+      "referenceSource": "PIHPS BI Produsen Beras Medium I (Aktual Terkini)",
+      "GKP": {
+        "lowerBound": 6886,
+        "medianPrice": 7510,
+        "upperBound": 8011
+      },
+      "GKG": {
+        "lowerBound": 8172,
+        "medianPrice": 8820,
+        "upperBound": 9428
+      }
+    },
+    "Sulawesi Tengah": {
+      "province": "Sulawesi Tengah",
+      "riceReferencePrice": 13500,
+      "isDirectProducerPrice": true,
+      "referenceSource": "PIHPS BI Produsen Beras Medium I (Aktual Terkini)",
+      "GKP": {
+        "lowerBound": 6389,
+        "medianPrice": 6968,
+        "upperBound": 7433
+      },
+      "GKG": {
+        "lowerBound": 7582,
+        "medianPrice": 8184,
+        "upperBound": 8747
+      }
+    },
+    "Sulawesi Tenggara": {
+      "province": "Sulawesi Tenggara",
+      "riceReferencePrice": 14250,
+      "isDirectProducerPrice": true,
+      "referenceSource": "PIHPS BI Produsen Beras Medium I (Aktual Terkini)",
+      "GKP": {
+        "lowerBound": 6744,
+        "medianPrice": 7355,
+        "upperBound": 7846
+      },
+      "GKG": {
+        "lowerBound": 8003,
+        "medianPrice": 8638,
+        "upperBound": 9233
+      }
+    },
+    "Sulawesi Utara": {
+      "province": "Sulawesi Utara",
+      "riceReferencePrice": 14350,
+      "isDirectProducerPrice": true,
+      "referenceSource": "PIHPS BI Produsen Beras Medium I (Aktual Terkini)",
+      "GKP": {
+        "lowerBound": 6792,
+        "medianPrice": 7406,
+        "upperBound": 7901
+      },
+      "GKG": {
+        "lowerBound": 8059,
+        "medianPrice": 8699,
+        "upperBound": 9298
+      }
+    },
+    "Sumatera Barat": {
+      "province": "Sumatera Barat",
+      "riceReferencePrice": 17000,
+      "isDirectProducerPrice": true,
+      "referenceSource": "PIHPS BI Produsen Beras Medium I (Aktual Terkini)",
+      "GKP": {
+        "lowerBound": 8046,
+        "medianPrice": 8774,
+        "upperBound": 9360
+      },
+      "GKG": {
+        "lowerBound": 9548,
+        "medianPrice": 10305,
+        "upperBound": 11015
+      }
+    },
+    "Sumatera Selatan": {
+      "province": "Sumatera Selatan",
+      "riceReferencePrice": 12350,
+      "isDirectProducerPrice": true,
+      "referenceSource": "PIHPS BI Produsen Beras Medium I (Aktual Terkini)",
+      "GKP": {
+        "lowerBound": 5845,
+        "medianPrice": 6374,
+        "upperBound": 6800
+      },
+      "GKG": {
+        "lowerBound": 6936,
+        "medianPrice": 7486,
+        "upperBound": 8002
+      }
+    },
+    "Sumatera Utara": {
+      "province": "Sumatera Utara",
+      "riceReferencePrice": 14850,
+      "isDirectProducerPrice": true,
+      "referenceSource": "PIHPS BI Produsen Beras Medium I (Aktual Terkini)",
+      "GKP": {
+        "lowerBound": 7028,
+        "medianPrice": 7664,
+        "upperBound": 8176
+      },
+      "GKG": {
+        "lowerBound": 8340,
+        "medianPrice": 9002,
+        "upperBound": 9622
+      }
+    },
+    "Nasional": {
+      "province": "Nasional",
+      "riceReferencePrice": 14100,
+      "isDirectProducerPrice": true,
+      "referenceSource": "PIHPS BI Produsen Beras Medium I (Aktual Terkini)",
+      "GKP": {
+        "lowerBound": 6673,
+        "medianPrice": 7277,
+        "upperBound": 7763
+      },
+      "GKG": {
+        "lowerBound": 7919,
+        "medianPrice": 8547,
+        "upperBound": 9136
+      }
+    }
+  }
+}
