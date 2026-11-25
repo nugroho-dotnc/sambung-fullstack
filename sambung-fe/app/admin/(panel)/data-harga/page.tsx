@@ -1,0 +1,220 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { PageContainer } from "@/components/shared/page-container";
+import { PageHeader } from "@/components/shared/page-header";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { formatRupiah } from "@/features/offers/components/offer-summary";
+import {
+  useAdminObservations,
+  usePublishObservations,
+} from "@/features/admin/hooks/use-admin";
+import {
+  Database,
+  CheckCircle2,
+  AlertOctagon,
+  RefreshCw,
+  Send,
+  ShieldCheck,
+} from "lucide-react";
+
+export default function AdminPriceDataPage() {
+  const { data: records, isLoading } = useAdminObservations();
+  const publishMutation = usePublishObservations();
+
+  const [filter, setFilter] = useState<"all" | "valid" | "issue">("all");
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const filteredRecords = (records || []).filter((r) => {
+    if (filter === "valid") return r.status === "Valid";
+    if (filter === "issue") return r.status === "Anomali" || r.status === "Ditolak";
+    return true;
+  });
+
+  const handlePublish = async () => {
+    await publishMutation.mutateAsync();
+    setSuccessMessage("Snapshot data observasi tervalidasi berhasil dipublikasikan ke acuan nasional.");
+    setTimeout(() => setSuccessMessage(null), 4000);
+  };
+
+  return (
+    <PageContainer>
+      {/* Header & Breadcrumb */}
+      <div>
+        <nav
+          aria-label="Breadcrumb"
+          className="flex items-center gap-2 text-xs text-muted-foreground mb-2"
+        >
+          <Link href="/admin" className="hover:text-foreground font-semibold">
+            Pengawas Sistem
+          </Link>
+          <span className="text-muted-foreground/50">/</span>
+          <span className="font-medium text-foreground">Observasi Data Harga</span>
+        </nav>
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+              Observasi & Validasi Data Harga
+            </h1>
+            <p className="mt-1 text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-3xl">
+              Pemantauan data survei harga gabah resmi dari BPS, Bapanas, dan PIHPS sebelum
+              diagregasi ke dalam kalkulator acuan harga wajar dan peta disparitas spasial.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              disabled={publishMutation.isPending}
+              onClick={handlePublish}
+              className="gap-1.5 font-bold text-xs shadow-xs cursor-pointer"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>Publikasikan Snapshot Acuan</span>
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {successMessage && (
+        <div className="p-4 rounded-2xl bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 text-xs font-semibold flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          <span>{successMessage}</span>
+        </div>
+      )}
+
+      {/* Filter Tabs */}
+      <div className="flex items-center gap-2 text-xs">
+        <button
+          type="button"
+          onClick={() => setFilter("all")}
+          className={`px-3.5 py-1.5 rounded-xl font-bold transition-colors cursor-pointer ${
+            filter === "all"
+              ? "bg-primary text-primary-foreground"
+              : "bg-muted text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Semua Data ({records?.length || 0})
+        </button>
+        <button
+          type="button"
+          onClick={() => setFilter("valid")}
+          className={`px-3.5 py-1.5 rounded-xl font-bold transition-colors cursor-pointer ${
+            filter === "valid"
+              ? "bg-primary text-primary-foreground"
+              : "bg-muted text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Valid ({records?.filter((r) => r.status === "Valid").length || 0})
+        </button>
+        <button
+          type="button"
+          onClick={() => setFilter("issue")}
+          className={`px-3.5 py-1.5 rounded-xl font-bold transition-colors cursor-pointer ${
+            filter === "issue"
+              ? "bg-primary text-primary-foreground"
+              : "bg-muted text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Anomali / Perlu Tinjauan ({records?.filter((r) => r.status !== "Valid").length || 0})
+        </button>
+      </div>
+
+      {/* Table Container */}
+      <Card className="rounded-2xl border border-border/80 overflow-hidden shadow-xs bg-card">
+        <CardHeader className="py-4 px-6 border-b border-border/70 flex flex-row items-center justify-between">
+          <CardTitle className="text-base font-bold text-foreground">
+            Daftar Catatan Observasi
+          </CardTitle>
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {filteredRecords.length} rekaman data
+          </span>
+        </CardHeader>
+        <CardContent className="p-0 overflow-x-auto">
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="border-b border-border/80 bg-muted/40 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                <th className="py-3 px-5">ID & Periode</th>
+                <th className="py-3 px-5">Provinsi</th>
+                <th className="py-3 px-5">Komoditas</th>
+                <th className="py-3 px-5 text-right">Harga Pengamatan</th>
+                <th className="py-3 px-5">Sumber Data</th>
+                <th className="py-3 px-5 text-center">Status Validasi</th>
+                <th className="py-3 px-5">Keterangan / Alasan Penolakan</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/60">
+              {isLoading ? (
+                <tr>
+                  <td colSpan={7} className="p-8 text-center text-xs text-muted-foreground">
+                    Memuat data observasi harga...
+                  </td>
+                </tr>
+              ) : filteredRecords.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="p-8 text-center text-xs text-muted-foreground">
+                    Tidak ditemukan data observasi.
+                  </td>
+                </tr>
+              ) : (
+                filteredRecords.map((item) => (
+                  <tr key={item.id} className="hover:bg-muted/30 transition-colors">
+                    <td className="py-3.5 px-5 tabular-nums text-muted-foreground whitespace-nowrap text-xs">
+                      <span className="font-bold text-foreground">#{item.id}</span>
+                      <p className="text-xs text-muted-foreground mt-0.5">{item.period}</p>
+                    </td>
+                    <td className="py-3.5 px-5 font-semibold text-foreground whitespace-nowrap">
+                      {item.province}
+                    </td>
+                    <td className="py-3.5 px-5 text-muted-foreground whitespace-nowrap">
+                      {item.commodity}
+                    </td>
+                    <td className="py-3.5 px-5 text-right font-bold whitespace-nowrap tabular-nums">
+                      <span
+                        className={
+                          item.price <= 0
+                            ? "text-destructive font-black"
+                            : item.price > 15000
+                            ? "text-amber-700 dark:text-amber-400 font-black"
+                            : "text-foreground"
+                        }
+                      >
+                        {item.price > 0 ? formatRupiah(item.price) : `${item.price} (Tidak Valid)`}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-5 whitespace-nowrap">
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-secondary text-secondary-foreground border border-border/60">
+                        {item.source}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-5 text-center whitespace-nowrap">
+                      <Badge
+                        variant={
+                          item.status === "Valid"
+                            ? "default"
+                            : item.status === "Anomali"
+                            ? "secondary"
+                            : "destructive"
+                        }
+                        className="text-xs font-bold uppercase"
+                      >
+                        {item.status}
+                      </Badge>
+                    </td>
+                    <td className="py-3.5 px-5 text-muted-foreground text-xs leading-relaxed max-w-xs">
+                      {item.reason || "Lolos verifikasi ambang kewajaran & non-negatif."}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+    </PageContainer>
+  );
+}
