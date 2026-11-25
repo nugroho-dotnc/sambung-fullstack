@@ -1,67 +1,132 @@
-# SAMBUNG BE — fase 1
+# SAMBUNG Backend (`sambung-be`)
 
-Gunakan Node 24, pnpm 12.23.0, dan database PostgreSQL khusus demo. Dari folder sambung-be jalankan:
+Backend layanan transaksi gabah digital, integrasi kecerdasan harga AI, notifikasi dinamis, dan tata kelola pengawas (Fase 1–4). Dibangun menggunakan Express 5, TypeScript, Prisma ORM, PostgreSQL, dan Zod.
+
+---
+
+## 1. Prasyarat Lingkungan
+
+- **Node.js**: `>= 22.18.0` (direkomendasikan Node 24)
+- **Package Manager**: `pnpm` (versi `12.23.0`)
+- **Database**: PostgreSQL lokal (misal: database `sambung` untuk aplikasi dan `sambung_phase2_test` untuk pengujian)
+
+---
+
+## 2. Pengaturan Konfigurasi Lingkungan (`.env`)
+
+Salin berkas contoh konfigurasi ke `.env`:
 
 ```powershell
-pnpm install --frozen-lockfile
 Copy-Item .env.example .env
 ```
 
-Isi DATABASE_URL di .env dengan alamat, pengguna, kata sandi dan nama database uji yang sudah dibuat. Salin contoh konfigurasi hanya saat .env belum ada. Atur FE_ORIGIN sesuai alamat browser. OTP_MODE=demo mengaktifkan kode sementara yang terlihat di browser; jalankan server ini hanya di lingkungan demo terisolasi.
+Sesuaikan nilai di dalam `.env`:
+
+```env
+DATABASE_URL=postgresql://postgres@localhost:5432/sambung
+FE_ORIGIN=http://localhost:3000
+PORT=4000
+OTP_MODE=demo
+
+# Adapter Layanan AI & Cadangan Snapshot
+AI_SNAPSHOT_PATH=../sambung-fe/data/ai/fair_price_params.json
+AI_FORECAST_SNAPSHOT_PATH=../sambung-fe/data/ai/forecast_produsen.json
+AI_TIMEOUT_MS=15000
+```
+
+> **Catatan Pengujian Multi-Device (Laptop + HP):**
+> Jika menguji dari ponsel di jaringan WiFi yang sama, ubah `localhost` pada `FE_ORIGIN` menjadi IP lokal laptop Anda (contoh: `FE_ORIGIN=http://192.168.1.10:3000`).
+
+---
+
+## 3. Langkah Instalasi, Migrasi & Menjalankan Server
+
+Jalankan perintah berikut secara berurutan:
 
 ```powershell
+# 1. Pasang dependensi
+pnpm install
+
+# 2. Bangun Prisma Client
 pnpm generate
+
+# 3. Jalankan migrasi database
+pnpm migrate
+
+# 4. Terapkan data awal (seed demo akun & parameter pasar)
 pnpm seed:demo
-pnpm typecheck
-pnpm build
-pnpm start
+
+# 5. Jalankan server (mode development dengan auto-reload)
+pnpm dev
 ```
 
-Seed menjalankan migrasi terlebih dahulu dan mempertahankan akun yang sudah ada. Untuk migrasi saja gunakan `pnpm migrate`. Untuk pengembangan gunakan `pnpm dev`. Health tersedia di `GET /health`.
+Server backend akan aktif di `http://localhost:4000`. Endpoint pemeriksaan kesehatan server tersedia di `GET /health`.
 
-### Database fase 1 yang sudah berisi akun
+---
 
-Untuk database lama, sebelum menjalankan seed atau deploy, bandingkan skema aktual dengan prisma/schema.prisma.
-Jalankan dari PowerShell dengan DATABASE_URL menunjuk ke database yang sedang diperiksa:
+## 4. Akun Demo Bawaan (`Seed`)
+
+Perintah `pnpm seed:demo` menyediakan 4 akun siap pakai:
+
+| Peran | Nama | Nomor Ponsel / Email | Kredensial / OTP | Keterangan |
+|---|---|---|---|---|
+| **Petani** | Sari | `081234567890` | Kode OTP demo di layar | Menerbitkan tawaran panen, tawar balik, konfirmasi selesai |
+| **Pembeli** | Budi | `081398765432` | Kode OTP demo di layar | Memesan volume parsial, tawar harga, konfirmasi selesai |
+| **Pembeli** | Rina | `081398765433` | Kode OTP demo di layar | Uji pemesanan konkuren bersaing atas sisa stok |
+| **Admin** | Pengawas Sistem | `admin@sambung.id` | Kata sandi: `admin123` | Memantau statistik, kalibrasi parameter pasar, audit log |
+
+---
+
+## 5. Rangkaian Pengujian Integrasi Otomatis
+
+Backend dilengkapi suite pengujian integrasi otomatis menyeluruh terhadap database PostgreSQL nyata.
+
+Untuk menjalankan pengujian pada database pengujian terisolasi (`sambung_phase2_test`):
 
 ```powershell
-pnpm exec prisma migrate diff --from-schema-datasource prisma/schema.prisma --to-schema-datamodel prisma/schema.prisma --exit-code
+# Terapkan migrasi pada database uji terlebih dahulu
+$env:DATABASE_URL = 'postgresql://postgres@localhost:5432/sambung_phase2_test'
+pnpm migrate
+
+# Jalankan seluruh 5 test suite Fase 1–4
+$env:TEST_DATABASE_URL = 'postgresql://postgres@localhost:5432/sambung_phase2_test'
+pnpm test:phase4
 ```
 
-Kode keluar 0 berarti struktur yang dikenali Prisma cocok. Periksa juga bahwa schema_migration berisi 001_identity dan constraint CHECK peran serta status sesuai SQL awal. Jika terdapat selisih, tinjau dahulu. Setelah cocok, catat baseline **sekali** dengan `pnpm exec prisma migrate resolve --applied 001_identity`. Langkah ini mencatat riwayat Prisma tanpa membuat ulang akun atau sesi. Untuk database baru yang kosong cukup gunakan seed:demo seperti di atas.
+### Rincian Test Suite:
+1. `auth.test.mjs`: Uji 2 sesi terpisah, verifikasi OTP demo, batas percobaan, registrasi akun, dan logout.
+2. `offers-catalog.test.mjs`: Uji penerbitan tawaran 1.000 kg, filter katalog, penarikan tawaran, dan idempotensi.
+3. `contracts.test.mjs`: Uji pesanan parsial (300 kg dari 1.000 kg), negosiasi berversi, penguncian baris конкурен (*row-level locking*), pelepasan stok, dan 2 konfirmasi selesai.
+4. `forecast.test.mjs`: Uji pemanggilan live AI Space Gradio v3, interval keyakinan 80%, konversi turunan GKP/GKG, kontribusi TreeSHAP, dan penanganan fallback.
+5. `notifications-admin.test.mjs`: Uji login pengawas admin, pembacaan agregat statistik, mutasi parameter pasar, pencatatan audit log, dan siklus notifikasi transaksi.
 
-### Struktur fase 1
+---
 
-- `src/modules/auth/` memuat route, schema Zod, service autentikasi, dan helper sesi.
-- `src/db/prisma.ts` membuat client bersama. Konfigurasi startup ada di `src/config/env.ts`.
-- `src/shared/api-error.ts` dan `src/middleware/error-handler.ts` menjaga format respons galat.
-- `prisma/schema.prisma` memetakan tabel lama. Migrasi selanjutnya masuk ke `prisma/migrations/`; seed demo ada di `prisma/seed.ts`.
+## 6. Struktur Modular Backend (`src/`)
 
-Pada sambung-fe, isi .env.local dengan NEXT_PUBLIC_USE_MOCK=false dan NEXT_PUBLIC_API_BASE_URL=http://localhost:4000. Mulai ulang Next.js dan buka http://localhost:3000/masuk. Untuk HP, ganti localhost pada kedua alamat dan FE_ORIGIN dengan IP laptop yang sama, pertahankan port masing-masing, lalu jalankan ulang kedua aplikasi.
+```
+src/
+├── config/             # Validasi variabel lingkungan Zod (env.ts)
+├── db/                 # Inisialisasi Prisma Client tunggal (prisma.ts)
+├── middleware/         # Penanganan CORS, origin, dan error handler seragam (error-handler.ts)
+├── modules/
+│   ├── auth/           # Identitas, OTP demo challenge, sesi cookie (auth.routes.ts, auth.service.ts)
+│   ├── pricing/        # Adapter harga wajar AI Gradio v3 & fallback snapshot (pricing.service.ts)
+│   ├── offers/         # Pengelolaan tawaran panen & katalog pasar (offers.routes.ts, offers.service.ts)
+│   ├── contracts/      # Transaksi parsial, negosiasi berversi, & tenggat kedaluwarsa (contracts.service.ts)
+│   ├── forecast/       # Prakiraan harga AI 2w/4w & faktor TreeSHAP (forecast.service.ts, ai-forecast.client.ts)
+│   ├── notifications/  # Layanan notifikasi transaksi berbasis event (notifications.service.ts)
+│   └── admin/          # Agregasi data, parameter pasar dinamis, & audit log (admin.service.ts)
+├── shared/             # Kelas ApiError standar RFC-7807 (api-error.ts)
+├── app.ts              # Konfigurasi aplikasi Express & perutean
+└── index.ts            # Entry point server HTTP & background job timer tenggat
+```
 
-| Nomor | Nama | Peran |
-|---|---|---|
-| 081234567890 | Sari | Petani |
-| 081398765432 | Budi | Pembeli |
-| 081398765433 | Rina | Pembeli |
+---
 
-Masuk dari dua profil browser, lihat kode demo empat digit pada halaman verifikasi, lalu muat ulang halaman. Keluar dari satu sesi dan pastikan sesi lainnya masih aktif. Nomor baru diarahkan ke pendaftaran setelah lolos verifikasi. Modul transaksi dan login admin berada di luar fase ini.
+## 7. Riwayat Migrasi Prisma (`prisma/migrations/`)
 
-Uji regresi API dengan pnpm test:auth setelah mengisi TEST_DATABASE_URL dengan database khusus uji yang telah dimigrasikan. Pengujian membuat akun uji dengan nomor acak.
-
-### Fase 2 — tawaran, acuan harga, dan katalog
-
-Jalankan backend dari sambung-be agar path snapshot sesuai. Dengan FE dalam mode API, masuk sebagai Sari, buat draf 1.000 kg di Sumbersari, lalu tinjau dan terbitkan. Masuk sebagai Budi di profil browser atau perangkat lain dan buka katalog. Cocokkan volume dan harga, tarik tawaran dari akun Sari, lalu muat ulang detail katalog Budi.
-
-Backend memakai Gradio untuk menghitung rentang harga. AI_BASE_URL dapat mengganti alamat server. AI_TIMEOUT_MS mengatur batas waktu. Jika AI_SNAPSHOT_PATH terisi dan layanan gagal, hasil dari snapshot wilayah yang sama mencantumkan tanggal sumber. Tanpa sumber yang dapat digunakan, publikasi mengembalikan PRICE_UNAVAILABLE dan draf dapat dibuka kembali.
-
-Gunakan database PostgreSQL khusus pengujian dengan nama berakhiran _test. Jalankan migrasi pada database tersebut, lalu isi TEST_DATABASE_URL untuk sesi pengujian. Jalankan kedua suite dengan pnpm test:phase2. Uji memakai dua peran dan server harga lokal dengan respons yang dikendalikan.
-
-### Fase 3 — kontrak parsial dan negosiasi
-
-Jalankan migrasi dengan pnpm migrate lalu mulai ulang API dan frontend. Proses API memeriksa kontrak lewat tenggat saat startup dan setiap lima detik. Tenggat berlangsung 24 jam dari waktu pengajuan dan server memeriksa tenggat lagi saat pengguna bertindak.
-
-1. Sari menerbitkan tawaran 1.000 kg. Dari sesi lain Budi membuka katalog dan memesan 300 kg dengan harga Rp6.500/kg.
-2. Sari membuka daftar kontrak, memilih pesanan Budi dan mengajukan Rp6.800/kg. Budi membuka ruang yang sama dan menyetujui harga aktif. Verifikasi 700 kg masih tersedia, dan kontak baru muncul pada status disetujui.
-3. Sari mengonfirmasi selesai, kemudian Budi mengonfirmasi dari perangkat kedua. Buka bukti simulasi dan periksa volume 300 kg, harga akhir, serta sumber acuan.
-4. Pada pesanan lain, coba penolakan atau pembatalan dan periksa kembali ketersediaan stok. Gunakan pnpm test:phase3 dengan TEST_DATABASE_URL mengarah ke database uji yang berakhiran _test dan sudah dimigrasikan untuk pengujian persaingan stok, tenggat serta pengulangan permintaan.
+1. `001_identity`: Tabel `account`, `otp_challenge`, `auth_session`, dan `schema_migration`.
+2. `002_offers_pricing_catalog`: Tabel `Region`, `Offer`, `OfferRequest` (idempotensi).
+3. `003_contracts_negotiation`: Tabel `Contract` dan `ContractPrice` (riwayat tawar-menawar).
+4. `004_notifications_and_admin`: Tabel `notification`, `system_parameter`, `audit_log`, serta kolom email/password pada `account`.
