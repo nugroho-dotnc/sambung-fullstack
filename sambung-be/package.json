@@ -1,0 +1,46 @@
+{
+  "name": "sambung-be",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env --watch src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "prisma generate && tsc",
+    "start": "node --env-file-if-exists=.env dist/index.js",
+    "migrate": "prisma migrate deploy",
+    "seed:demo": "prisma migrate deploy && node --env-file-if-exists=.env prisma/seed.ts",
+    "generate": "prisma generate",
+    "test:phase4": "node --env-file-if-exists=.env --test tests/integration/*.test.mjs",
+    "test:phase3": "node --env-file-if-exists=.env --test tests/integration/*.test.mjs",
+    "test:phase2": "node --env-file-if-exists=.env --test tests/integration/auth.test.mjs tests/integration/offers-catalog.test.mjs",
+    "test:auth": "node --env-file-if-exists=.env --test tests/integration/auth.test.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.23.0",
+      "onFail": "download"
+    }
+  },
+  "packageManager": "pnpm@12.23.0",
+  "type": "module",
+  "dependencies": {
+    "express": "^5.3.0",
+    "@prisma/client": "5.22.0",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^24.0.0",
+    "typescript": "~5.9.3",
+    "prisma": "5.22.0"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  }
+}
+
