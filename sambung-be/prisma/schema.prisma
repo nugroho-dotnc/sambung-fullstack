@@ -1,0 +1,172 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  purchases Contract[]
+  notifications Notification[]
+  id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  phone          String        @unique
+  email          String?       @unique
+  passwordHash   String?       @map("password_hash")
+  role           String
+  name           String
+  province       String
+  regency        String
+  district       String
+  businessName   String?       @map("business_name")
+  status         String        @default("active")
+  consentAt      DateTime?     @map("consent_at") @db.Timestamptz(6)
+  consentVersion String?       @map("consent_version")
+  offers Offer[]
+  sessions       AuthSession[]
+
+  @@map("account")
+}
+
+model OtpChallenge {
+  phone       String   @id
+  digest      String
+  requestedAt DateTime @default(now()) @map("requested_at") @db.Timestamptz(6)
+  expiresAt   DateTime @map("expires_at") @db.Timestamptz(6)
+  attempts    Int      @default(0)
+
+  @@map("otp_challenge")
+}
+
+model AuthSession {
+  tokenHash String   @id @map("token_hash")
+  phone     String
+  accountId String?  @map("account_id") @db.Uuid
+  account   Account? @relation(fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+
+  @@index([expiresAt], map: "auth_session_expiry")
+  @@map("auth_session")
+}
+
+model LegacyMigration {
+  name String @id
+
+  @@map("schema_migration")
+}
+model Region {
+  id String @id
+  province String
+  regency String
+  offers Offer[]
+}
+
+model Offer {
+  contracts Contract[]
+  id String @id @default(uuid()) @db.Uuid
+  ownerId String @db.Uuid
+  owner Account @relation(fields: [ownerId], references: [id])
+  districtId String
+  region Region @relation(fields: [districtId], references: [id])
+  grainType String
+  totalVolumeKg Decimal @db.Decimal(14,2)
+  askPrice Int
+  quality Float?
+  availableOn String?
+  notes String?
+  status String @default("draft")
+  version Int @default(1)
+  priceCheck Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([status, updatedAt])
+  @@index([ownerId])
+}
+
+model OfferRequest {
+  ownerId String @db.Uuid
+  key String
+  fingerprint String
+  response Json
+  @@id([ownerId,key])
+}
+
+model Contract {
+  id String @id @default(uuid()) @db.Uuid
+  offerId String @db.Uuid
+  offer Offer @relation(fields:[offerId], references:[id])
+  buyerId String @db.Uuid
+  buyer Account @relation(fields:[buyerId], references:[id])
+  volumeKg Decimal @db.Decimal(14,2)
+  farmerAskPrice Int
+  status String @default("pending")
+  priceOfferVersion Int @default(1)
+  currentPrice Int
+  currentTurnRole String @default("petani")
+  farmerConfirmed Boolean @default(false)
+  buyerConfirmed Boolean @default(false)
+  expiresAt DateTime @db.Timestamptz(6)
+  cancelReason String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  history ContractPrice[]
+  @@index([offerId,status])
+  @@index([buyerId])
+  @@index([status, expiresAt])
+}
+model ContractPrice {
+  id String @id @default(uuid()) @db.Uuid
+  contractId String @db.Uuid
+  contract Contract @relation(fields:[contractId],references:[id])
+  version Int
+  role String
+  price Int
+  note String?
+  priceCheck Json
+  timestamp DateTime @default(now())
+  @@unique([contractId,version])
+}
+
+model Notification {
+  id String @id @default(uuid()) @db.Uuid
+  accountId String @db.Uuid @map("account_id")
+  account Account @relation(fields: [accountId], references: [id])
+  type String
+  title String
+  description String
+  linkHref String? @map("link_href")
+  isRead Boolean @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  contractId String? @map("contract_id") @db.Uuid
+
+  @@index([accountId, createdAt])
+  @@map("notification")
+}
+
+model SystemParameter {
+  id String @id @default("active")
+  orderExpiryHours Int @default(24) @map("order_expiry_hours")
+  fairPriceToleranceDelta Float @default(0.03) @map("fair_price_tolerance_delta")
+  rendemenGKP Float @default(0.5338) @map("rendemen_gkp")
+  rendemenGKG Float @default(0.6274) @map("rendemen_gkg")
+  governmentFloorPriceGKP Int @default(6500) @map("government_floor_price_gkp")
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("system_parameter")
+}
+
+model AuditLog {
+  id String @id @default(uuid()) @db.Uuid
+  timestamp DateTime @default(now()) @db.Timestamptz(6)
+  actorRole String @map("actor_role")
+  actorName String @map("actor_name")
+  action String
+  targetType String @map("target_type")
+  targetId String @map("target_id")
+  details String
+
+  @@index([timestamp(sort: Desc)])
+  @@map("audit_log")
+}
+
