@@ -22,3 +22,14 @@ export const profileFields = {
 export function publicProfile<T extends { businessName: string | null }>(user: T) {
   return { ...user, businessName: user.businessName ?? undefined };
 }
+
+/**
+ * Masks phone numbers for supervisor views so personal contacts are never exposed raw.
+ */
+export function maskPhone(phone: string): string {
+  const trimmed = phone.trim();
+  if (trimmed.length >= 8) {
+    return `${trimmed.slice(0, 4)}-****-${trimmed.slice(-4)}`;
+  }
+  return "****";
+}

@@ -1,7 +1,9 @@
 import type { PrismaClient, Prisma } from "@prisma/client";
-import { digest, createSession, publicProfile } from "../auth/session.ts";
+import { digest, createSession, maskPhone, profileFields, publicProfile } from "../auth/session.ts";
 import { ApiError } from "../../shared/api-error.ts";
 import { present, include } from "../offers/offers.service.ts";
+import { MODERATION_MARKER, applyModerationNote } from "../offers/offer-moderation.ts";
+import { createNotification } from "../notifications/notifications.service.ts";
 
 export interface CreateAuditLogInput {
   actorRole: "admin" | "petani" | "pembeli" | "sistem";
@@ -70,7 +72,7 @@ export async function getAdminStats(db: PrismaClient) {
     }),
     db.contract.count({ where: { status: "pending" } }),
     db.contract.count({ where: { status: { in: ["approved", "completed"] } } }),
-    db.offer.count({ where: { status: "draft" } }),
+    db.offer.count({ where: { notes: { contains: MODERATION_MARKER } } }),
     db.account.count({ where: { status: "active" } }),
     db.auditLog.count(),
   ]);
@@ -89,9 +91,16 @@ export async function getAdminStats(db: PrismaClient) {
 
 export async function getAdminUsers(db: PrismaClient) {
   const accounts = await db.account.findMany({
+    select: { ...profileFields, email: true },
     orderBy: { consentAt: "desc" },
   });
-  return accounts.map(publicProfile);
+  return accounts.map((account) =>
+    publicProfile({
+      ...account,
+      phone: maskPhone(account.phone),
+      email: account.email ?? undefined,
+    })
+  );
 }
 
 export async function getSystemParameters(db: PrismaClient) {
@@ -245,21 +254,39 @@ export async function moderateOffer(
     throw new ApiError(404, "NOT_FOUND", "Tawaran tidak ditemukan.");
   }
 
-  const updated = await db.offer.update({
-    where: { id: offerId },
-    data: {
-      notes: note ? `${offer.notes || ""}\n[Catatan Pengawas]: ${note}`.trim() : offer.notes,
-    },
-    include,
-  });
+  const nextNotes = applyModerationNote(offer.notes, action, note);
 
-  await createAuditLog(db, {
-    actorRole: "admin",
-    actorName,
-    action: `MODERATE_OFFER_${action.toUpperCase()}`,
-    targetType: "offer",
-    targetId: offerId,
-    details: `Tindakan moderasi ${action} pada tawaran ${offerId}. Catatan: ${note || "-"}`,
+  const updated = await db.$transaction(async (tx) => {
+    const saved = await tx.offer.update({
+      where: { id: offerId },
+      data: { notes: nextNotes },
+      include,
+    });
+
+    await createNotification(tx, {
+      accountId: offer.ownerId,
+      type: "pasar",
+      title:
+        action === "request_fix"
+          ? "Permintaan Perbaikan Informasi Tawaran"
+          : "Catatan Pengawas pada Tawaran Ditutup",
+      description:
+        action === "request_fix"
+          ? `Pengawas meminta klarifikasi pada tawaran ${offer.grainType} Anda: ${note?.trim()}`
+          : `Catatan pengawas pada tawaran ${offer.grainType} Anda telah dinyatakan selesai.`,
+      linkHref: `/petani/tawaran/${offerId}`,
+    });
+
+    await createAuditLog(tx, {
+      actorRole: "admin",
+      actorName,
+      action: `MODERATE_OFFER_${action.toUpperCase()}`,
+      targetType: "offer",
+      targetId: offerId,
+      details: `Tindakan moderasi ${action} pada tawaran ${offerId}. Catatan: ${note?.trim() || "-"}`,
+    });
+
+    return saved;
   });
 
   return { success: true, offer: present(updated) };

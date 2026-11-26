@@ -11,8 +11,8 @@
     "migrate": "prisma migrate deploy",
     "seed:demo": "prisma migrate deploy && node --env-file-if-exists=.env prisma/seed.ts",
     "generate": "prisma generate",
-    "test:phase4": "node --env-file-if-exists=.env --test tests/integration/*.test.mjs",
-    "test:phase3": "node --env-file-if-exists=.env --test tests/integration/*.test.mjs",
+    "test:phase4": "node --env-file-if-exists=.env --test --test-concurrency=1 tests/integration/*.test.mjs",
+    "test:phase3": "node --env-file-if-exists=.env --test --test-concurrency=1 tests/integration/*.test.mjs",
     "test:phase2": "node --env-file-if-exists=.env --test tests/integration/auth.test.mjs tests/integration/offers-catalog.test.mjs",
     "test:auth": "node --env-file-if-exists=.env --test tests/integration/auth.test.mjs"
   },

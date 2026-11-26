@@ -1,7 +1,7 @@
 import type {Prisma,PrismaClient} from "@prisma/client";
 import {z} from "zod";
 import {ApiError} from "../../shared/api-error.ts";
-import {digest} from "../auth/session.ts";
+import {digest, maskPhone} from "../auth/session.ts";
 import {include as offerInclude,present} from "../offers/offers.service.ts";
 import {preview} from "../pricing/pricing.service.ts";
 import {orderSchema,counterSchema,acceptSchema,reasonSchema,type Action} from "./contracts.schemas.ts";
@@ -12,28 +12,62 @@ const include={offer:{include:{region:true,owner:person}},buyer:person,history:{
 type Row=Prisma.ContractGetPayload<{include:typeof include}>;
 function fail(code:string,message:string):never {throw new ApiError(409,code,message);}
 function missing():never {throw new ApiError(404,"NOT_FOUND","Kontrak tidak ditemukan.");}
-function view(row:Row) {
-  const {offer,buyer,history,...contract}=row;
-  const saved=history[history.length-1].priceCheck;
-  const accepted=saved && typeof saved==="object" && !Array.isArray(saved) ? saved.acceptance : null;
-  const checked=accepted ?? saved;
-  const priceReference=checked && typeof checked==="object" && !Array.isArray(checked) ? checked.reference : null;
-  return {...contract,priceReference,volumeKg:Number(row.volumeKg),farmerId:offer.ownerId,farmerName:offer.owner.name,
-    buyerName:buyer.name,farmerBusiness:offer.owner.businessName ?? undefined,buyerBusiness:buyer.businessName ?? undefined,
-    ...(row.status==="approved"?{farmerPhone:offer.owner.phone,buyerPhone:buyer.phone}:{}),
-    grainType:offer.grainType,province:offer.region.province,regency:offer.region.regency,district:offer.districtId,
-    quality:offer.quality,initialPrice:history[0].price,history:history.map(h=>({...h,authorName:h.role==="petani"?offer.owner.name:buyer.name}))};
+function resolveContractContacts(row: Row, actorRole: string) {
+  if (row.status !== "approved") {
+    return {};
+  }
+  if (actorRole === "admin") {
+    return {
+      farmerPhone: maskPhone(row.offer.owner.phone),
+      buyerPhone: maskPhone(row.buyer.phone),
+    };
+  }
+  return {
+    farmerPhone: row.offer.owner.phone,
+    buyerPhone: row.buyer.phone,
+  };
+}
+
+function view(row: Row, actorRole: string) {
+  const { offer, buyer, history, ...contract } = row;
+  const saved = history[history.length - 1].priceCheck;
+  const accepted = saved && typeof saved === "object" && !Array.isArray(saved) ? saved.acceptance : null;
+  const checked = accepted ?? saved;
+  const priceReference = checked && typeof checked === "object" && !Array.isArray(checked) ? checked.reference : null;
+  return {
+    ...contract,
+    priceReference,
+    volumeKg: Number(row.volumeKg),
+    farmerId: offer.ownerId,
+    farmerName: offer.owner.name,
+    buyerName: buyer.name,
+    farmerBusiness: offer.owner.businessName ?? undefined,
+    buyerBusiness: buyer.businessName ?? undefined,
+    ...resolveContractContacts(row, actorRole),
+    grainType: offer.grainType,
+    province: offer.region.province,
+    regency: offer.region.regency,
+    district: offer.districtId,
+    quality: offer.quality,
+    initialPrice: history[0].price,
+    history: history.map((h) => ({
+      ...h,
+      authorName: h.role === "petani" ? offer.owner.name : buyer.name,
+    })),
+  };
 }
 const parties=(actor:Actor)=> actor.role === "admin" ? {} : ({OR:[{buyerId:actor.id},{offer:{ownerId:actor.id}}]});
 export async function contracts(db:PrismaClient,actor:Actor,status?:string) {
-  return (await db.contract.findMany({where:{...parties(actor),status},include,orderBy:{createdAt:"desc"}})).map(view);
+  return (await db.contract.findMany({where:{...parties(actor),status},include,orderBy:{createdAt:"desc"}})).map((row)=>view(row, actor.role));
 }
 export async function detail(db:PrismaClient,actor:Actor,id:string) {
   const row=await db.contract.findFirst({where:{id,...parties(actor)},include});
-  return row?view(row):missing();
+  return row?view(row, actor.role):missing();
 }
 export async function command(db:PrismaClient,actor:Actor,action:Action,id:string|undefined,body:unknown,key:string) {
-  z.uuid().parse(key);
+  if (!z.uuid().safeParse(key).success) {
+    throw new ApiError(400, "INVALID_REQUEST", "Permintaan tidak lengkap. Muat ulang halaman lalu coba kembali.");
+  }
   const order=action==="order"?orderSchema.parse(body):undefined;
   const counter=action==="counter"?counterSchema.parse(body):undefined;
   const acceptance=action==="accept"?acceptSchema.parse(body):undefined;
@@ -42,8 +76,8 @@ export async function command(db:PrismaClient,actor:Actor,action:Action,id:strin
   const where={ownerId_key:{ownerId:actor.id,key}};
   // Store only the resource ID. Every replay must apply the current contact visibility.
   async function replay(tx:Prisma.TransactionClient,receipt:{fingerprint:string,response:Prisma.JsonValue}) {
-    if(receipt.fingerprint!==fingerprint) fail("IDEMPOTENCY_CONFLICT","Kunci permintaan sudah dipakai.");
-    return view(await tx.contract.findUniqueOrThrow({where:{id:String(receipt.response)},include}));
+    if(receipt.fingerprint!==fingerprint) fail("IDEMPOTENCY_CONFLICT","Permintaan ini sudah pernah dikirim dengan isi berbeda. Muat ulang halaman lalu coba kembali.");
+    return view(await tx.contract.findUniqueOrThrow({where:{id:String(receipt.response)},include}), actor.role);
   }
   const prior=await db.offerRequest.findUnique({where});
   if(prior) return replay(db,prior);
@@ -65,18 +99,18 @@ export async function command(db:PrismaClient,actor:Actor,action:Action,id:strin
     const locked=await tx.offer.findUniqueOrThrow({where:{id:offerId},include:offerInclude});
     const c=id?await tx.contract.findUniqueOrThrow({where:{id}}):null;
     if(c && (counter || acceptance) && (counter ?? acceptance)!.priceOfferVersion!==c.priceOfferVersion)
-      fail("VERSION_CONFLICT","Harga sudah berubah. Tinjau pengajuan terbaru.");
+      fail("VERSION_CONFLICT","Penawaran harga telah diperbarui mitra Anda. Muat ulang halaman untuk meninjau harga terbaru.");
     if(check && pricing) {
       if(locked.version!==offer.version || pricing.referenceVersion!==check.reference.referenceVersion)
-        fail("REFERENCE_CHANGED","Tinjau kembali acuan harga terbaru.");
-      if(check.requiresConfirmation && !pricing.redConfirmed) fail("RED_CONFIRMATION_REQUIRED","Konfirmasikan harga merah terlebih dahulu.");
+        fail("REFERENCE_CHANGED","Acuan harga pasar baru saja berubah. Tinjau kembali acuan harga terbaru.");
+      if(check.requiresConfirmation && !pricing.redConfirmed) fail("RED_CONFIRMATION_REQUIRED","Harga yang diajukan jauh di bawah acuan pasar. Mohon konfirmasi terlebih dahulu sebelum melanjutkan.");
     }
     let contractId=id;
     const sysParam=await tx.systemParameter.findUnique({where:{id:"active"}});
     const expiryMs=(sysParam?.orderExpiryHours ?? 24)*3600000;
     if(order && check) {
       if(locked.status!=="published" || order.volumeKg>present(locked).availableVolumeKg)
-        fail("INSUFFICIENT_STOCK","Stok tersedia tidak mencukupi. Periksa kembali katalog.");
+        fail("INSUFFICIENT_STOCK","Stok tersedia tidak mencukupi untuk jumlah pesanan ini. Periksa kembali sisa volume di katalog.");
       const row=await tx.contract.create({data:{offerId,buyerId:actor.id,volumeKg:order.volumeKg,
         farmerAskPrice:locked.askPrice,currentPrice:order.proposedPrice,expiresAt:new Date(Date.now()+expiryMs),
         history:{create:{version:1,role:actor.role,price:order.proposedPrice,note:order.notes,priceCheck:{...check,redConfirmed:!!order.redConfirmed}}}}});
@@ -86,11 +120,11 @@ export async function command(db:PrismaClient,actor:Actor,action:Action,id:strin
       await tx.auditLog.create({data:{actorRole:actor.role,actorName:actor.id,action:"CREATE_ORDER",
         targetType:"contract",targetId:row.id,details:`Pesanan ${order.volumeKg} kg seharga Rp${order.proposedPrice}/kg`}});
     } else if(c) {
-      if(c.status==="pending" && Date.now()>=c.expiresAt.getTime()) fail("EXPIRED","Tenggat sudah tercapai.");
+      if(c.status==="pending" && Date.now()>=c.expiresAt.getTime()) fail("EXPIRED","Batas waktu negosiasi untuk pesanan ini sudah berakhir.");
       const update:Prisma.ContractUpdateManyMutationInput={};
       const partnerId=actor.id===c.buyerId?locked.ownerId:c.buyerId;
       if(action==="counter" || action==="accept") {
-        if(c.status!=="pending" || c.currentTurnRole!==actor.role) fail("INVALID_TURN","Tindakan tidak tersedia untuk giliran ini.");
+        if(c.status!=="pending" || c.currentTurnRole!==actor.role) fail("INVALID_TURN","Saat ini giliran mitra Anda untuk menanggapi harga. Muat ulang halaman untuk melihat pembaruan.");
         if(counter && check) {
           await tx.contractPrice.create({data:{contractId:c.id,version:c.priceOfferVersion+1,role:actor.role,
             price:counter.proposedPrice,note:counter.note,priceCheck:{...check,redConfirmed:!!counter.redConfirmed}}});
@@ -134,10 +168,10 @@ export async function command(db:PrismaClient,actor:Actor,action:Action,id:strin
       }
       const changed=await tx.contract.updateMany({where:{id:c.id,status:c.status,
         ...(c.status==="pending"?{expiresAt:{gt:new Date()}}:{})},data:update});
-      if(!changed.count) fail("VERSION_CONFLICT","Status kontrak berubah. Muat ulang.");
+      if(!changed.count) fail("VERSION_CONFLICT","Status kontrak telah berubah. Muat ulang halaman untuk melihat pembaruan terbaru.");
     }
     const result=await tx.contract.findUniqueOrThrow({where:{id:contractId},include});
     await tx.offerRequest.create({data:{ownerId:actor.id,key,fingerprint,response:result.id}});
-    return view(result);
+    return view(result, actor.role);
   });
 }

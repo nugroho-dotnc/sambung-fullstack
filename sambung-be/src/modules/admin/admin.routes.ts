@@ -28,10 +28,10 @@ export function adminRouter(db: PrismaClient, isSecure: boolean) {
       include: { account: true },
     });
     if (!session?.account) {
-      throw new ApiError(401, "UNAUTHENTICATED", "Masuk ke portal pengawas terlebih dahulu.");
+      throw new ApiError(401, "UNAUTHENTICATED", "Silakan masuk ke portal pengawas terlebih dahulu.");
     }
     if (session.account.role !== "admin") {
-      throw new ApiError(403, "FORBIDDEN", "Hanya staf pengawas yang memiliki akses ke modul ini.");
+      throw new ApiError(403, "FORBIDDEN", "Halaman ini hanya dapat dibuka oleh akun pengawas sistem.");
     }
     return session.account;
   }
@@ -49,7 +49,7 @@ export function adminRouter(db: PrismaClient, isSecure: boolean) {
     res.cookie("sambung_session", token, {
       httpOnly: true,
       sameSite: "lax",
-      secure: isSecure,
+      secure: isSecure || req.secure,
       path: "/",
       maxAge,
     });
