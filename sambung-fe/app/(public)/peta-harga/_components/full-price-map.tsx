@@ -1005,7 +1005,7 @@ export default function FullPriceMap() {
             className="w-full gap-2 font-semibold text-xs h-10 cursor-pointer"
             render={
               <Link
-                href={`/kalkulator?province=${encodeURIComponent(
+                href={`/harga-wajar?province=${encodeURIComponent(
                   selectedItem.province
                 )}`}
               />

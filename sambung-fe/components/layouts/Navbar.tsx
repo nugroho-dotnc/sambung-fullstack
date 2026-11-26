@@ -18,7 +18,6 @@ import { useMobile } from "@/hooks/use-mobile";
 const NAV_LINKS = [
   { href: "/", label: "Beranda" },
   { href: "/peta-harga", label: "Peta & Papan Harga" },
-  { href: "/kalkulator", label: "Kalkulator Harga Wajar" },
   { href: "/bantuan", label: "Bantuan" },
 ];
 
