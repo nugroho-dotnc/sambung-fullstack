@@ -141,8 +141,8 @@ function WizardForm({
   const [showRedAlertModal, setShowRedAlertModal] = useState(false);
 
   // Unsaved changes dialog state
-  const initialSnapshot = useRef(JSON.stringify(fields));
-  const isDirty = step === 1 && JSON.stringify(fields) !== initialSnapshot.current;
+  const [initialSnapshot, setInitialSnapshot] = useState(() => JSON.stringify(fields));
+  const isDirty = step === 1 && JSON.stringify(fields) !== initialSnapshot;
   const [showExitDialog, setShowExitDialog] = useState(false);
   const pendingExitHref = useRef<string | null>(null);
 
@@ -175,8 +175,8 @@ function WizardForm({
       return;
     }
     setShowExitDialog(false);
-    await persist(input, false);
-    if (pendingExitHref.current) {
+    const savedOk = await persist(input, false);
+    if (savedOk && pendingExitHref.current) {
       router.push(pendingExitHref.current);
     }
   }
@@ -306,7 +306,7 @@ function WizardForm({
         });
         setChecked(result);
         red = result.requiresConfirmation;
-      } catch (reason) {
+      } catch {
         // If preview API fails, use fallback check
         const isFallbackRed = input.askPrice < priceRef.lowerBound * (1 - priceRef.toleranceDelta);
         red = isFallbackRed;
@@ -344,14 +344,34 @@ function WizardForm({
     return result;
   }
 
-  async function persist(input: OfferInput, publish: boolean) {
-    if (busy.current) return;
+  async function persist(input: OfferInput, publish: boolean): Promise<boolean> {
+    if (busy.current) return false;
     busy.current = true;
     setPending(true);
     setError("");
 
     try {
       let draft = saved;
+      let activeCheck = checked;
+      if (live && draft?.status === "published" && !activeCheck) {
+        const previewCheck = await apiClient.post<{
+          reference: Reference;
+          requiresConfirmation: boolean;
+        }>("/price-checks/preview", {
+          regionId: input.districtId,
+          grainType: input.grainType,
+          price: input.askPrice,
+          quality: input.quality,
+        });
+        if (previewCheck.requiresConfirmation) {
+          setChecked(previewCheck);
+          setShowRedAlertModal(true);
+          return false;
+        }
+        setChecked(previewCheck);
+        activeCheck = previewCheck;
+      }
+
       const unchanged =
         draft &&
         draft.grainType === input.grainType &&
@@ -370,8 +390,8 @@ function WizardForm({
                 id: draft.id,
                 version: draft.version,
                 input,
-                referenceVersion: checked?.reference.referenceVersion,
-                redConfirmed: checked?.requiresConfirmation,
+                referenceVersion: activeCheck?.reference.referenceVersion,
+                redConfirmed: activeCheck?.requiresConfirmation,
               }
             : { action: "create", input }
         );
@@ -380,26 +400,26 @@ function WizardForm({
 
       if (!draft) throw new Error("Draf belum tersimpan.");
 
-      // Update snapshot so form is not dirty anymore
-      initialSnapshot.current = JSON.stringify(fields);
+      setInitialSnapshot(JSON.stringify(fields));
 
       if (publish && draft.status === "published") {
         setStep(3);
-        return;
+        return true;
       }
       if (publish) {
         const published = await command({
           action: "publish",
           id: draft.id,
           version: draft.version,
-          referenceVersion: checked?.reference.referenceVersion,
-          redConfirmed: checked?.requiresConfirmation,
+          referenceVersion: activeCheck?.reference.referenceVersion,
+          redConfirmed: activeCheck?.requiresConfirmation,
         });
         setSaved(published);
         setStep(3);
       } else {
         router.push("/petani/tawaran");
       }
+      return true;
     } catch (reason) {
       if (live && reason instanceof Error && "code" in reason && reason.code === "REFERENCE_CHANGED") {
         setStep(1);
@@ -410,6 +430,7 @@ function WizardForm({
           ? reason.message
           : "Gagal menyimpan tawaran. Silakan periksa kembali koneksi Anda."
       );
+      return false;
     } finally {
       busy.current = false;
       setPending(false);

@@ -3,17 +3,20 @@
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Sprout, KeyRound, ArrowRight, ArrowLeft, RefreshCw, CheckCircle2 } from "lucide-react";
+import { KeyRound, ArrowRight, RefreshCw, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useVerifyOtp, useRequestOtp } from "@/features/auth/hooks/use-auth";
+import { useRedirectAuthenticatedUser } from "@/features/auth/hooks/use-redirect-authenticated";
+import { resolvePostAuthPath } from "@/features/auth/domain/role-routes";
 
 function VerificationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const phone = searchParams.get("phone") || "";
+  const redirect = searchParams.get("redirect");
+  const { isRedirecting } = useRedirectAuthenticatedUser(redirect);
 
   const [otpCode, setOtpCode] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
@@ -24,10 +27,14 @@ function VerificationContent() {
   const requestOtpMutation = useRequestOtp();
 
   useEffect(() => {
-    setHint(sessionStorage.getItem(`otp-hint:${phone}`) ?? "");
     if (!phone) {
       router.push("/masuk");
+      return;
     }
+    const timer = window.setTimeout(() => {
+      setHint(sessionStorage.getItem(`otp-hint:${phone}`) ?? "");
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [phone, router]);
 
   useEffect(() => {
@@ -38,6 +45,14 @@ function VerificationContent() {
     return () => clearInterval(timer);
   }, [countdown]);
 
+  if (isRedirecting) {
+    return (
+      <div className="p-8 text-center text-sm text-muted-foreground">
+        Sesi Anda masih aktif. Mengalihkan ke ruang kerja...
+      </div>
+    );
+  }
+
   const handleResend = async () => {
     if (countdown > 0) return;
     setErrorMsg("");
@@ -46,8 +61,10 @@ function VerificationContent() {
       sessionStorage.setItem(`otp-hint:${phone}`, result.debugHint ?? "");
       setHint(result.debugHint ?? "");
       setCountdown(60);
-    } catch (err: any) {
-      setErrorMsg(err?.message || "Gagal mengirim ulang kode verifikasi.");
+    } catch (err) {
+      setErrorMsg(
+        err instanceof Error ? err.message : "Gagal mengirim ulang kode verifikasi."
+      );
     }
   };
 
@@ -69,22 +86,22 @@ function VerificationContent() {
 
       sessionStorage.removeItem(`otp-hint:${phone}`);
       if (res.isNewUser) {
-        router.push(`/daftar?phone=${encodeURIComponent(phone)}`);
+        const nextParams = new URLSearchParams({ phone });
+        if (redirect) nextParams.set("redirect", redirect);
+        router.push(`/daftar?${nextParams.toString()}`);
       } else if (res.user) {
-        if (res.user.role === "petani") {
-          router.push("/petani");
-        } else if (res.user.role === "pembeli") {
-          router.push("/pembeli");
-        } else {
-          router.push("/admin");
-        }
+        router.replace(resolvePostAuthPath(res.user.role, redirect));
       }
-    } catch (err: any) {
-      setErrorMsg(err?.message || "Kode verifikasi tidak cocok. Silakan periksa kembali.");
+    } catch (err) {
+      setErrorMsg(
+        err instanceof Error
+          ? err.message
+          : "Kode verifikasi tidak cocok. Silakan periksa kembali."
+      );
     }
   };
 
-    return (
+  return (
     <div className="w-full flex flex-col gap-8">
       <div className="space-y-3">
         <h1 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">

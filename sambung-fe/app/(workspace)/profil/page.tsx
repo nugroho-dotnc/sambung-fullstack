@@ -1,17 +1,19 @@
 "use client";
 
+import { useState } from "react";
 import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { User, Phone, MapPin, Building2, Shield, LogOut, Moon, Sun, AlertCircle } from "lucide-react";
+import { User, Phone, MapPin, Building2, LogOut, Info } from "lucide-react";
 import { useCurrentUser, useLogout } from "@/features/auth/hooks/use-auth";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 
 export default function ProfilePage() {
   const { data: user } = useCurrentUser();
   const logoutMutation = useLogout();
+  const [closureRequested, setClosureRequested] = useState(false);
 
   return (
     <PageContainer>
@@ -99,7 +101,7 @@ export default function ProfilePage() {
           {/* Sesi & Penutupan Akun */}
           <Card className="rounded-2xl border-border/80 shadow-xs">
             <CardHeader className="p-5 pb-3">
-              <CardTitle className="text-sm font-bold">Sesi & Keamanan</CardTitle>
+              <CardTitle className="text-sm font-bold">Sesi &amp; Keamanan</CardTitle>
             </CardHeader>
             <CardContent className="p-5 pt-0 space-y-3">
               <Button
@@ -112,14 +114,22 @@ export default function ProfilePage() {
                 {logoutMutation.isPending ? "Mengakhiri Sesi..." : "Keluar dari Akun"}
               </Button>
 
-              <div className="pt-3 border-t border-border/60">
+              <div className="pt-3 border-t border-border/60 space-y-2">
                 <button
                   type="button"
-                  onClick={() => alert("Permintaan penutupan akun Anda telah dicatat. Sesuai ketentuan perlindungan transaksi, seluruh kesepakatan pasokan aktif harus tuntas terlebih dahulu sebelum data kontak dan akun ditutup secara permanen.")}
+                  onClick={() => setClosureRequested(true)}
                   className="text-xs text-muted-foreground hover:text-destructive hover:underline cursor-pointer"
                 >
                   Ajukan Permintaan Penutupan Akun
                 </button>
+                {closureRequested && (
+                  <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2 leading-relaxed">
+                    <Info className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
+                    <span>
+                      Untuk menjaga keamanan transaksi aktif, permohonan penutupan akun permanen diproses melalui verifikasi pengawas setelah seluruh kesepakatan selesai.
+                    </span>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

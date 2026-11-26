@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { PageContainer } from "@/components/shared/page-container";
-import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,8 +13,6 @@ import {
   AlertCircle,
   CheckCircle,
   ShieldAlert,
-  ArrowLeft,
-  Sparkles,
 } from "lucide-react";
 
 export default function AdminModerasiPage() {
@@ -24,34 +21,49 @@ export default function AdminModerasiPage() {
 
   const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
   const [issueNote, setIssueNote] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const handleApplyIssue = async (offerId: string) => {
+    setFormError(null);
     if (!issueNote.trim()) {
-      alert("Catatan perbaikan wajib diisi.");
+      setFormError("Tuliskan catatan perbaikan terlebih dahulu sebelum mengirim ke petani.");
       return;
     }
 
-    await moderateOfferMutation.mutateAsync({
-      offerId,
-      action: "request_fix",
-      note: issueNote.trim(),
-    });
+    try {
+      await moderateOfferMutation.mutateAsync({
+        offerId,
+        action: "request_fix",
+        note: issueNote.trim(),
+      });
 
-    setSelectedOfferId(null);
-    setIssueNote("");
-    setSuccessMessage(`Catatan perbaikan untuk tawaran #${offerId} berhasil dikirim ke petani.`);
-    setTimeout(() => setSuccessMessage(null), 4000);
+      setSelectedOfferId(null);
+      setIssueNote("");
+      setSuccessMessage(`Catatan perbaikan untuk tawaran #${offerId} berhasil dikirim ke petani.`);
+      setTimeout(() => setSuccessMessage(null), 4000);
+    } catch (err) {
+      setFormError(
+        err instanceof Error ? err.message : "Gagal mengirim catatan perbaikan."
+      );
+    }
   };
 
   const handleResolveIssue = async (offerId: string) => {
-    await moderateOfferMutation.mutateAsync({
-      offerId,
-      action: "resolve",
-    });
+    setFormError(null);
+    try {
+      await moderateOfferMutation.mutateAsync({
+        offerId,
+        action: "resolve",
+      });
 
-    setSuccessMessage(`Temuan catatan untuk tawaran #${offerId} berhasil ditutup. Status tawaran kini bersih.`);
-    setTimeout(() => setSuccessMessage(null), 4000);
+      setSuccessMessage(`Temuan catatan untuk tawaran #${offerId} berhasil ditutup. Status tawaran kini bersih.`);
+      setTimeout(() => setSuccessMessage(null), 4000);
+    } catch (err) {
+      setFormError(
+        err instanceof Error ? err.message : "Gagal menutup catatan temuan."
+      );
+    }
   };
 
   return (
@@ -94,6 +106,13 @@ export default function AdminModerasiPage() {
         </div>
       )}
 
+      {formError && (
+        <div role="alert" className="p-4 rounded-2xl bg-destructive/10 text-destructive border border-destructive/30 text-xs font-semibold flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{formError}</span>
+        </div>
+      )}
+
       {/* Konten Utama Panel Moderasi */}
       <div className="space-y-4">
         {isLoading ? (
@@ -104,8 +123,7 @@ export default function AdminModerasiPage() {
           </Card>
         ) : (
           (offers || []).map((offer) => {
-            const isFlagged =
-              (offer as any).moderationStatus === "Sedang diminta perbaikan";
+            const isFlagged = offer.moderationStatus === "Sedang diminta perbaikan";
 
             return (
               <Card
@@ -144,15 +162,15 @@ export default function AdminModerasiPage() {
                         </span>
                       </h3>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        Kadar air panen: {offer.quality}% · Estimasi panen: {offer.availableOn}
+                        Kadar air panen: {offer.quality !== null && offer.quality !== undefined ? `${offer.quality}%` : "Belum diuji"} · Estimasi panen: {offer.availableOn || "Tersedia langsung"}
                       </p>
 
-                      {(offer as any).moderationIssue && (
+                      {offer.moderationIssue && (
                         <div className="text-xs text-amber-900 dark:text-amber-200 mt-2.5 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl leading-relaxed">
                           <strong className="text-amber-950 dark:text-amber-100 font-bold">
                             Catatan Temuan Pengawas:
                           </strong>{" "}
-                          {(offer as any).moderationIssue}
+                          {offer.moderationIssue}
                         </div>
                       )}
                     </div>
@@ -179,6 +197,7 @@ export default function AdminModerasiPage() {
                             selectedOfferId === offer.id ? null : offer.id
                           );
                           setIssueNote("");
+                          setFormError(null);
                         }}
                         className="gap-1.5 font-semibold text-amber-700 dark:text-amber-400 border-amber-400/60 hover:bg-amber-500/10 text-xs cursor-pointer"
                       >
@@ -206,7 +225,10 @@ export default function AdminModerasiPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setSelectedOfferId(null)}
+                        onClick={() => {
+                          setSelectedOfferId(null);
+                          setFormError(null);
+                        }}
                         className="text-xs cursor-pointer"
                       >
                         Batal
@@ -217,7 +239,7 @@ export default function AdminModerasiPage() {
                         onClick={() => handleApplyIssue(offer.id)}
                         className="font-bold text-xs shadow-xs cursor-pointer"
                       >
-                        Kirim Catatan ke Petani
+                        {moderateOfferMutation.isPending ? "Mengirim..." : "Kirim Catatan ke Petani"}
                       </Button>
                     </div>
                   </div>

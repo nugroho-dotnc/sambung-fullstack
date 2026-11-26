@@ -6,6 +6,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import TopBar from "./TopBar";
 import AppSidebar from "./Sidebar";
 import { useCurrentUser } from "@/features/auth/hooks/use-auth";
+import { getDashboardRoute } from "@/features/auth/domain/role-routes";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface AppShellProps {
@@ -45,7 +46,8 @@ function AppShellInner({ children, allowedRoles }: AppShellProps) {
 
   useEffect(() => {
     if (!isLoading && !user) {
-      router.push(`/masuk?redirect=${encodeURIComponent(pathname)}`);
+      const loginPath = pathname.startsWith("/admin") ? "/admin/masuk" : "/masuk";
+      router.push(`${loginPath}?redirect=${encodeURIComponent(pathname)}`);
     }
   }, [user, isLoading, router, pathname]);
 
@@ -73,7 +75,7 @@ function AppShellInner({ children, allowedRoles }: AppShellProps) {
                 </p>
                 <button
                   type="button"
-                  onClick={() => router.push(user.role === "petani" ? "/petani" : user.role === "pembeli" ? "/pembeli" : "/admin")}
+                  onClick={() => router.push(getDashboardRoute(user.role))}
                   className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/95 transition-colors cursor-pointer"
                 >
                   Kembali ke Ruang Anda

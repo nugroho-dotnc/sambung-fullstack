@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, ArrowRight, Info, Clock, CheckCircle2 } from "lucide-react";
+import { PlusCircle, ArrowRight, Info } from "lucide-react";
 import { useCurrentUser } from "@/features/auth/hooks/use-auth";
 import { useOffers } from "@/features/offers/hooks/use-offers";
 import { useContracts } from "@/features/contracts/hooks/use-contracts";
@@ -18,7 +18,10 @@ export default function FarmerDashboardPage() {
   const { data: offers = [] } = useOffers();
   const { data: contracts = [] } = useContracts();
 
-  const priceRef = PriceReferenceService.getReference("GKP", user?.regency || "Subang");
+  const priceRef = PriceReferenceService.getReference(
+    "GKP",
+    user?.province || user?.regency || "Jawa Timur"
+  );
 
   const metrics = useMemo(() => {
     const totalVolume = offers.reduce((acc, curr) => acc + curr.totalVolumeKg, 0);
@@ -74,7 +77,9 @@ export default function FarmerDashboardPage() {
 
         <Card className="rounded-2xl border-border/80 shadow-xs">
           <CardHeader className="p-5 pb-2">
-            <span className="text-xs font-semibold text-muted-foreground">Acuan Wajar Subang (GKP)</span>
+            <span className="text-xs font-semibold text-muted-foreground">
+              Acuan Wajar {user?.regency || priceRef.region} (GKP)
+            </span>
           </CardHeader>
           <CardContent className="p-5 pt-0">
             <div className="text-2xl sm:text-3xl font-extrabold font-display text-emerald-700 dark:text-emerald-400 tabular-nums">

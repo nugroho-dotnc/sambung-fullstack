@@ -32,6 +32,8 @@ export const harvestOfferSchema = offerInputSchema.extend({
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
   priceCheck:z.object({reference:z.object({bounds:z.object({lowerOperational:z.number(),upperOperational:z.number()}),deltaBp:z.number(),sourceMode:z.string().optional(),sourceDate:z.string().nullable().optional()})}).nullable().optional(),
+  moderationStatus: z.string().nullable().optional(),
+  moderationIssue: z.string().nullable().optional(),
   rejectionReason: z.string().optional().nullable(),
 });
 

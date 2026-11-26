@@ -18,7 +18,10 @@ export default function BuyerDashboardPage() {
   const { data: catalogItems = [] } = useCatalog();
   const { data: contracts = [] } = useContracts();
 
-  const priceRef = PriceReferenceService.getReference("GKP", user?.regency || "Subang");
+  const priceRef = PriceReferenceService.getReference(
+    "GKP",
+    user?.province || user?.regency || "Jawa Timur"
+  );
 
   const metrics = useMemo(() => {
     const totalAvailable = catalogItems.reduce((acc, curr) => acc + curr.availableVolumeKg, 0);
@@ -71,7 +74,9 @@ export default function BuyerDashboardPage() {
 
         <Card className="rounded-2xl border-border/80 shadow-xs">
           <CardHeader className="p-5 pb-2">
-            <span className="text-xs font-semibold text-muted-foreground">Acuan Wajar Subang (GKP)</span>
+            <span className="text-xs font-semibold text-muted-foreground">
+              Acuan Wajar {user?.regency || priceRef.region} (GKP)
+            </span>
           </CardHeader>
           <CardContent className="p-5 pt-0">
             <div className="text-2xl sm:text-3xl font-extrabold font-display text-emerald-700 dark:text-emerald-400 tabular-nums">

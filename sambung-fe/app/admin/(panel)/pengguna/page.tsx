@@ -3,25 +3,25 @@
 import { useState } from "react";
 import Link from "next/link";
 import { PageContainer } from "@/components/shared/page-container";
-import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAdminUsers } from "@/features/admin/hooks/use-admin";
-import { Users, Lock, ShieldCheck, UserX } from "lucide-react";
+import { Lock, UserX, Info } from "lucide-react";
 
 export default function AdminUsersPage() {
   const { data: users, isLoading } = useAdminUsers();
   const [closurePendingUsers, setClosurePendingUsers] = useState<string[]>([]);
+  const [closureNotice, setClosureNotice] = useState<string | null>(null);
 
   const handleToggleClosureRequest = (userId: string) => {
     if (closurePendingUsers.includes(userId)) {
       setClosurePendingUsers(closurePendingUsers.filter((id) => id !== userId));
-      alert(`Permohonan penutupan akun #${userId} dibatalkan.`);
+      setClosureNotice(`Penandaan permohonan penutupan akun #${userId} dibatalkan.`);
     } else {
       setClosurePendingUsers([...closurePendingUsers, userId]);
-      alert(
-        `Permohonan penutupan akun #${userId} dicatat. Akun dibatasi untuk transaksi baru dan data kontak akan dianomalisasikan setelah kontrak aktif tuntas.`
+      setClosureNotice(
+        `Permohonan penutupan akun #${userId} dicatat. Akun dibatasi untuk transaksi baru dan data kontak akan dianonimkan setelah kontrak aktif tuntas.`
       );
     }
   };
@@ -44,7 +44,7 @@ export default function AdminUsersPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              Daftar Pengguna & Tata Kelola Privasi
+              Daftar Pengguna &amp; Tata Kelola Privasi
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-3xl">
               Pengawasan profil petani dan pembeli terdaftar. Penyamaran nomor telepon wajib
@@ -58,6 +58,13 @@ export default function AdminUsersPage() {
           </div>
         </div>
       </div>
+
+      {closureNotice && (
+        <div className="p-4 rounded-2xl bg-amber-500/10 text-amber-900 dark:text-amber-200 border border-amber-500/30 text-xs font-medium flex items-start gap-2 leading-relaxed">
+          <Info className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
+          <span>{closureNotice}</span>
+        </div>
+      )}
 
       {/* Main Table Card */}
       <Card className="rounded-2xl border border-border/80 overflow-hidden shadow-xs bg-card">

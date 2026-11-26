@@ -3,13 +3,12 @@
 import Link from "next/link";
 import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAdminStats, useAdminAuditLogs } from "@/features/admin/hooks/use-admin";
 import {
   ShieldCheck,
-  BarChart3,
   Database,
   AlertTriangle,
   ScrollText,
@@ -156,7 +155,7 @@ export default function AdminDashboardPage() {
                 Observasi Data Harga
               </h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Pemantauan pipeline ingest data BPS, Bapanas, dan PIHPS beserta validasi anomali sebelum publikasi ke acuan nasional.
+                Pemantauan pembaruan data harga BPS, Bapanas, dan PIHPS beserta pemeriksaan kejanggalan sebelum dipakai sebagai acuan nasional.
               </p>
             </div>
             <div className="flex items-center text-xs font-semibold text-primary gap-1 pt-1">
@@ -177,7 +176,7 @@ export default function AdminDashboardPage() {
                 Parameter Sistem & HPP
               </h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Kalibrasi ambang batas toleransi lampu harga ($\delta = 3\%$), rasio rendemen giling, dan durasi kedaluwarsa pesanan.
+                Atur toleransi batas bawah lampu harga (standar 3%), rasio rendemen giling, dan batas waktu kedaluwarsa pesanan.
               </p>
             </div>
             <div className="flex items-center text-xs font-semibold text-primary gap-1 pt-1">
@@ -240,7 +239,7 @@ export default function AdminDashboardPage() {
                 Evaluasi Model AI
               </h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Laporan evaluasi backtesting model AI peramalan harga per unit wilayah terhadap ambang batas MASE &le; 0.90.
+                Laporan hasil uji kelayakan model prakiraan harga AI per provinsi terhadap acuan dasar pasar.
               </p>
             </div>
             <div className="flex items-center text-xs font-semibold text-primary gap-1 pt-1">

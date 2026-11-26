@@ -5,24 +5,34 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import {
   ArrowLeft,
-  Wheat,
   MapPin,
-  Calendar,
-  CheckCircle2,
   ShieldCheck,
   Info,
   ChevronRight,
   AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { formatRupiah } from "@/features/offers/components/offer-summary";
-import { PriceRangeSlider, PriceReferenceService } from "@/features/price-check";
+import {
+  PriceRangeSlider,
+  PriceReferenceService,
+  ConfirmRedLightDialog,
+} from "@/features/price-check";
 import { useContractCommand } from "@/features/contracts/hooks/use-contracts";
+import { ContractService } from "@/features/contracts/services/contract.service";
 import { useMobile } from "@/hooks/use-mobile";
 import type { CatalogItem } from "../schemas";
+
+interface PendingRedOrder {
+  price: number;
+  lowerBound: number;
+  upperBound: number;
+  redThreshold: number;
+  referenceVersion: string;
+}
 
 export function PartialOrderForm({ item }: { item: CatalogItem }) {
   const isMobile = useMobile();
@@ -34,6 +44,8 @@ export function PartialOrderForm({ item }: { item: CatalogItem }) {
   const [notes, setNotes] = useState<string>("");
   const [agreedTerms, setAgreedTerms] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [isCheckingPrice, setIsCheckingPrice] = useState<boolean>(false);
+  const [pendingRedOrder, setPendingRedOrder] = useState<PendingRedOrder | null>(null);
 
   const numVolume = Number(volumeKg.replace(",", ".")) || 0;
   const estimatedTotal = numVolume * proposedPrice;
@@ -46,6 +58,36 @@ export function PartialOrderForm({ item }: { item: CatalogItem }) {
   function setVolumePercentage(percent: number) {
     const calculated = Math.round(item.availableVolumeKg * percent) / 100;
     setVolumeKg(String(calculated));
+  }
+
+  async function submitOrder(extraBody: { referenceVersion?: string; redConfirmed?: boolean }) {
+    try {
+      const contract = await createOrder.mutateAsync({
+        path: "/contracts",
+        quote: {
+          regionId: item.districtId,
+          grainType: item.grainType,
+          quality: item.quality,
+          action: "order",
+          price: proposedPrice,
+        },
+        body: {
+          offerId: item.id,
+          volumeKg: numVolume,
+          proposedPrice,
+          notes: notes.trim() || undefined,
+          ...extraBody,
+        },
+      });
+
+      router.push(`/kontrak/${contract.id}`);
+    } catch (err) {
+      setErrorMessage(
+        err instanceof Error
+          ? err.message
+          : "Gagal mengirimkan pesanan pasokan. Silakan periksa kembali koneksi Anda."
+      );
+    }
   }
 
   async function handleSubmitOrder(e: FormEvent) {
@@ -74,22 +116,46 @@ export function PartialOrderForm({ item }: { item: CatalogItem }) {
       return;
     }
 
+    if (process.env.NEXT_PUBLIC_USE_MOCK === "true") {
+      await submitOrder({});
+      return;
+    }
+
+    setIsCheckingPrice(true);
     try {
-      const contract = await createOrder.mutateAsync({
-        path:"/contracts",quote:{regionId:item.districtId,grainType:item.grainType,quality:item.quality,action:"order",price:proposedPrice},body:{offerId: item.id,
-        volumeKg: numVolume,
-        proposedPrice,
-        notes: notes.trim() || undefined},
+      const check = await ContractService.preview({
+        regionId: item.districtId,
+        grainType: item.grainType,
+        quality: item.quality,
+        action: "order",
+        price: proposedPrice,
       });
 
-      // Redirect to the contract negotiation room
-      router.push(`/kontrak/${contract.id}`);
+      if (check.requiresConfirmation) {
+        const lowerBound = check.reference.bounds.lowerOperational;
+        const deltaRatio = (check.reference.deltaBp ?? 300) / 10000;
+        setPendingRedOrder({
+          price: proposedPrice,
+          lowerBound,
+          upperBound: check.reference.bounds.upperOperational,
+          redThreshold: Math.round(lowerBound * (1 - deltaRatio)),
+          referenceVersion: check.reference.referenceVersion,
+        });
+        return;
+      }
+
+      await submitOrder({
+        referenceVersion: check.reference.referenceVersion,
+        redConfirmed: false,
+      });
     } catch (err) {
       setErrorMessage(
         err instanceof Error
           ? err.message
-          : "Gagal mengirimkan pesanan pasokan. Silakan periksa kembali koneksi Anda."
+          : "Gagal memeriksa acuan harga. Silakan coba kembali."
       );
+    } finally {
+      setIsCheckingPrice(false);
     }
   }
 
@@ -304,10 +370,10 @@ export function PartialOrderForm({ item }: { item: CatalogItem }) {
               <Button
                 type="submit"
                 className="w-full min-h-12 text-sm font-semibold justify-between"
-                disabled={createOrder.isPending || !agreedTerms || numVolume <= 0}
+                disabled={createOrder.isPending || isCheckingPrice || !agreedTerms || numVolume <= 0}
               >
                 <span>
-                  {createOrder.isPending
+                  {createOrder.isPending || isCheckingPrice
                     ? "Mengirim Pesanan…"
                     : isMobile
                     ? "Kirim Pesanan"
@@ -319,6 +385,23 @@ export function PartialOrderForm({ item }: { item: CatalogItem }) {
           </div>
         </div>
       </form>
+
+      <ConfirmRedLightDialog
+        open={Boolean(pendingRedOrder)}
+        onOpenChange={(open) => {
+          if (!open) setPendingRedOrder(null);
+        }}
+        price={pendingRedOrder?.price ?? proposedPrice}
+        lowerBound={pendingRedOrder?.lowerBound ?? priceRef.lowerBound}
+        upperBound={pendingRedOrder?.upperBound ?? priceRef.upperBound}
+        redThreshold={pendingRedOrder?.redThreshold ?? 0}
+        onConfirm={() => {
+          if (!pendingRedOrder) return;
+          const refVer = pendingRedOrder.referenceVersion;
+          setPendingRedOrder(null);
+          void submitOrder({ referenceVersion: refVer, redConfirmed: true });
+        }}
+      />
     </PageContainer>
   );
 }

@@ -3,17 +3,21 @@
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Sprout, Building2, User, MapPin, ArrowRight, ShieldCheck, Check } from "lucide-react";
+import { Sprout, Building2, User, ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useRegisterProfile } from "@/features/auth/hooks/use-auth";
+import { useRedirectAuthenticatedUser } from "@/features/auth/hooks/use-redirect-authenticated";
+import { resolvePostAuthPath } from "@/features/auth/domain/role-routes";
 
 function RegisterContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const phone = searchParams.get("phone") || "";
+  const redirect = searchParams.get("redirect");
+  const { isRedirecting } = useRedirectAuthenticatedUser(redirect);
 
   const [role, setRole] = useState<"petani" | "pembeli">("petani");
   const [name, setName] = useState("");
@@ -27,10 +31,18 @@ function RegisterContent() {
   const registerMutation = useRegisterProfile();
 
   useEffect(() => {
-    if (!phone) {
+    if (!phone && !isRedirecting) {
       router.push("/masuk");
     }
-  }, [phone, router]);
+  }, [phone, isRedirecting, router]);
+
+  if (isRedirecting) {
+    return (
+      <div className="p-8 text-center text-sm text-muted-foreground">
+        Sesi Anda masih aktif. Mengalihkan ke ruang kerja...
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,13 +73,13 @@ function RegisterContent() {
         agreedToTerms: true,
       });
 
-      if (res.user.role === "petani") {
-        router.push("/petani");
-      } else {
-        router.push("/pembeli");
-      }
-    } catch (err: any) {
-      setErrorMsg(err?.message || "Pendaftaran gagal diproses. Silakan lengkapi data Anda.");
+      router.replace(resolvePostAuthPath(res.user.role, redirect));
+    } catch (err) {
+      setErrorMsg(
+        err instanceof Error
+          ? err.message
+          : "Pendaftaran gagal diproses. Silakan lengkapi data Anda."
+      );
     }
   };
 

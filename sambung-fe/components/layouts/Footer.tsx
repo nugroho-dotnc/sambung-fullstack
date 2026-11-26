@@ -3,9 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Sprout } from "lucide-react";
+import { useCurrentUser } from "@/features/auth/hooks/use-auth";
 
 export default function Footer() {
   const pathname = usePathname();
+  const { data: user } = useCurrentUser();
+  const adminHref = user?.role === "admin" ? "/admin" : "/admin/masuk";
 
   // Hide footer on full-page map route
   if (pathname?.startsWith("/peta-harga")) {
@@ -42,7 +45,7 @@ export default function Footer() {
             Bantuan
           </Link>
           <span>·</span>
-          <Link href="/admin/masuk" className="hover:text-foreground hover:underline text-muted-foreground/70">
+          <Link href={adminHref} className="hover:text-foreground hover:underline text-muted-foreground/70">
             Akses Pengawas
           </Link>
         </div>

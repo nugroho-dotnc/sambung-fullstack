@@ -3,10 +3,8 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { PageContainer } from "@/components/shared/page-container";
-import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -16,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { formatRupiah } from "@/features/offers/components/offer-summary";
 import { useOffers } from "@/features/offers/hooks/use-offers";
-import { Search, ShoppingBag, Eye, Download } from "lucide-react";
+import { Search, ShoppingBag } from "lucide-react";
 
 const COMMODITY_FILTER_OPTIONS = [
   { value: "all", label: "Semua Komoditas" },
@@ -71,8 +69,7 @@ export default function AdminCatalogPage() {
               Pemantauan Pasokan Gabah Terdaftar
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-3xl">
-              Daftar seluruh kuota panen yang terdaftar di pasar digital SAMBUNG beserta
-              status pencadangan volume atomik dan harga minta petani.
+              Daftar seluruh pasokan panen yang terdaftar di SAMBUNG beserta volume yang sedang dicadangkan otomatis agar tidak dipesan ganda dan harga minta petani.
             </p>
           </div>
 
@@ -164,7 +161,7 @@ export default function AdminCatalogPage() {
                     <td className="py-3.5 px-5 tabular-nums text-muted-foreground whitespace-nowrap text-xs">
                       <span className="font-bold text-foreground">#{offer.id}</span>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {offer.availableOn}
+                        {offer.availableOn || "Tersedia langsung"}
                       </p>
                     </td>
                     <td className="py-3.5 px-5 font-semibold text-foreground whitespace-nowrap">
@@ -175,7 +172,9 @@ export default function AdminCatalogPage() {
                     </td>
                     <td className="py-3.5 px-5 whitespace-nowrap">
                       <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-secondary text-secondary-foreground border border-border/60">
-                        {offer.grainType} ({offer.quality}%)
+                        {offer.quality !== null && offer.quality !== undefined
+                          ? `${offer.grainType} (${offer.quality}%)`
+                          : offer.grainType}
                       </span>
                     </td>
                     <td className="py-3.5 px-5 text-right font-bold text-foreground whitespace-nowrap tabular-nums">

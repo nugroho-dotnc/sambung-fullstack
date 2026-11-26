@@ -1,12 +1,18 @@
 import type { UserProfile } from "@/features/auth/schemas";
+import type { HarvestOffer } from "@/features/offers/schemas";
+import type { Contract } from "@/features/contracts/schemas";
+import type {
+  AuditLogEntry,
+  PriceObservationRecord,
+} from "@/features/admin/domain/admin-types";
 
 export interface MockDatabase {
   users: UserProfile[];
   currentSession: UserProfile | null;
   pendingOtp: Record<string, { code: string; expiresAt: number }>;
-  offers: any[];
-  contracts: any[];
-  observations: any[];
+  offers: HarvestOffer[];
+  contracts: Contract[];
+  observations: PriceObservationRecord[];
   parameters: {
     orderExpiryHours: number;
     fairPriceToleranceDelta: number;
@@ -15,7 +21,7 @@ export interface MockDatabase {
     governmentFloorPriceGKP?: number;
     lastUpdated: string;
   };
-  auditLogs: any[];
+  auditLogs: AuditLogEntry[];
 }
 
 const STORAGE_KEY = "sambung:mockdb:v1";
@@ -66,7 +72,7 @@ export const INITIAL_PARAMETERS = {
   lastUpdated: "2026-11-20T10:00:00.000Z",
 };
 
-export const SEED_OBSERVATIONS = [
+export const SEED_OBSERVATIONS: PriceObservationRecord[] = [
   {
     id: "obs-01",
     province: "Jawa Timur",
@@ -131,7 +137,7 @@ export const SEED_OBSERVATIONS = [
   },
 ];
 
-export const SEED_AUDIT_LOGS = [
+export const SEED_AUDIT_LOGS: AuditLogEntry[] = [
   {
     id: "log-01",
     timestamp: "2026-11-20T08:00:00.000Z",

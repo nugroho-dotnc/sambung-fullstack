@@ -3,22 +3,23 @@
 import { useState } from "react";
 import Link from "next/link";
 import { PageContainer } from "@/components/shared/page-container";
-import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { formatRupiah } from "@/features/offers/components/offer-summary";
 import {
   useAdminObservations,
   usePublishObservations,
 } from "@/features/admin/hooks/use-admin";
 import {
-  Database,
   CheckCircle2,
-  AlertOctagon,
-  RefreshCw,
   Send,
-  ShieldCheck,
+  Info,
 } from "lucide-react";
 
 export default function AdminPriceDataPage() {
@@ -36,7 +37,7 @@ export default function AdminPriceDataPage() {
 
   const handlePublish = async () => {
     await publishMutation.mutateAsync();
-    setSuccessMessage("Snapshot data observasi tervalidasi berhasil dipublikasikan ke acuan nasional.");
+    setSuccessMessage("Catatan publikasi data harga acuan berhasil direkam ke log pengawas.");
     setTimeout(() => setSuccessMessage(null), 4000);
   };
 
@@ -52,21 +53,38 @@ export default function AdminPriceDataPage() {
             Pengawas Sistem
           </Link>
           <span className="text-muted-foreground/50">/</span>
-          <span className="font-medium text-foreground">Observasi Data Harga</span>
+          <span className="font-medium text-foreground">Pemantauan Data Harga</span>
         </nav>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              Observasi & Validasi Data Harga
+              Pemantauan &amp; Pemeriksaan Data Harga
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-3xl">
-              Pemantauan data survei harga gabah resmi dari BPS, Bapanas, dan PIHPS sebelum
-              diagregasi ke dalam kalkulator acuan harga wajar dan peta disparitas spasial.
+              Ringkasan cuplikan data harga resmi BPS, Bapanas, dan PIHPS yang digunakan sebagai rujukan kalkulator harga wajar dan peta wilayah.
             </p>
           </div>
 
           <div className="flex items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <button
+                    type="button"
+                    aria-label="Informasi sumber data observasi"
+                    className="p-2 rounded-lg border border-border/70 text-muted-foreground hover:text-foreground cursor-pointer"
+                  >
+                    <Info className="w-4 h-4" />
+                  </button>
+                }
+              />
+              <TooltipContent className="max-w-xs text-xs leading-relaxed">
+                <p>
+                  Tabel ini menampilkan cuplikan data acuan terkurasi saat ini. Menekan tombol publikasi akan mencatat konfirmasi pengawas pada jejak audit sistem.
+                </p>
+              </TooltipContent>
+            </Tooltip>
             <Button
               size="sm"
               disabled={publishMutation.isPending}
@@ -74,7 +92,7 @@ export default function AdminPriceDataPage() {
               className="gap-1.5 font-bold text-xs shadow-xs cursor-pointer"
             >
               <Send className="w-3.5 h-3.5" />
-              <span>Publikasikan Snapshot Acuan</span>
+              <span>Publikasikan Acuan Terkurasi</span>
             </Button>
           </div>
         </div>
@@ -120,7 +138,7 @@ export default function AdminPriceDataPage() {
               : "bg-muted text-muted-foreground hover:text-foreground"
           }`}
         >
-          Anomali / Perlu Tinjauan ({records?.filter((r) => r.status !== "Valid").length || 0})
+          Perlu Tinjauan ({records?.filter((r) => r.status !== "Valid").length || 0})
         </button>
       </div>
 
@@ -128,7 +146,7 @@ export default function AdminPriceDataPage() {
       <Card className="rounded-2xl border border-border/80 overflow-hidden shadow-xs bg-card">
         <CardHeader className="py-4 px-6 border-b border-border/70 flex flex-row items-center justify-between">
           <CardTitle className="text-base font-bold text-foreground">
-            Daftar Catatan Observasi
+            Daftar Cuplikan Data Harga Wilayah
           </CardTitle>
           <span className="text-xs text-muted-foreground tabular-nums">
             {filteredRecords.length} rekaman data
@@ -138,26 +156,26 @@ export default function AdminPriceDataPage() {
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="border-b border-border/80 bg-muted/40 text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                <th className="py-3 px-5">ID & Periode</th>
+                <th className="py-3 px-5">ID &amp; Periode</th>
                 <th className="py-3 px-5">Provinsi</th>
                 <th className="py-3 px-5">Komoditas</th>
                 <th className="py-3 px-5 text-right">Harga Pengamatan</th>
                 <th className="py-3 px-5">Sumber Data</th>
-                <th className="py-3 px-5 text-center">Status Validasi</th>
-                <th className="py-3 px-5">Keterangan / Alasan Penolakan</th>
+                <th className="py-3 px-5 text-center">Status Pemeriksaan</th>
+                <th className="py-3 px-5">Keterangan</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
               {isLoading ? (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-xs text-muted-foreground">
-                    Memuat data observasi harga...
+                    Memuat data harga acuan...
                   </td>
                 </tr>
               ) : filteredRecords.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-xs text-muted-foreground">
-                    Tidak ditemukan data observasi.
+                    Tidak ditemukan data pada kategori ini.
                   </td>
                 </tr>
               ) : (
@@ -206,7 +224,7 @@ export default function AdminPriceDataPage() {
                       </Badge>
                     </td>
                     <td className="py-3.5 px-5 text-muted-foreground text-xs leading-relaxed max-w-xs">
-                      {item.reason || "Lolos verifikasi ambang kewajaran & non-negatif."}
+                      {item.reason || "Lolos pemeriksaan batas wajar dan nilai positif."}
                     </td>
                   </tr>
                 ))

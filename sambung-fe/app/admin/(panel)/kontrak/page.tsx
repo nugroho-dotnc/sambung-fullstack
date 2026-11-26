@@ -3,12 +3,11 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { PageContainer } from "@/components/shared/page-container";
-import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatRupiah } from "@/features/offers/components/offer-summary";
 import { useContracts } from "@/features/contracts/hooks/use-contracts";
-import { ScrollText, ShieldCheck, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
 
 export default function AdminContractsPage() {
   const { data: contracts, isLoading } = useContracts();
@@ -211,6 +210,10 @@ export default function AdminContractsPage() {
                             ? "Selesai"
                             : contract.status === "cancelled"
                             ? "Dibatalkan"
+                            : contract.status === "rejected"
+                            ? "Ditolak"
+                            : contract.status === "expired"
+                            ? "Kedaluwarsa"
                             : contract.status}
                         </Badge>
                       </td>

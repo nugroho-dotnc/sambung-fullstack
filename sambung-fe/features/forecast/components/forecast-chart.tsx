@@ -34,7 +34,7 @@ const chartConfig = {
     color: "#2563eb",
   },
   ciRange: {
-    label: "Pita Keyakinan 80%",
+    label: "Rentang Wajar (80%)",
     color: "#10b981",
   },
   forecastPrice: {

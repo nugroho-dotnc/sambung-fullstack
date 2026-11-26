@@ -6,9 +6,35 @@ import { PageContainer } from "@/components/shared/page-container";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { ModelEvaluationRecord } from "@/features/admin/domain/admin-types";
 import modelEvalJson from "@/data/ai/model_evaluation.json";
-import { Cpu, ShieldCheck, Activity, DatabaseZap } from "lucide-react";
+import { Cpu, ShieldCheck, Activity, DatabaseZap, Info } from "lucide-react";
+
+function MetricInfoTooltip({ text }: { text: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <button
+            type="button"
+            aria-label="Penjelasan istilah evaluasi"
+            className="inline-flex items-center text-muted-foreground hover:text-foreground cursor-pointer p-0.5"
+          >
+            <Info className="w-3.5 h-3.5" />
+          </button>
+        }
+      />
+      <TooltipContent className="max-w-xs text-xs leading-relaxed">
+        <p>{text}</p>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
 
 const MODEL_EVALUATION_ROWS: ModelEvaluationRecord[] = modelEvalJson.gateRows.map((r) => ({
   province: r.province,
@@ -61,22 +87,22 @@ export default function AdminModelEvalPage() {
             Pengawas Sistem
           </Link>
           <span className="text-muted-foreground/50">/</span>
-          <span className="font-medium text-foreground">Evaluasi Model AI</span>
+          <span className="font-medium text-foreground">Kelayakan Model Prakiraan</span>
         </nav>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              Evaluasi &amp; Gerbang Publikasi Model AI
+              Kelayakan &amp; Pengawasan Model Prakiraan AI
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-3xl">
-              Hasil uji {modelEvalJson.walkForwardFolds}-fold Walk-Forward Backtesting ({modelEvalJson.evaluationWindow}) per unit (provinsi, horizon) terhadap syarat akurasi &amp; cakupan pita keyakinan sebelum publikasi.
+              Ringkasan hasil uji historis bertahap ({modelEvalJson.evaluationWindow}) untuk memastikan hanya provinsi dengan akurasi layak yang menampilkan prakiraan AI penuh.
             </p>
           </div>
 
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-primary/10 text-xs font-semibold text-primary border border-primary/20 shrink-0">
             <Cpu className="w-4 h-4 shrink-0" />
-            <span>{modelEvalJson.walkForwardFolds}-Fold Walk-Forward</span>
+            <span>Laporan Uji Terkurasi</span>
           </div>
         </div>
       </div>
@@ -84,64 +110,77 @@ export default function AdminModelEvalPage() {
       {/* 4 Summary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Card className="p-4 rounded-2xl bg-card border-border/80 space-y-1">
-          <span className="text-xs text-muted-foreground font-medium">Unit Lolos Gerbang Penuh</span>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground font-medium">Wilayah Lolos Uji Penuh</span>
+            <MetricInfoTooltip text="Setiap pasangan provinsi dan jangka waktu (2 atau 4 pekan) harus lolos syarat akurasi dan rentang wajar secara mandiri." />
+          </div>
           <p className="text-2xl font-extrabold font-display tabular-nums text-emerald-700 dark:text-emerald-400">
             {totalPass} / {totalUnits} Unit
           </p>
           <p className="text-[11px] text-muted-foreground">
-            {s2.provs_pass_gate_both} prov (2w) &bull; {s4.provs_pass_gate_both} prov (4w)
+            {s2.provs_pass_gate_both} prov (2 pekan) &bull; {s4.provs_pass_gate_both} prov (4 pekan)
           </p>
         </Card>
 
         <Card className="p-4 rounded-2xl bg-card border-border/80 space-y-1">
-          <span className="text-xs text-muted-foreground font-medium">Rata-rata MASE (vs Naive)</span>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground font-medium">Skor Selisih vs Acuan Pekan Lalu</span>
+            <MetricInfoTooltip text="Skor galat relatif (MASE). Nilai di bawah 0,90 berarti model lebih akurat dibanding sekadar menebak harga pekan lalu tetap sama." />
+          </div>
           <p className="text-2xl font-extrabold font-display tabular-nums text-foreground">
-            {s2.mean_mase.toFixed(3)} <span className="text-xs font-normal text-muted-foreground">(2w)</span>
+            {s2.mean_mase.toFixed(3)} <span className="text-xs font-normal text-muted-foreground">(2 pekan)</span>
           </p>
           <p className="text-[11px] text-muted-foreground tabular-nums">
-            Horizon 4w: {s4.mean_mase.toFixed(3)} &bull; 2025–2026: {s4.mase_2025_2026.toFixed(3)}
+            4 pekan: {s4.mean_mase.toFixed(3)} &bull; 2025–2026: {s4.mase_2025_2026.toFixed(3)}
           </p>
         </Card>
 
         <Card className="p-4 rounded-2xl bg-card border-border/80 space-y-1">
-          <span className="text-xs text-muted-foreground font-medium">Cakupan Pita Keyakinan 80%</span>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground font-medium">Ketepatan Rentang Wajar (80%)</span>
+            <MetricInfoTooltip text="Seberapa sering harga aktual benar-benar jatuh di dalam pita perkiraan 80%. Target sistem berada di kisaran 75% hingga 85%." />
+          </div>
           <p className="text-2xl font-extrabold font-display tabular-nums text-foreground">
-            {s2.mean_cov_80_pct.toFixed(1)}% <span className="text-xs font-normal text-muted-foreground">(2w)</span>
+            {s2.mean_cov_80_pct.toFixed(1)}% <span className="text-xs font-normal text-muted-foreground">(2 pekan)</span>
           </p>
           <p className="text-[11px] text-muted-foreground tabular-nums">
-            Horizon 4w: {s4.mean_cov_80_pct.toFixed(1)}% (target SRS 75%–85%)
+            4 pekan: {s4.mean_cov_80_pct.toFixed(1)}% (target 75%–85%)
           </p>
         </Card>
 
         <Card className="p-4 rounded-2xl bg-card border-border/80 space-y-1">
-          <span className="text-xs text-muted-foreground font-medium">Uji Lonjakan Offline (Ambang P95)</span>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground font-medium">Deteksi Lonjakan Harga Ekstrem</span>
+            <MetricInfoTooltip text="Kemampuan model mendeteksi kenaikan harga tajam (5% tertinggi) sebelum terjadi, diukur dari sensitivitas tangkap lonjakan." />
+          </div>
           <p className="text-2xl font-extrabold font-display tabular-nums text-foreground">
-            ROC-AUC {spikeBlend?.nfr006_recall70.roc_auc.toFixed(3) ?? "0.840"}
+            Skor Deteksi {spikeBlend?.nfr006_recall70.roc_auc.toFixed(3) ?? "0.840"}
           </p>
           <p className="text-[11px] text-muted-foreground tabular-nums">
-            Recall {spikeBlend?.nfr006_recall70.recall_pct ?? 80.5}% &bull; Prec seimbang {spikeBlend?.best_f1_balanced.precision_pct ?? 36.8}%
+            Daya tangkap {spikeBlend?.nfr006_recall70.recall_pct ?? 80.5}% &bull; Ketepatan {spikeBlend?.best_f1_balanced.precision_pct ?? 36.8}%
           </p>
         </Card>
       </div>
 
       {/* Baseline Comparison Table */}
       <Card className="rounded-2xl border border-border/80 overflow-hidden shadow-xs bg-card mb-6">
-        <CardHeader className="py-4 px-6 border-b border-border/70">
+        <CardHeader className="py-4 px-6 border-b border-border/70 flex flex-row items-center justify-between">
           <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
             <Activity className="w-4 h-4 text-primary" />
-            <span>Perbandingan Model Juara vs 3 Baseline Wajib SRS (Produsen 2 Pekan)</span>
+            <span>Perbandingan Model Utama vs 3 Pembanding Dasar (2 Pekan)</span>
           </CardTitle>
+          <MetricInfoTooltip text="Model utama dibandingkan dengan tebakan sederhana agar terbukti memberi nilai tambah nyata." />
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="border-b border-border/80 bg-muted/40 text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                <th className="py-3 px-5">Model / Baseline</th>
-                <th className="py-3 px-5 text-right">MAE (Rp/kg)</th>
-                <th className="py-3 px-5 text-right">MAPE</th>
-                <th className="py-3 px-5 text-right">Mean MASE</th>
-                <th className="py-3 px-5 text-right">Cakupan 80%</th>
-                <th className="py-3 px-5 text-center">Lolos Gerbang</th>
+                <th className="py-3 px-5">Model / Pembanding</th>
+                <th className="py-3 px-5 text-right">Rata-rata Selisih (Rp/kg)</th>
+                <th className="py-3 px-5 text-right">Selisih Persen</th>
+                <th className="py-3 px-5 text-right">Skor Galat Relatif</th>
+                <th className="py-3 px-5 text-right">Cakupan Rentang 80%</th>
+                <th className="py-3 px-5 text-center">Lolos Uji</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
@@ -164,7 +203,7 @@ export default function AdminModelEvalPage() {
       <Card className="rounded-2xl border border-border/80 overflow-hidden shadow-xs bg-card mb-6">
         <CardHeader className="py-4 px-6 border-b border-border/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <CardTitle className="text-base font-bold text-foreground">
-            Hasil Uji Backtesting per Unit Wilayah ({filteredRows.length} baris)
+            Hasil Uji Kelayakan per Wilayah ({filteredRows.length} baris)
           </CardTitle>
           <div className="flex flex-wrap items-center gap-2">
             {(["all", 2, 4] as const).map((hf) => (
@@ -175,7 +214,7 @@ export default function AdminModelEvalPage() {
                 onClick={() => setHorizonFilter(hf)}
                 className="h-7 text-xs px-2.5"
               >
-                {hf === "all" ? "Semua Horizon" : `${hf} Pekan`}
+                {hf === "all" ? "Semua Jangka Waktu" : `${hf} Pekan`}
               </Button>
             ))}
             {(["all", "pass", "fallback"] as const).map((sf) => (
@@ -186,7 +225,7 @@ export default function AdminModelEvalPage() {
                 onClick={() => setStatusFilter(sf)}
                 className="h-7 text-xs px-2.5"
               >
-                {sf === "all" ? "Semua Status" : sf === "pass" ? "Lulus AI" : "Fallback"}
+                {sf === "all" ? "Semua Status" : sf === "pass" ? "Prakiraan AI" : "Acuan Aman"}
               </Button>
             ))}
           </div>
@@ -196,12 +235,12 @@ export default function AdminModelEvalPage() {
             <thead className="sticky top-0 bg-muted/95 backdrop-blur-xs z-10">
               <tr className="border-b border-border/80 text-xs font-bold text-muted-foreground uppercase tracking-wider">
                 <th className="py-3 px-5">Provinsi</th>
-                <th className="py-3 px-5">Horizon</th>
-                <th className="py-3 px-5 text-right">MASE</th>
-                <th className="py-3 px-5 text-right">MAE / MAPE</th>
-                <th className="py-3 px-5 text-right">Pita 80%</th>
+                <th className="py-3 px-5">Jangka Waktu</th>
+                <th className="py-3 px-5 text-right">Skor Relatif</th>
+                <th className="py-3 px-5 text-right">Selisih Harga</th>
+                <th className="py-3 px-5 text-right">Ketepatan Pita</th>
                 <th className="py-3 px-5 text-center">Status</th>
-                <th className="py-3 px-5">Metode Publikasi</th>
+                <th className="py-3 px-5">Metode Tayang</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
@@ -235,7 +274,7 @@ export default function AdminModelEvalPage() {
                       variant={!row.isFallback ? "default" : "secondary"}
                       className="text-[11px] font-bold"
                     >
-                      {row.status}
+                      {row.isFallback ? "Acuan Pekan Terakhir" : "Lulus Uji AI"}
                     </Badge>
                   </td>
                   <td className="py-3 px-5 whitespace-nowrap">
@@ -253,17 +292,17 @@ export default function AdminModelEvalPage() {
         <CardHeader className="py-4 px-6 border-b border-border/70">
           <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
             <DatabaseZap className="w-4 h-4 text-primary" />
-            <span>Log Karantina Kualitas Data Nyata ({quarantineRows.length} Kejadian)</span>
+            <span>Catatan Penyaringan Kualitas Data ({quarantineRows.length} Kejadian)</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="border-b border-border/80 bg-muted/40 text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                <th className="py-2.5 px-5">Lapisan</th>
+                <th className="py-2.5 px-5">Tingkat Data</th>
                 <th className="py-2.5 px-5">Wilayah</th>
                 <th className="py-2.5 px-5">Periode</th>
-                <th className="py-2.5 px-5">Alasan Karantina</th>
+                <th className="py-2.5 px-5">Alasan Penyaringan</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
@@ -284,10 +323,10 @@ export default function AdminModelEvalPage() {
       <Card className="rounded-2xl border-border/80 bg-card shadow-xs p-6 space-y-3">
         <div className="flex items-center gap-2 text-foreground font-display font-bold text-sm">
           <ShieldCheck className="w-4 h-4 text-primary" />
-          <span>Aturan Ambang Batas Gerbang Publikasi AI</span>
+          <span>Aturan Kelayakan Penayangan Prakiraan AI</span>
         </div>
         <p className="text-xs text-muted-foreground leading-relaxed">
-          Sesuai aturan evaluasi per wilayah (tanpa kelolosan rata-rata agregat), setiap unit <strong>(provinsi, horizon)</strong> dinilai mandiri: wajib mencetak skor <strong>MASE &le; 0,90</strong> terhadap baseline Naive pekan lalu dan <strong>cakupan pita keyakinan 80% di rentang 75%–85%</strong>. Unit yang belum memenuhi ambang otomatis dialihkan ke <strong>Fallback Baseline Aman</strong> dengan SHAP disembunyikan.
+          Setiap pasangan <strong>provinsi dan jangka waktu</strong> dinilai secara mandiri: hanya unit yang lebih akurat dari acuan pekan lalu dan memiliki ketepatan pita rentang wajar di kisaran 75%–85% yang menampilkan prakiraan AI penuh. Wilayah lain otomatis dialihkan ke <strong>Acuan Pekan Terakhir</strong> agar pengguna tidak menerima proyeksi yang kurang akurat.
         </p>
       </Card>
     </PageContainer>

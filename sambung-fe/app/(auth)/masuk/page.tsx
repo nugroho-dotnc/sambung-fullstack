@@ -1,20 +1,32 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Sprout, Phone, ArrowRight, ShieldCheck, UserCheck, ChevronLeft } from "lucide-react";
+import { Phone, ArrowRight, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useRequestOtp } from "@/features/auth/hooks/use-auth";
+import { useRedirectAuthenticatedUser } from "@/features/auth/hooks/use-redirect-authenticated";
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get("redirect");
+  const { isRedirecting } = useRedirectAuthenticatedUser(redirect);
+
   const [phone, setPhone] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const requestOtpMutation = useRequestOtp();
+
+  if (isRedirecting) {
+    return (
+      <div className="p-8 text-center text-sm text-muted-foreground">
+        Sesi Anda masih aktif. Mengalihkan ke ruang kerja...
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,9 +41,15 @@ export default function LoginPage() {
     try {
       const result = await requestOtpMutation.mutateAsync(cleanPhone);
       sessionStorage.setItem(`otp-hint:${cleanPhone}`, result.debugHint ?? "");
-      router.push(`/masuk/verifikasi?phone=${encodeURIComponent(cleanPhone)}`);
-    } catch (err: any) {
-      setErrorMsg(err?.message || "Gagal mengirimkan kode verifikasi. Silakan coba kembali.");
+      const nextParams = new URLSearchParams({ phone: cleanPhone });
+      if (redirect) nextParams.set("redirect", redirect);
+      router.push(`/masuk/verifikasi?${nextParams.toString()}`);
+    } catch (err) {
+      setErrorMsg(
+        err instanceof Error
+          ? err.message
+          : "Gagal mengirimkan kode verifikasi. Silakan coba kembali."
+      );
     }
   };
 
@@ -129,5 +147,13 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">Memuat halaman masuk...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }

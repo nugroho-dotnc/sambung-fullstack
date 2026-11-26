@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { ArrowRight, Sprout, Building2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { AuthAwareLinkButton } from "@/features/auth/components/auth-aware-link-button";
 
 export default function WorkspaceCtaSection() {
   return (
@@ -31,15 +30,16 @@ export default function WorkspaceCtaSection() {
             </div>
           </div>
           <div className="pt-2">
-            <Button
+            <AuthAwareLinkButton
               variant="outline"
               size="lg"
               className="min-h-11 border-emerald-600/40 text-emerald-800 dark:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer font-semibold"
-              render={<Link href="/masuk" />}
-            >
-              Mulai Menjual
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+              guestHref="/masuk"
+              guestLabel="Mulai Menjual"
+              authenticatedLabel="Buka Ruang Kerja"
+              authenticatedLabelByRole={{ petani: "Buka Ruang Petani" }}
+              trailingIcon={<ArrowRight className="w-4 h-4 ml-2" />}
+            />
           </div>
         </div>
 
@@ -59,15 +59,16 @@ export default function WorkspaceCtaSection() {
             </div>
           </div>
           <div className="pt-2">
-            <Button
+            <AuthAwareLinkButton
               variant="outline"
               size="lg"
               className="min-h-11 border-amber-600/40 text-amber-800 dark:text-amber-400 hover:bg-amber-500/10 cursor-pointer font-semibold"
-              render={<Link href="/masuk" />}
-            >
-              Mulai Mencari Gabah
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+              guestHref="/masuk"
+              guestLabel="Mulai Mencari Gabah"
+              authenticatedLabel="Buka Ruang Kerja"
+              authenticatedLabelByRole={{ pembeli: "Buka Ruang Pembeli" }}
+              trailingIcon={<ArrowRight className="w-4 h-4 ml-2" />}
+            />
           </div>
         </div>
       </div>

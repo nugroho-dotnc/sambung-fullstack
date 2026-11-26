@@ -13,7 +13,7 @@ export interface ForecastResponse {
       p50QGkp: number;
       p50QGkg: number;
     };
-    summary?: Record<string, any>;
+    summary?: Record<string, unknown>;
     sourceMode: "live" | "snapshot";
   };
   records: ForecastRecord[];

@@ -9,18 +9,14 @@ import {
   Lock,
   Phone,
   MessageSquare,
-  Wheat,
-  MapPin,
-  Calendar,
   AlertTriangle,
   FileText,
   Copy,
   CheckCheck,
-  Send,
-  XCircle,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -37,20 +33,37 @@ import {
 } from "../hooks/use-contracts";
 import { formatRupiah } from "@/features/offers/components/offer-summary";
 import { isContactRevealed, CONTRACT_STATUS_LABELS } from "../domain/state-machine";
-import { PriceRangeSlider, PriceReferenceService } from "@/features/price-check";
+import {
+  PriceRangeSlider,
+  PriceReferenceService,
+  ConfirmRedLightDialog,
+} from "@/features/price-check";
+import { ContractService } from "../services/contract.service";
 import { useMobile } from "@/hooks/use-mobile";
 import type { Contract } from "../schemas";
+
+interface PendingRedAction {
+  action: "accept" | "counter";
+  price: number;
+  lowerBound: number;
+  upperBound: number;
+  redThreshold: number;
+  referenceVersion: string;
+}
 
 export function NegotiationRoom({ contract }: { contract: Contract }) {
   const isMobile = useMobile();
   const { data: user } = useCurrentUser();
-  const mutation=useContractCommand();
+  const mutation = useContractCommand();
 
   const [counterModalOpen, setCounterModalOpen] = useState(false);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [proposedPrice, setProposedPrice] = useState(contract.currentPrice);
   const [counterNote, setCounterNote] = useState("");
   const [cancelReason, setCancelReason] = useState("");
+  const [modalError, setModalError] = useState<string | null>(null);
+  const [isCheckingPrice, setIsCheckingPrice] = useState(false);
+  const [pendingRedAction, setPendingRedAction] = useState<PendingRedAction | null>(null);
   const [copiedPhone, setCopiedPhone] = useState(false);
 
   const isFarmer = user?.role === "petani";
@@ -83,28 +96,117 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
   },[contract.status]);
   const hoursLeft=Math.max(0, Math.ceil((Date.parse(contract.expiresAt)-now)/3600000));
 
-  async function handleAccept() {
-    await mutation.mutateAsync({path:path+"accept",body:{priceOfferVersion:contract.priceOfferVersion},quote:quote("accept",contract.currentPrice)});
-  }
+  async function executeConfirmedPriceAction(
+    action: "accept" | "counter",
+    extraBody: { referenceVersion?: string; redConfirmed?: boolean }
+  ) {
+    if (action === "accept") {
+      await mutation.mutateAsync({
+        path: path + "accept",
+        body: {
+          priceOfferVersion: contract.priceOfferVersion,
+          ...extraBody,
+        },
+        quote: quote("accept", contract.currentPrice),
+      });
+      return;
+    }
 
-  async function handleCounterSubmit() {
-    if (proposedPrice <= 0) return;
-    await mutation.mutateAsync({path:path+"counter",quote:quote("counter",proposedPrice),body:{priceOfferVersion:contract.priceOfferVersion,
+    await mutation.mutateAsync({
+      path: path + "counter",
+      quote: quote("counter", proposedPrice),
+      body: {
+        priceOfferVersion: contract.priceOfferVersion,
         proposedPrice,
         note: counterNote.trim() || undefined,
+        ...extraBody,
       },
     });
     setCounterModalOpen(false);
     setCounterNote("");
+    setModalError(null);
+  }
+
+  async function submitWithPricePreview(action: "accept" | "counter", price: number) {
+    setModalError(null);
+    mutation.reset();
+
+    if (process.env.NEXT_PUBLIC_USE_MOCK === "true") {
+      await executeConfirmedPriceAction(action, {});
+      return;
+    }
+
+    setIsCheckingPrice(true);
+    try {
+      const check = await ContractService.preview(quote(action, price));
+      if (check.requiresConfirmation) {
+        const lowerBound = check.reference.bounds.lowerOperational;
+        const deltaRatio = (check.reference.deltaBp ?? 300) / 10000;
+        setPendingRedAction({
+          action,
+          price,
+          lowerBound,
+          upperBound: check.reference.bounds.upperOperational,
+          redThreshold: Math.round(lowerBound * (1 - deltaRatio)),
+          referenceVersion: check.reference.referenceVersion,
+        });
+        return;
+      }
+
+      await executeConfirmedPriceAction(action, {
+        referenceVersion: check.reference.referenceVersion,
+        redConfirmed: false,
+      });
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Gagal memproses penawaran harga.";
+      if (action === "counter") {
+        setModalError(message);
+      }
+    } finally {
+      setIsCheckingPrice(false);
+    }
+  }
+
+  async function handleAccept() {
+    await submitWithPricePreview("accept", contract.currentPrice);
+  }
+
+  async function handleCounterSubmit() {
+    if (proposedPrice <= 0) {
+      setModalError("Nominal harga harus lebih besar dari Rp0.");
+      return;
+    }
+    await submitWithPricePreview("counter", proposedPrice);
   }
 
   async function handleCancelSubmit() {
-    if (!cancelReason.trim()) return;
-    await mutation.mutateAsync({path:path+(isFarmer && contract.status==="pending" && process.env.NEXT_PUBLIC_USE_MOCK!=="true"?"reject":"cancel"),body:{
-        reason: cancelReason.trim(),
-      },
-    });
-    setCancelModalOpen(false);
+    setModalError(null);
+    const trimmedReason = cancelReason.trim();
+    if (trimmedReason.length < 5) {
+      setModalError("Tuliskan alasan minimal 5 karakter agar mitra memahami kondisinya.");
+      return;
+    }
+    try {
+      await mutation.mutateAsync({
+        path:
+          path +
+          (isFarmer &&
+          contract.status === "pending" &&
+          process.env.NEXT_PUBLIC_USE_MOCK !== "true"
+            ? "reject"
+            : "cancel"),
+        body: {
+          reason: trimmedReason,
+        },
+      });
+      setCancelModalOpen(false);
+      setModalError(null);
+    } catch (err) {
+      setModalError(
+        err instanceof Error ? err.message : "Gagal membatalkan kesepakatan."
+      );
+    }
   }
 
   async function handleConfirmPhysical() {
@@ -148,7 +250,15 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
         }
       />
 
-      {mutation.error && <p role="alert">{mutation.error.message}</p>}
+      {mutation.error && !counterModalOpen && !cancelModalOpen && (
+        <div
+          role="alert"
+          className="mb-6 rounded-xl border border-destructive/40 bg-destructive/10 p-3.5 text-xs text-destructive flex items-start gap-2"
+        >
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <span>{mutation.error.message}</span>
+        </div>
+      )}
       {/* Top Status Banner */}
       {contract.status === "pending" && (
         <div className="rounded-2xl border border-amber-300/70 bg-amber-50/80 dark:border-amber-900/60 dark:bg-amber-950/30 p-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs text-amber-950 dark:text-amber-200">
@@ -384,11 +494,11 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
                   <>
                     <Button
                       className="w-full min-h-11 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
-                      disabled={mutation.isPending}
-                      onClick={() => void handleAccept().catch(()=>undefined)}
+                      disabled={mutation.isPending || isCheckingPrice}
+                      onClick={() => void handleAccept().catch(() => undefined)}
                     >
                       <CheckCircle2 className="w-4 h-4 mr-2" />
-                      {mutation.isPending
+                      {mutation.isPending || isCheckingPrice
                         ? "Memproses…"
                         : isMobile
                         ? `Setujui ${formatRupiah(contract.currentPrice)}`
@@ -400,6 +510,8 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
                       className="w-full min-h-11 text-xs font-semibold"
                       onClick={() => {
                         setProposedPrice(contract.currentPrice);
+                        setModalError(null);
+                        mutation.reset();
                         setCounterModalOpen(true);
                       }}
                     >
@@ -410,7 +522,11 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
                     <Button
                       variant="ghost"
                       className="w-full min-h-9 text-xs text-muted-foreground hover:text-destructive"
-                      onClick={() => setCancelModalOpen(true)}
+                      onClick={() => {
+                        setModalError(null);
+                        mutation.reset();
+                        setCancelModalOpen(true);
+                      }}
                     >
                       {isFarmer ? "Tolak pesanan" : "Batalkan pesanan"}
                     </Button>
@@ -541,7 +657,13 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
       </div>
 
       {/* Modal: Counter-Offer Price Slider */}
-      <Dialog open={counterModalOpen} onOpenChange={setCounterModalOpen}>
+      <Dialog
+        open={counterModalOpen}
+        onOpenChange={(open) => {
+          setCounterModalOpen(open);
+          if (!open) setModalError(null);
+        }}
+      >
         <DialogContent className="w-full max-w-md sm:max-w-3xl lg:max-w-6xl">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold text-foreground">
@@ -577,6 +699,16 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
                 className="w-full rounded-xl border border-input bg-background p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
+
+            {modalError && (
+              <div
+                role="alert"
+                className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive flex items-start gap-2"
+              >
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{modalError}</span>
+              </div>
+            )}
           </div>
 
           <DialogFooter className="mt-4 gap-2">
@@ -591,17 +723,23 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
             <Button
               type="button"
               className="min-h-10 text-xs font-semibold"
-              disabled={mutation.isPending || proposedPrice <= 0}
-              onClick={() => void handleCounterSubmit().catch(()=>undefined)}
+              disabled={mutation.isPending || isCheckingPrice || proposedPrice <= 0}
+              onClick={() => void handleCounterSubmit().catch(() => undefined)}
             >
-              {mutation.isPending ? "Mengirim Nego…" : "Kirim Nego Harga"}
+              {mutation.isPending || isCheckingPrice ? "Mengirim Nego…" : "Kirim Nego Harga"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Modal: Cancel / Reject Contract */}
-      <Dialog open={cancelModalOpen} onOpenChange={setCancelModalOpen}>
+      <Dialog
+        open={cancelModalOpen}
+        onOpenChange={(open) => {
+          setCancelModalOpen(open);
+          if (!open) setModalError(null);
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold text-foreground">
@@ -659,6 +797,16 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
               }
               className="w-full rounded-xl border border-input bg-background p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary"
             />
+
+            {modalError && (
+              <div
+                role="alert"
+                className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive flex items-start gap-2"
+              >
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{modalError}</span>
+              </div>
+            )}
           </div>
 
           <DialogFooter className="mt-4 gap-2">
@@ -675,13 +823,39 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
               variant="destructive"
               className="min-h-10 text-xs font-semibold"
               disabled={mutation.isPending || !cancelReason.trim()}
-              onClick={() => void handleCancelSubmit().catch(()=>undefined)}
+              onClick={() => void handleCancelSubmit().catch(() => undefined)}
             >
               {mutation.isPending ? "Membatalkan…" : isMobile ? "Ya, Batalkan" : "Ya, Batalkan Kesepakatan"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmRedLightDialog
+        open={Boolean(pendingRedAction)}
+        onOpenChange={(open) => {
+          if (!open) setPendingRedAction(null);
+        }}
+        price={pendingRedAction?.price ?? proposedPrice}
+        lowerBound={pendingRedAction?.lowerBound ?? priceRef.lowerBound}
+        upperBound={pendingRedAction?.upperBound ?? priceRef.upperBound}
+        redThreshold={pendingRedAction?.redThreshold ?? 0}
+        onConfirm={() => {
+          if (!pendingRedAction) return;
+          const pending = pendingRedAction;
+          setPendingRedAction(null);
+          void executeConfirmedPriceAction(pending.action, {
+            referenceVersion: pending.referenceVersion,
+            redConfirmed: true,
+          }).catch((err) => {
+            if (pending.action === "counter") {
+              setModalError(
+                err instanceof Error ? err.message : "Gagal mengirim penawaran harga."
+              );
+            }
+          });
+        }}
+      />
     </PageContainer>
   );
 }

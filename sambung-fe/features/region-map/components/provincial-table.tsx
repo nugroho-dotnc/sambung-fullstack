@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import type { ProvincialPriceComparison } from "../domain/map-types";
 import { formatRupiah } from "@/features/offers/components/offer-summary";
-import { Search, Download, ArrowUpDown, Check } from "lucide-react";
+import { Search, Download, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface ProvincialTableProps {
@@ -25,7 +25,7 @@ export function ProvincialTable({
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
 
   const filteredAndSortedData = useMemo(() => {
-    let result = data.filter((item) =>
+    const result = data.filter((item) =>
       item.province.toLowerCase().includes(searchQuery.toLowerCase().trim())
     );
 

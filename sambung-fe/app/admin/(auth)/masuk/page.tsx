@@ -1,22 +1,35 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ShieldCheck, Lock, Mail, ArrowRight, ArrowLeft } from "lucide-react";
+import { Lock, Mail, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAdminLogin } from "@/features/auth/hooks/use-auth";
+import { useRedirectAuthenticatedUser } from "@/features/auth/hooks/use-redirect-authenticated";
+import { resolvePostAuthPath } from "@/features/auth/domain/role-routes";
 
-export default function AdminLoginPage() {
+function AdminLoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get("redirect");
+  const { isRedirecting } = useRedirectAuthenticatedUser(redirect);
+
   const [email, setEmail] = useState("admin@sambung.id");
   const [password, setPassword] = useState("admin123");
   const [errorMsg, setErrorMsg] = useState("");
 
   const adminLoginMutation = useAdminLogin();
+
+  if (isRedirecting) {
+    return (
+      <div className="p-8 text-center text-sm text-muted-foreground">
+        Sesi Anda masih aktif. Mengalihkan ke panel yang sesuai...
+      </div>
+    );
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,10 +41,14 @@ export default function AdminLoginPage() {
     }
 
     try {
-      await adminLoginMutation.mutateAsync({ email, password });
-      router.push("/admin");
-    } catch (err: any) {
-      setErrorMsg(err?.message || "Kredensial pengelola tidak sesuai. Silakan periksa kembali.");
+      const res = await adminLoginMutation.mutateAsync({ email, password });
+      router.replace(resolvePostAuthPath(res.user.role, redirect));
+    } catch (err) {
+      setErrorMsg(
+        err instanceof Error
+          ? err.message
+          : "Kredensial pengelola tidak sesuai. Silakan periksa kembali."
+      );
     }
   };
 
@@ -113,12 +130,20 @@ export default function AdminLoginPage() {
 
         <div className="pt-3">
           <div className="rounded-xl border border-border/60 bg-muted/40 px-3 py-4 text-xs space-y-1.5">
-            <p className="font-semibold text-foreground">Kredensial Evaluasi Pitching:</p>
+            <p className="font-semibold text-foreground">Akun Demo Pengawas:</p>
             <p className="text-muted-foreground text-xs">Email: admin@sambung.id</p>
             <p className="text-muted-foreground tabular-nums text-xs">Sandi: admin123</p>
           </div>
         </div>
       </form>
     </div>
+  );
+}
+
+export default function AdminLoginPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">Memuat halaman pengawas...</div>}>
+      <AdminLoginContent />
+    </Suspense>
   );
 }

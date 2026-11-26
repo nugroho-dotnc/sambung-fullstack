@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { AuthAwareLinkButton } from "@/features/auth/components/auth-aware-link-button";
 import { Calculator, TrendingUp, Sprout, ArrowRight } from "lucide-react";
 
 export default function FeatureSection() {
@@ -39,9 +40,9 @@ export default function FeatureSection() {
               variant="outline"
               size="sm"
               className="gap-2 font-semibold text-xs cursor-pointer hover:bg-emerald-500/10 hover:text-emerald-700 dark:hover:text-emerald-400 hover:border-emerald-500/40 w-fit"
-              render={<Link href="/kalkulator" />}
+              render={<Link href="/peta-harga" />}
             >
-              Cek Harga Wajar
+              Cek Harga Wilayah
               <ArrowRight className="w-3.5 h-3.5" />
             </Button>
           </div>
@@ -93,15 +94,15 @@ export default function FeatureSection() {
           </div>
 
           <div className="pt-2">
-            <Button
+            <AuthAwareLinkButton
               variant="outline"
               size="sm"
               className="gap-2 font-semibold text-xs cursor-pointer hover:bg-primary/10 hover:text-primary w-fit"
-              render={<Link href="/masuk" />}
-            >
-              Masuk dan Mulai Menawarkan
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Button>
+              guestHref="/masuk"
+              guestLabel="Masuk dan Mulai Menawarkan"
+              authenticatedLabel="Buka Ruang Kerja"
+              trailingIcon={<ArrowRight className="w-3.5 h-3.5" />}
+            />
           </div>
         </Card>
       </div>

@@ -4,18 +4,15 @@ import Link from "next/link";
 import { useState, useMemo } from "react";
 import {
   Search,
-  Filter,
   Download,
   Wheat,
   MapPin,
   CheckCircle2,
-  Calendar,
   ChevronRight,
-  Info,
   ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -31,14 +28,8 @@ import { useCatalog } from "@/features/catalog/hooks/use-catalog";
 import { formatRupiah } from "@/features/offers/components/offer-summary";
 import { PriceReferenceService, evaluatePriceLight } from "@/features/price-check";
 import { useMobile } from "@/hooks/use-mobile";
-import type { CatalogItem } from "@/features/catalog/schemas";
 
-const REGENCY_OPTIONS = [
-  { value: "Semua", label: "Semua Kabupaten" },
-  { value: "Subang", label: "Kabupaten Subang" },
-  { value: "Karawang", label: "Kabupaten Karawang" },
-  { value: "Indramayu", label: "Kabupaten Indramayu" },
-];
+const DEFAULT_REGENCIES = ["Jember", "Subang", "Karawang"];
 
 const GRAIN_TAB_OPTIONS = [
   { value: "ALL", label: "Semua Komoditas" },
@@ -53,6 +44,19 @@ export default function BuyerCatalogPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: items = [], isLoading, isError, error, refetch } = useCatalog();
+
+  const regencyOptions = useMemo(() => {
+    const names = new Set(DEFAULT_REGENCIES);
+    for (const item of items) {
+      if (item.regency) names.add(item.regency);
+    }
+    return [
+      { value: "Semua", label: "Semua Kabupaten" },
+      ...Array.from(names)
+        .sort((a, b) => a.localeCompare(b, "id"))
+        .map((name) => ({ value: name, label: `Kabupaten ${name}` })),
+    ];
+  }, [items]);
 
   // Filter items
   const filteredItems = useMemo(() => {
@@ -158,7 +162,7 @@ export default function BuyerCatalogPage() {
 
         <div className="text-xs text-muted-foreground flex items-center gap-2">
           <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>Komitmen pasokan langsung dari petani di wilayah Jawa Barat.</span>
+          <span>Komitmen pasokan langsung dari petani mitra terdaftar di Indonesia.</span>
         </div>
       </div>
 
@@ -208,7 +212,7 @@ export default function BuyerCatalogPage() {
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <Select
-              items={REGENCY_OPTIONS}
+              items={regencyOptions}
               value={selectedRegency}
               onValueChange={(val) => {
                 if (val) setSelectedRegency(val);
@@ -218,7 +222,7 @@ export default function BuyerCatalogPage() {
                 <SelectValue placeholder="Pilih kabupaten" />
               </SelectTrigger>
               <SelectContent>
-                {REGENCY_OPTIONS.map((opt) => (
+                {regencyOptions.map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>
                     {opt.label}
                   </SelectItem>

@@ -3,9 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Sprout, LogIn, Menu } from "lucide-react";
+import { Sprout, LogIn, LayoutDashboard, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { useCurrentUser } from "@/features/auth/hooks/use-auth";
+import { getDashboardRoute } from "@/features/auth/domain/role-routes";
 import {
   Sheet,
   SheetContent,
@@ -25,6 +27,8 @@ export default function PublicNavbar() {
   const isMobile = useMobile();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { data: user } = useCurrentUser();
+  const workspaceHref = user ? getDashboardRoute(user.role) : "/masuk";
 
   const isLinkActive = (href: string) => {
     if (href === "/") return pathname === "/";
@@ -121,16 +125,25 @@ export default function PublicNavbar() {
           })}
         </div>
 
-        {/* Tombol Masuk selalu tampil di navbar header */}
+        {/* Tombol Masuk atau akses langsung Ruang Kerja jika sesi masih aktif */}
         <div className="flex items-center gap-2 sm:gap-3">
           <Button
             size="sm"
             nativeButton={false}
             className="min-h-9 px-3 sm:px-4 text-xs font-semibold cursor-pointer"
             render={
-              <Link href="/masuk">
-                <LogIn className="w-3.5 h-3.5 mr-1.5" />
-                {isMobile ? "Masuk" : "Masuk / Daftar"}
+              <Link href={workspaceHref}>
+                {user ? (
+                  <>
+                    <LayoutDashboard className="w-3.5 h-3.5 mr-1.5" />
+                    {isMobile ? "Ruang Kerja" : "Buka Ruang Kerja"}
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="w-3.5 h-3.5 mr-1.5" />
+                    {isMobile ? "Masuk" : "Masuk / Daftar"}
+                  </>
+                )}
               </Link>
             }
           />

@@ -177,6 +177,19 @@ export function OfferDetailView({ offerId }: { offerId: string }) {
         }
       />
 
+      {offer.moderationStatus === "Sedang diminta perbaikan" && offer.moderationIssue && (
+        <div
+          role="alert"
+          className="mb-6 rounded-2xl border border-amber-400/60 bg-amber-50/80 dark:bg-amber-950/30 p-4 text-xs text-amber-950 dark:text-amber-200 flex items-start gap-2.5"
+        >
+          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="font-bold">Catatan Perbaikan dari Pengawas:</p>
+            <p className="leading-relaxed">{offer.moderationIssue}</p>
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-12 mb-8">
         {/* Left Column: Volume and Details */}
         <div className="lg:col-span-7 space-y-6">

@@ -3,11 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { PageContainer } from "@/components/shared/page-container";
-import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAdminAuditLogs } from "@/features/admin/hooks/use-admin";
-import { Shield, History, Search } from "lucide-react";
+import { Shield, Search } from "lucide-react";
 
 export default function AdminAuditLogPage() {
   const { data: auditLogs, isLoading } = useAdminAuditLogs();
@@ -45,8 +44,7 @@ export default function AdminAuditLogPage() {
               Log Audit Peristiwa Bisnis
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-3xl">
-              Catatan kronologis mutasi status transaksi, perubahan parameter harga, dan aksi
-              operasional pengguna secara transparan dan tidak dapat dimanipulasi (*tamper-evident*).
+              Catatan kronologis perubahan status transaksi, pembaruan acuan harga, dan tindakan pengawasan yang tersimpan utuh agar tidak dapat diubah sepihak.
             </p>
           </div>
 

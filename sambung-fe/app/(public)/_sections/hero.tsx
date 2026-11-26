@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { AuthAwareLinkButton } from "@/features/auth/components/auth-aware-link-button";
 import { ArrowRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -37,14 +38,14 @@ export default function HeroSection() {
                 </p>
 
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 pt-2">
-                    <Button
+                    <AuthAwareLinkButton
                         size="lg"
                         className="min-h-12 px-6 text-base font-semibold shadow-md cursor-pointer"
-                        render={<Link href="/masuk" />}
-                    >
-                        Masuk / Mulai Bertransaksi
-                        <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
+                        guestHref="/masuk"
+                        guestLabel="Masuk / Mulai Bertransaksi"
+                        authenticatedLabel="Buka Ruang Kerja"
+                        trailingIcon={<ArrowRight className="w-4 h-4 ml-2" />}
+                    />
 
                     <Button
                         variant="outline"
