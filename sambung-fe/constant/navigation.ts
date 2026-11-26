@@ -97,7 +97,6 @@ export const ADMIN_NAVIGATION_GROUPS: NavGroup[] = [
 export const PUBLIC_NAVIGATION_ITEMS: NavItem[] = [
   { id: "public-home", label: "Beranda", icon: Home, path: "/" },
   { id: "public-price-map", label: "Peta & Papan Harga", icon: MapIcon, path: "/peta-harga" },
-  { id: "public-fair-price", label: "Kalkulator Harga Wajar", icon: Scale, path: "/kalkulator" },
   { id: "public-help", label: "Bantuan", icon: HelpCircle, path: "/bantuan" },
 ];
 

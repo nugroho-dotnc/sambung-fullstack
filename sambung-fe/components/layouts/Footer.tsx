@@ -38,10 +38,6 @@ export default function Footer() {
             Peta & Papan Harga
           </Link>
           <span>·</span>
-          <Link href="/kalkulator" className="hover:text-foreground hover:underline">
-            Kalkulator Harga Wajar
-          </Link>
-          <span>·</span>
           <Link href="/bantuan" className="hover:text-foreground hover:underline">
             Bantuan
           </Link>
