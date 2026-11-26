@@ -213,15 +213,23 @@ export function OfferDetailView({ offerId }: { offerId: string }) {
               <div className="flex justify-between py-2 border-b border-border/40">
                 <span className="text-muted-foreground">Kadar Air / Mutu</span>
                 <span className="font-semibold text-foreground">
-                  {offer.quality !== null ? `${offer.quality}% (Deklarasi)` : "Belum diukur"}
+                  {offer.quality !== null && offer.quality !== undefined ? `${offer.quality}% (Hasil Uji)` : "Belum diuji (Standar pasar)"}
                 </span>
               </div>
               <div className="flex justify-between py-2 border-b border-border/40">
-                <span className="text-muted-foreground">Lokasi Pengambilan</span>
+                <span className="text-muted-foreground">Wilayah Acuan Pasar</span>
                 <span className="font-semibold text-foreground">
                   Kec. {location}, Kab. {offer.regency || "Subang"}
                 </span>
               </div>
+              {offer.notes?.match(/^\[Lokasi:\s*([^\]]+)\]/) && (
+                <div className="flex justify-between py-2 border-b border-border/40">
+                  <span className="text-muted-foreground">Titik Penjemputan Fisik</span>
+                  <span className="font-semibold text-foreground text-right max-w-[60%] truncate">
+                    {offer.notes.match(/^\[Lokasi:\s*([^\]]+)\]/)?.[1].trim()}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between py-2">
                 <span className="text-muted-foreground">Estimasi Tanggal Panen</span>
                 <span className="font-semibold text-foreground">

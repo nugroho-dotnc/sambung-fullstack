@@ -4,10 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api/client";
 import { useOffer } from "../hooks/use-offers";
 import { offerRequestId } from "../services/request-id";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useRef, useState, type FormEvent } from "react";
-import { CheckCircle2, ChevronRight, ArrowLeft, ShieldCheck, Info } from "lucide-react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { CheckCircle2, ChevronRight, ArrowLeft, ShieldCheck, Info, Loader2, InfoIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -32,13 +31,18 @@ import {
   evaluatePriceLight,
 } from "@/features/price-check";
 import { useMobile } from "@/hooks/use-mobile";
+import { UnsavedChangesDialog } from "@/components/shared/unsaved-changes-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const emptyFields = {
   grainType: "GKP" as "GKP" | "GKG",
   districtId: "Pagaden",
+  pickupAddress: "",
   totalVolumeKg: "5000",
   askPrice: "7200",
-  quality: "22.5",
+  hasQuality: false,
+  quality: "",
   availableOn: "",
   notes: "",
 };
@@ -63,14 +67,42 @@ const DISTRICT_SELECT_ITEMS = DISTRICT_OPTIONS.map((d) => ({
 }));
 
 const live = process.env.NEXT_PUBLIC_USE_MOCK !== "true";
-type Region = {id:string,regency:string,province:string};
-type Reference = {bounds:{lowerOperational:number,upperOperational:number},referenceVersion:string,deltaBp:number,referenceSource:string,rendemen:number,sourceMode:string,sourceDate:string|null};
-export function OfferWizard(props:{initialOffer?:HarvestOffer,onBack?:()=>void}) {
-  const id=useSearchParams().get("draft") || "";
-  const draft=useOffer(id);
-  if(id && !draft.data) return <p>{draft.error?.message || "Memuat draf…"}</p>;
-  return <WizardForm key={id} {...props} initialOffer={draft.data || props.initialOffer}/>;
+type Region = { id: string; regency: string; province: string };
+type Reference = {
+  bounds: { lowerOperational: number; upperOperational: number };
+  referenceVersion: string;
+  deltaBp: number;
+  referenceSource: string;
+  rendemen: number;
+  sourceMode: string;
+  sourceDate: string | null;
+};
+
+function parsePickupAndNotes(rawNotes?: string | null): { pickupAddress: string; notes: string } {
+  if (!rawNotes) return { pickupAddress: "", notes: "" };
+  const match = rawNotes.match(/^\[Lokasi:\s*([^\]]+)\](?:\s*([\s\S]*))?$/);
+  if (match) {
+    return { pickupAddress: match[1].trim(), notes: (match[2] || "").trim() };
+  }
+  return { pickupAddress: "", notes: rawNotes.trim() };
 }
+
+function combinePickupAndNotes(pickupAddress: string, notes: string): string | null {
+  const p = pickupAddress.trim();
+  const n = notes.trim();
+  if (p && n) return `[Lokasi: ${p}] ${n}`;
+  if (p) return `[Lokasi: ${p}]`;
+  if (n) return n;
+  return null;
+}
+
+export function OfferWizard(props: { initialOffer?: HarvestOffer; onBack?: () => void }) {
+  const id = useSearchParams().get("draft") || "";
+  const draft = useOffer(id);
+  if (id && !draft.data) return <p className="p-8 text-center text-xs text-muted-foreground">{draft.error?.message || "Memuat draf…"}</p>;
+  return <WizardForm key={id} {...props} initialOffer={draft.data || props.initialOffer} />;
+}
+
 function WizardForm({
   initialOffer,
   onBack,
@@ -86,14 +118,19 @@ function WizardForm({
   const paramQuality = searchParams.get("quality");
   const { data: user } = useCurrentUser();
 
+  const parsedNotes = parsePickupAndNotes(initialOffer?.notes);
+  const initialQuality = paramQuality || (initialOffer?.quality !== null && initialOffer?.quality !== undefined ? String(initialOffer.quality) : "");
+
   const [fields, setFields] = useState({
     grainType: paramGrainType || (initialOffer?.grainType as "GKP" | "GKG") || emptyFields.grainType,
     districtId: initialOffer?.districtId || user?.district || emptyFields.districtId,
+    pickupAddress: initialOffer?.pickupAddress || parsedNotes.pickupAddress || emptyFields.pickupAddress,
     totalVolumeKg: initialOffer ? String(initialOffer.totalVolumeKg) : emptyFields.totalVolumeKg,
     askPrice: paramAskPrice || (initialOffer ? String(initialOffer.askPrice) : emptyFields.askPrice),
-    quality: paramQuality || (initialOffer?.quality !== null && initialOffer?.quality !== undefined ? String(initialOffer.quality) : emptyFields.quality),
+    hasQuality: Boolean(initialQuality),
+    quality: initialQuality,
     availableOn: initialOffer?.availableOn || emptyFields.availableOn,
-    notes: initialOffer?.notes || emptyFields.notes,
+    notes: parsedNotes.notes || emptyFields.notes,
   });
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -103,22 +140,112 @@ function WizardForm({
   const [pending, setPending] = useState(false);
   const [showRedAlertModal, setShowRedAlertModal] = useState(false);
 
+  // Unsaved changes dialog state
+  const initialSnapshot = useRef(JSON.stringify(fields));
+  const isDirty = step === 1 && JSON.stringify(fields) !== initialSnapshot.current;
+  const [showExitDialog, setShowExitDialog] = useState(false);
+  const pendingExitHref = useRef<string | null>(null);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isDirty]);
+
+  function handleNavigationAttempt(href: string, e?: React.MouseEvent) {
+    if (isDirty) {
+      if (e) e.preventDefault();
+      pendingExitHref.current = href;
+      setShowExitDialog(true);
+    } else {
+      if (onBack) onBack();
+      else router.push(href);
+    }
+  }
+
+  async function handleSaveDraftAndExit() {
+    const input = validate();
+    if (!input) {
+      setShowExitDialog(false);
+      return;
+    }
+    setShowExitDialog(false);
+    await persist(input, false);
+    if (pendingExitHref.current) {
+      router.push(pendingExitHref.current);
+    }
+  }
+
+  function handleDiscardAndExit() {
+    setShowExitDialog(false);
+    if (pendingExitHref.current) {
+      router.push(pendingExitHref.current);
+    } else {
+      router.push("/petani/tawaran");
+    }
+  }
+
   const busy = useRef(false);
   const request = useRef<{ fingerprint: string; id: string } | null>(null);
   const mutation = useOfferCommand();
 
   // Price benchmark reference
-  const regions = useQuery({queryKey:["regions"],enabled:live,queryFn:()=>apiClient.get<{data:Region[]}>("/regions?level=kecamatan")});
-  const choices=live ? (regions.data?.data ?? []).map(r=>({id:r.id,label:r.id+", Kab. "+r.regency})) : DISTRICT_OPTIONS;
-  const region=regions.data?.data.find(r=>r.id===fields.districtId);
-  const quality=fields.quality.trim()?Number(fields.quality.replace(",",".")):null;
-  const reference=useQuery({queryKey:["reference",fields.districtId,fields.grainType,quality],enabled:live && !!region,
-    retry:false, queryFn:({signal})=>apiClient.get<Reference>("/fair-price-references?"+new URLSearchParams({
-      regionId:fields.districtId,grainType:fields.grainType,...(quality===null?{}:{quality:String(quality)})}),{signal})});
-  const [checked,setChecked]=useState<{reference:Reference,requiresConfirmation:boolean}|null>(null);
-  const applied=(step===2 || showRedAlertModal)?checked?.reference:reference.data;
-  const priceRef=live ? {lowerBound:applied?.bounds.lowerOperational ?? 0,upperBound:applied?.bounds.upperOperational ?? 0,
-    toleranceDelta:(applied?.deltaBp ?? 300)/10000} : PriceReferenceService.getReference(fields.grainType,user?.regency || "Subang");
+  const regions = useQuery({
+    queryKey: ["regions"],
+    enabled: live,
+    queryFn: () => apiClient.get<{ data: Region[] }>("/regions?level=kecamatan"),
+  });
+  const choices = live ? (regions.data?.data ?? []).map((r) => ({ id: r.id, label: r.id + ", Kab. " + r.regency })) : DISTRICT_OPTIONS;
+  const region = regions.data?.data.find((r) => r.id === fields.districtId);
+  const effectiveQuality = fields.hasQuality && fields.quality.trim() ? Number(fields.quality.replace(",", ".")) : null;
+
+  const reference = useQuery({
+    queryKey: ["reference", fields.districtId, fields.grainType, effectiveQuality],
+    enabled: live && !!region,
+    retry: false,
+    queryFn: ({ signal }) =>
+      apiClient.get<Reference>(
+        "/fair-price-references?" +
+          new URLSearchParams({
+            regionId: fields.districtId,
+            grainType: fields.grainType,
+            ...(effectiveQuality === null ? {} : { quality: String(effectiveQuality) }),
+          }),
+        { signal }
+      ),
+  });
+
+  const [checked, setChecked] = useState<{ reference: Reference; requiresConfirmation: boolean } | null>(null);
+
+  // Baseline fallback calculation
+  const fallbackRef = PriceReferenceService.getReference(fields.grainType, region?.regency || user?.regency || "Subang");
+  const applied = (step === 2 || showRedAlertModal) ? checked?.reference : reference.data;
+
+  const priceRef = live
+    ? {
+        lowerBound: applied?.bounds.lowerOperational ?? fallbackRef.lowerBound,
+        upperBound: applied?.bounds.upperOperational ?? fallbackRef.upperBound,
+        toleranceDelta: applied ? (applied.deltaBp ?? 300) / 10000 : fallbackRef.toleranceDelta,
+        isFallback: !applied,
+        referenceSource: applied?.referenceSource || fallbackRef.sourceNote,
+        sourceMode: applied?.sourceMode ?? "fallback",
+        sourceDate: applied?.sourceDate ?? fallbackRef.updatedAt,
+      }
+    : {
+        lowerBound: fallbackRef.lowerBound,
+        upperBound: fallbackRef.upperBound,
+        toleranceDelta: fallbackRef.toleranceDelta,
+        isFallback: false,
+        referenceSource: fallbackRef.sourceNote,
+        sourceMode: "fallback",
+        sourceDate: fallbackRef.updatedAt,
+      };
+
   const numericPrice = Number(fields.askPrice.replace(/\D/g, "")) || 0;
   const evaluation = evaluatePriceLight({
     price: numericPrice,
@@ -129,18 +256,27 @@ function WizardForm({
 
   function validate(): OfferInput | null {
     const parseNum = (v: string) => (v.trim() ? Number(v.replace(",", ".")) : NaN);
+    const combinedNotes = combinePickupAndNotes(fields.pickupAddress, fields.notes);
+    const qualityNum = fields.hasQuality && fields.quality.trim() ? parseNum(fields.quality) : null;
+
+    if (!fields.pickupAddress.trim()) {
+      setError("Masukkan lokasi atau titik penjemputan gabah spesifik.");
+      return null;
+    }
+
     const parsed = offerInputSchema.safeParse({
       grainType: fields.grainType,
       province: region?.province || user?.province || "Jawa Barat",
       regency: region?.regency || user?.regency || "Subang",
       districtId: fields.districtId,
       district: fields.districtId,
+      pickupAddress: fields.pickupAddress.trim(),
       farmerName: user?.name || user?.businessName || "Petani SAMBUNG",
       totalVolumeKg: parseNum(fields.totalVolumeKg),
       askPrice: Number(fields.askPrice.replace(/\D/g, "")),
-      quality: fields.quality.trim() ? parseNum(fields.quality) : null,
+      quality: qualityNum,
       availableOn: fields.availableOn || null,
-      notes: fields.notes.trim() || null,
+      notes: combinedNotes,
     });
 
     if (!parsed.success) {
@@ -158,16 +294,25 @@ function WizardForm({
     const input = validate();
     if (!input) return;
 
-    let red=evaluation.isRedAlert;
-    if(live) {
+    let red = evaluation.isRedAlert;
+    if (live) {
       setPending(true);
       try {
-        const result=await apiClient.post<{reference:Reference,requiresConfirmation:boolean}>("/price-checks/preview",{
-          regionId:input.districtId,grainType:input.grainType,price:input.askPrice,quality:input.quality});
+        const result = await apiClient.post<{ reference: Reference; requiresConfirmation: boolean }>("/price-checks/preview", {
+          regionId: input.districtId,
+          grainType: input.grainType,
+          price: input.askPrice,
+          quality: input.quality,
+        });
         setChecked(result);
-        red=result.requiresConfirmation;
-      } catch(reason) {setError(reason instanceof Error?reason.message:"Acuan belum tersedia.");return;}
-      finally {setPending(false);}
+        red = result.requiresConfirmation;
+      } catch (reason) {
+        // If preview API fails, use fallback check
+        const isFallbackRed = input.askPrice < priceRef.lowerBound * (1 - priceRef.toleranceDelta);
+        red = isFallbackRed;
+      } finally {
+        setPending(false);
+      }
     }
     if (red) {
       setShowRedAlertModal(true);
@@ -213,13 +358,21 @@ function WizardForm({
         draft.districtId === input.districtId &&
         draft.totalVolumeKg === input.totalVolumeKg &&
         draft.askPrice === input.askPrice &&
-        draft.quality === input.quality && draft.notes === input.notes &&
+        draft.quality === input.quality &&
+        draft.notes === input.notes &&
         draft.availableOn === input.availableOn;
 
       if (!unchanged) {
         draft = await command(
           draft
-            ? { action: "update", id: draft.id, version: draft.version, input,referenceVersion:checked?.reference.referenceVersion,redConfirmed:checked?.requiresConfirmation }
+            ? {
+                action: "update",
+                id: draft.id,
+                version: draft.version,
+                input,
+                referenceVersion: checked?.reference.referenceVersion,
+                redConfirmed: checked?.requiresConfirmation,
+              }
             : { action: "create", input }
         );
         setSaved(draft);
@@ -227,13 +380,20 @@ function WizardForm({
 
       if (!draft) throw new Error("Draf belum tersimpan.");
 
-      if (publish && draft.status==="published") {setStep(3);return;}
+      // Update snapshot so form is not dirty anymore
+      initialSnapshot.current = JSON.stringify(fields);
+
+      if (publish && draft.status === "published") {
+        setStep(3);
+        return;
+      }
       if (publish) {
         const published = await command({
           action: "publish",
           id: draft.id,
           version: draft.version,
-          referenceVersion:checked?.reference.referenceVersion, redConfirmed:checked?.requiresConfirmation,
+          referenceVersion: checked?.reference.referenceVersion,
+          redConfirmed: checked?.requiresConfirmation,
         });
         setSaved(published);
         setStep(3);
@@ -241,7 +401,10 @@ function WizardForm({
         router.push("/petani/tawaran");
       }
     } catch (reason) {
-      if(live && reason instanceof Error && "code" in reason && reason.code==="REFERENCE_CHANGED") {setStep(1);setChecked(null);}
+      if (live && reason instanceof Error && "code" in reason && reason.code === "REFERENCE_CHANGED") {
+        setStep(1);
+        setChecked(null);
+      }
       setError(
         reason instanceof Error
           ? reason.message
@@ -253,7 +416,7 @@ function WizardForm({
     }
   }
 
-  const updateField = (key: keyof typeof emptyFields, value: string) => {
+  const updateField = (key: keyof typeof emptyFields, value: unknown) => {
     setFields((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -265,14 +428,14 @@ function WizardForm({
     <div className="space-y-8">
       {/* Step Indicator Header */}
       <div>
-        <Link
-          href="/petani/tawaran"
-          onClick={onBack}
-          className="inline-flex items-center text-xs font-medium text-muted-foreground hover:text-foreground transition mb-2"
+        <button
+          type="button"
+          onClick={(e) => handleNavigationAttempt("/petani/tawaran", e)}
+          className="inline-flex items-center text-xs font-medium text-muted-foreground hover:text-foreground transition mb-2 cursor-pointer"
         >
           <ArrowLeft className="w-3.5 h-3.5 mr-1" />
           Kembali ke Daftar Tawaran
-        </Link>
+        </button>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
@@ -338,206 +501,315 @@ function WizardForm({
 
       {/* Step 1: Form Input */}
       {step === 1 && (
-        <form onSubmit={handleProceedToReview}><fieldset disabled={pending} className="space-y-8">
-          <div className="grid items-start gap-6 lg:grid-cols-12">
-            {/* Left Column: Harvest & Location Fields */}
-            <div className="lg:col-span-7 space-y-6">
-              <section className="rounded-2xl border border-border/80 bg-card p-6 sm:p-7 space-y-5">
-                <div className="border-b border-border/60 pb-3">
-                  <h2 className="text-base font-semibold text-foreground">
-                    1. Rincian Komoditas & Volume
-                  </h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Tentukan jenis gabah dan taksiran tonase bersih panen Anda.
-                  </p>
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="sm:col-span-2 space-y-1.5">
-                    <span className="text-xs font-medium text-foreground block">
-                      Jenis Gabah <span className="text-destructive">*</span>
-                    </span>
-                    <Select
-                      items={GRAIN_TYPE_OPTIONS}
-                      value={fields.grainType}
-                      disabled={initialOffer?.typeLocationLocked}
-                      onValueChange={(val) => {
-                        if (val === "GKP" || val === "GKG") {
-                          updateField("grainType", val);
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-                        <SelectValue placeholder="Pilih jenis gabah" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {GRAIN_TYPE_OPTIONS.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+        <form onSubmit={handleProceedToReview}>
+          <fieldset disabled={pending} className="space-y-8">
+            <div className="grid items-start gap-6 lg:grid-cols-12">
+              {/* Left Column: Harvest & Location Fields */}
+              <div className="lg:col-span-7 space-y-6">
+                <section className="rounded-2xl border border-border/80 bg-card p-6 sm:p-7 space-y-5">
+                  <div className="border-b border-border/60 pb-3">
+                    <h2 className="text-base font-semibold text-foreground">
+                      1. Rincian Komoditas & Volume
+                    </h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Tentukan jenis gabah, estimasi mutu, dan tonase bersih hasil panen Anda.
+                    </p>
                   </div>
 
-                  <label className="block space-y-1.5">
-                    <span className="text-xs font-medium text-foreground">
-                      Volume Bersih (kg) <span className="text-destructive">*</span>
-                    </span>
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      required
-                      value={fields.totalVolumeKg}
-                      onChange={(e) => updateField("totalVolumeKg", e.target.value)}
-                      placeholder="Contoh: 5000"
-                      className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                    <span className="text-xs text-muted-foreground block">
-                      ≈ {(volumeNum / 1000).toLocaleString("id-ID", { maximumFractionDigits: 2 })} ton
-                    </span>
-                  </label>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {/* Jenis Gabah */}
+                    <div className="sm:col-span-2 space-y-1.5">
+                      <span className="text-xs font-medium text-foreground block">
+                        Jenis Gabah <span className="text-destructive">*</span>
+                      </span>
+                      <Select
+                        items={GRAIN_TYPE_OPTIONS}
+                        value={fields.grainType}
+                        disabled={initialOffer?.typeLocationLocked}
+                        onValueChange={(val) => {
+                          if (val === "GKP" || val === "GKG") {
+                            updateField("grainType", val);
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                          <SelectValue placeholder="Pilih jenis gabah" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {GRAIN_TYPE_OPTIONS.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                  <label className="block space-y-1.5">
-                    <span className="text-xs font-medium text-foreground">
-                      Estimasi Mutu / Kadar Air (%)
-                    </span>
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      value={fields.quality}
-                      onChange={(e) => updateField("quality", e.target.value)}
-                      placeholder="Contoh: 22.5"
-                      className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                    <span className="text-xs text-muted-foreground block">
-                      Deklaratif petani (opsional)
-                    </span>
-                  </label>
+                    {/* Volume Bersih */}
+                    <label className="block space-y-1.5">
+                      <span className="text-xs font-medium text-foreground">
+                        Volume Bersih (kg) <span className="text-destructive">*</span>
+                      </span>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        required
+                        value={fields.totalVolumeKg}
+                        onChange={(e) => updateField("totalVolumeKg", e.target.value)}
+                        placeholder="Contoh: 5000"
+                        className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                      <span className="text-xs text-muted-foreground block">
+                        ≈ {(volumeNum / 1000).toLocaleString("id-ID", { maximumFractionDigits: 2 })} ton
+                      </span>
+                    </label>
 
-                  <div className="space-y-1.5">
-                    <span className="text-xs font-medium text-foreground block">
-                      Lokasi Pengambilan (Kecamatan) <span className="text-destructive">*</span>
-                    </span>
-                    <Select
-                      items={live ? choices.map(c=>({value:c.id,label:c.label})) : DISTRICT_SELECT_ITEMS}
-                      value={fields.districtId}
-                      disabled={initialOffer?.typeLocationLocked}
-                      onValueChange={(val) => {
-                        if (val) updateField("districtId", val);
-                      }}
-                    >
-                      <SelectTrigger className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-                        <SelectValue placeholder="Pilih kecamatan" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {choices.map((opt) => (
-                          <SelectItem key={opt.id} value={opt.id}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {/* Tanggal Panen */}
+                    <label className="block space-y-1.5">
+                      <span className="text-xs font-medium text-foreground">
+                        Tanggal Panen / Siap Angkut
+                      </span>
+                      <input
+                        type="date"
+                        value={fields.availableOn}
+                        onChange={(e) => updateField("availableOn", e.target.value)}
+                        className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                      <span className="text-xs text-muted-foreground block">
+                        Opsional jika gabah sudah siap diangkut
+                      </span>
+                    </label>
+
+                    {/* Opsi Kadar Air / Mutu Gabah */}
+                    <div className="sm:col-span-2 space-y-2.5">
+                      <div className="flex items-center gap-2">
+                        <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                          <Checkbox
+                            checked={fields.hasQuality}
+                            onCheckedChange={(checked) => {
+                              const isChecked = Boolean(checked);
+                              setFields((prev) => ({
+                                ...prev,
+                                hasQuality: isChecked,
+                                quality: isChecked ? prev.quality : "",
+                              }));
+                            }}
+                          />
+                          <span className="text-xs font-medium text-foreground">
+                            Ada Hasil Uji Mutu / Kadar Air Gabah (%)
+                          </span>
+                        </label>
+                        <Tooltip>
+                          <TooltipTrigger render={<button type="button" className="inline-flex items-center text-muted-foreground hover:text-foreground cursor-pointer p-0.5"><InfoIcon className="w-3.5 h-3.5" /></button>} />
+                          <TooltipContent>
+                            <p className="text-[11px] text-muted-foreground leading-relaxed max-w-xs">
+                              Centang jika Anda memiliki data pengukuran kadar air dari alat moisture tester. Jika tidak dicentang, harga acuan menggunakan standar mutu rata-rata pasar.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+
+                      {fields.hasQuality && (
+                        <label className="block space-y-1.5 sm:max-w-xs pt-1">
+                          <span className="text-xs font-medium text-foreground">
+                            Estimasi Kadar Air (%) <span className="text-destructive">*</span>
+                          </span>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              required={fields.hasQuality}
+                              value={fields.quality}
+                              onChange={(e) => updateField("quality", e.target.value)}
+                              placeholder="Contoh: 22.5"
+                              className="w-full h-11 rounded-xl border border-input bg-background px-3 pr-8 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-primary"
+                            />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground">%</span>
+                          </div>
+                          <span className="text-[11px] text-muted-foreground block">
+                            Standar SNI GKP umumnya berada di kisaran 20% – 25%.
+                          </span>
+                        </label>
+                      )}
+                    </div>
+
+                    {/* Wilayah Acuan Pasar (Dropdown) */}
+                    <div className="space-y-1.5">
+                      <span className="text-xs font-medium text-foreground block">
+                        Wilayah Acuan Pasar (Kecamatan) <span className="text-destructive">*</span>
+                      </span>
+                      <Select
+                        items={live ? choices.map((c) => ({ value: c.id, label: c.label })) : DISTRICT_SELECT_ITEMS}
+                        value={fields.districtId}
+                        disabled={initialOffer?.typeLocationLocked}
+                        onValueChange={(val) => {
+                          if (val) updateField("districtId", val);
+                        }}
+                      >
+                        <SelectTrigger className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                          <SelectValue placeholder="Pilih kecamatan acuan" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {choices.map((opt) => (
+                            <SelectItem key={opt.id} value={opt.id}>
+                              {opt.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <span className="text-[11px] text-muted-foreground block">
+                        Untuk menghitung batas harga wajar dan zonasi pasar pembeli.
+                      </span>
+                    </div>
+
+                    {/* Lokasi Fisik Pengambilan (Manual Input) */}
+                    <div className="space-y-1.5">
+                      <label className="block space-y-1.5">
+                        <span className="text-xs font-medium text-foreground">
+                          Lokasi / Titik Penjemputan Gabah <span className="text-destructive">*</span>
+                        </span>
+                        <input
+                          type="text"
+                          required
+                          value={fields.pickupAddress}
+                          onChange={(e) => updateField("pickupAddress", e.target.value)}
+                          placeholder="Contoh: Dusun Sukamaju RT 02/01, Desa Sukamulya"
+                          className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                        <span className="text-[11px] text-muted-foreground block">
+                          Tuliskan alamat dusun, desa, atau patokan gudang penjemputan.
+                        </span>
+                      </label>
+                    </div>
+
+                    {/* Catatan Tambahan */}
+                    <div className="sm:col-span-2 space-y-1.5">
+                      <label className="block space-y-1.5">
+                        <span className="text-xs font-medium text-foreground">
+                          Catatan Tambahan untuk Pembeli (Opsional)
+                        </span>
+                        <input
+                          type="text"
+                          value={fields.notes}
+                          onChange={(e) => updateField("notes", e.target.value)}
+                          placeholder="Contoh: Akses truk engkel bisa masuk sampai depan gudang panen."
+                          className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Price Range Slider with Status Badge & Fallback */}
+                <section className="space-y-3">
+                  {live && reference.isLoading && (
+                    <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-xs text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-300">
+                      <Loader2 className="w-4 h-4 animate-spin shrink-0 text-amber-600" />
+                      <span>Memuat rekomendasi harga wajar wilayah untuk {region?.id || fields.districtId}...</span>
+                    </div>
+                  )}
+                  {live && !reference.isLoading && priceRef.isFallback && (
+                    <div className="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50/80 p-3 text-xs text-blue-800 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300">
+                      <Info className="w-4 h-4 shrink-0 text-blue-600" />
+                      <span>
+                        Menggunakan acuan harga dasar regional ({fallbackRef.region} - {priceRef.referenceSource}) sebagai panduan pasar.
+                      </span>
+                    </div>
+                  )}
+                  {live && !reference.isLoading && !priceRef.isFallback && (
+                    <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/80 p-3 text-xs text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-300">
+                      <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+                      <span>
+                        Acuan harga pasar aktif untuk wilayah {region?.id || fields.districtId} (Kab. {region?.regency || user?.regency || "Subang"}).
+                      </span>
+                    </div>
+                  )}
+
+                  <PriceRangeSlider
+                    value={numericPrice}
+                    min={5000}
+                    max={10000}
+                    lowerBound={priceRef.lowerBound}
+                    upperBound={priceRef.upperBound}
+                    toleranceDelta={priceRef.toleranceDelta}
+                    onChange={(newVal) => updateField("askPrice", String(newVal))}
+                    label={`2. Penetapan Harga Minta Gabah (${fields.grainType})`}
+                    description="Geser atau ketik nominal harga per kilogram. Pantau indikator spektrum warna agar harga tetap bersaing."
+                  />
+                </section>
+              </div>
+
+              {/* Right Column: Dynamic Price Summary Card */}
+              <div className="lg:col-span-5 space-y-6">
+                <section className="rounded-2xl border border-border/80 bg-card p-6 space-y-4">
+                  <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                    Estimasi Nilai Total Pasokan
+                  </h3>
+
+                  <div className="rounded-xl bg-muted/40 p-4 border border-border/60">
+                    <p className="text-xs text-muted-foreground">Perkiraan Nilai Kotor Pasokan</p>
+                    <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+                      {estimatedTotal > 0 ? formatRupiah(estimatedTotal) : "Rp0"}
+                    </p>
+                    <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+                      Dihitung dari {volumeNum.toLocaleString("id-ID")} kg × Rp{numericPrice.toLocaleString("id-ID")}/kg.
+                    </p>
                   </div>
 
-                  <label className="block space-y-1.5">
-                    <span className="text-xs font-medium text-foreground">
-                      Tanggal Panen / Siap Angkut
-                    </span>
-                    <input
-                      type="date"
-                      value={fields.availableOn}
-                      onChange={(e) => updateField("availableOn", e.target.value)}
-                      className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                  </label>
-                </div>
-              </section>
-
-              {/* Price Range Slider Component */}
-              {live && !reference.data ? <label>Harga minta (Rp/kg)<input type="number" value={fields.askPrice} onChange={e=>updateField("askPrice",e.target.value)}/><small>{reference.error?.message || "Menunggu acuan harga wilayah."}</small></label> : <PriceRangeSlider
-                value={numericPrice}
-                min={5000}
-                max={10000}
-                lowerBound={priceRef.lowerBound}
-                upperBound={priceRef.upperBound}
-                toleranceDelta={priceRef.toleranceDelta}
-                onChange={(newVal) => updateField("askPrice", String(newVal))}
-                label={`2. Penetapan Harga Minta Gabah (${fields.grainType})`}
-                description={`Geser atau ketik nominal harga per kilogram. Pantau indikator spektrum warna agar harga tetap bersaing.`}
-              />}
+                  <div className="text-xs text-muted-foreground space-y-2 pt-2">
+                    <p className="flex items-start gap-2">
+                      <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                      <span>
+                        Harga yang Anda masukkan akan ditampilkan langsung kepada pembeli di katalog pasar.
+                      </span>
+                    </p>
+                    <p className="flex items-start gap-2">
+                      <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                      <span>
+                        Pembeli berhak mengajukan negosiasi harga sebelum kesepakatan final disetujui bersama.
+                      </span>
+                    </p>
+                  </div>
+                </section>
+              </div>
             </div>
 
-            {/* Right Column: Dynamic Price Summary Card */}
-            <div className="lg:col-span-5 space-y-6">
-              <section className="rounded-2xl border border-border/80 bg-card p-6 space-y-4">
-                <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  Estimasi Nilai Total Pasokan
-                </h3>
-
-                <div className="rounded-xl bg-muted/40 p-4 border border-border/60">
-                  <p className="text-xs text-muted-foreground">Perkiraan Nilai Kotor Pasokan</p>
-                  <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
-                    {estimatedTotal > 0 ? formatRupiah(estimatedTotal) : "Rp0"}
-                  </p>
-                  <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
-                    Dihitung dari {volumeNum.toLocaleString("id-ID")} kg × Rp{numericPrice.toLocaleString("id-ID")}/kg.
-                  </p>
-                </div>
-
-                <div className="text-xs text-muted-foreground space-y-2 pt-2">
-                  <p className="flex items-start gap-2">
-                    <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                    <span>
-                      Harga yang Anda masukkan akan ditampilkan langsung kepada pembeli di katalog pasar.
-                    </span>
-                  </p>
-                  <p className="flex items-start gap-2">
-                    <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                    <span>
-                      Pembeli berhak mengajukan negosiasi harga sebelum kesepakatan final disetujui bersama.
-                    </span>
-                  </p>
-                </div>
-              </section>
-            </div>
-          </div>
-
-          {/* Form Actions Footer */}
-          <footer className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold text-foreground">
-                Tawaran Belum Diterbitkan
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Klik tombol di samping untuk meninjau ringkasan sebelum terbit ke pasar.
-              </p>
-            </div>
-            <div className="flex items-center gap-3 w-full sm:w-auto">
-              <Button
-                type="button"
-                variant="outline"
-                className="flex-1 sm:flex-none min-h-11 px-5"
-                disabled={pending}
-                onClick={() => {
-                  const input = validate();
-                  if (input) void persist(input, false);
-                }}
-              >
-                Simpan Draf
-              </Button>
-              <Button
-                type="submit"
-                className="flex-1 sm:flex-none min-h-11 px-6 font-semibold"
-                disabled={pending}
-              >
-                {isMobile ? "Lanjut Tinjau" : "Lanjut Tinjau Tawaran"}
-                <ChevronRight className="w-4 h-4 ml-1.5" />
-              </Button>
-            </div>
-          </footer>
-        </fieldset></form>
+            {/* Form Actions Footer */}
+            <footer className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold text-foreground">
+                  Tawaran Belum Diterbitkan
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Klik tombol di samping untuk meninjau ringkasan sebelum terbit ke pasar.
+                </p>
+              </div>
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1 sm:flex-none min-h-11 px-5"
+                  disabled={pending}
+                  onClick={() => {
+                    const input = validate();
+                    if (input) void persist(input, false);
+                  }}
+                >
+                  Simpan Draf
+                </Button>
+                <Button
+                  type="submit"
+                  className="flex-1 sm:flex-none min-h-11 px-6 font-semibold"
+                  disabled={pending}
+                >
+                  {isMobile ? "Lanjut Tinjau" : "Lanjut Tinjau Tawaran"}
+                  <ChevronRight className="w-4 h-4 ml-1.5" />
+                </Button>
+              </div>
+            </footer>
+          </fieldset>
+        </form>
       )}
 
       {/* Step 2: Review Offer */}
@@ -558,7 +830,18 @@ function WizardForm({
               </div>
 
               <OfferSummary input={review} />
-              {live && checked && <p>Acuan {formatRupiah(priceRef.lowerBound)}–{formatRupiah(priceRef.upperBound)}/kg · Rendemen {(checked.reference.rendemen*100).toFixed(2)}% · {checked.reference.referenceSource}{checked.reference.sourceMode==="snapshot" && " · Snapshot per "+checked.reference.sourceDate}</p>}
+              {live && (
+                <div className="rounded-xl border border-border/70 bg-muted/20 p-3.5 text-xs text-muted-foreground space-y-1">
+                  <p className="font-semibold text-foreground">Informasi Acuan Pasar Terpasang:</p>
+                  <p>
+                    Rentang Wajar: <strong className="text-foreground">{formatRupiah(priceRef.lowerBound)} – {formatRupiah(priceRef.upperBound)}/kg</strong>
+                    {checked?.reference.rendemen ? ` · Rendemen ${(checked.reference.rendemen * 100).toFixed(2)}%` : ""}
+                  </p>
+                  <p className="text-[11px]">
+                    Sumber: {priceRef.referenceSource} {priceRef.sourceDate ? `· Tanggal: ${priceRef.sourceDate}` : ""}
+                  </p>
+                </div>
+              )}
             </section>
 
             <aside className="lg:col-span-5 rounded-2xl border border-border/80 bg-card p-6 space-y-4">
@@ -618,7 +901,8 @@ function WizardForm({
                 variant="outline"
                 className="flex-1 sm:flex-initial min-h-11 px-3 sm:px-4"
                 disabled={pending}
-                hidden={saved?.status==="published"} onClick={() => void persist(review, false)}
+                hidden={saved?.status === "published"}
+                onClick={() => void persist(review, false)}
               >
                 {isMobile ? "Draf" : "Simpan Draf"}
               </Button>
@@ -693,8 +977,16 @@ function WizardForm({
         redThreshold={evaluation.redThreshold}
         onConfirm={confirmRedAndProceed}
       />
+
+      {/* Unsaved Changes Confirmation Dialog */}
+      <UnsavedChangesDialog
+        open={showExitDialog}
+        onOpenChange={setShowExitDialog}
+        onSaveAndExit={handleSaveDraftAndExit}
+        onDiscardAndExit={handleDiscardAndExit}
+        onCancel={() => setShowExitDialog(false)}
+        isSaving={pending}
+      />
     </div>
   );
 }
-
-

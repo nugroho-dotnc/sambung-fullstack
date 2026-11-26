@@ -123,9 +123,10 @@ export function PartialOrderForm({ item }: { item: CatalogItem }) {
                     {item.farmerBusiness || item.farmerName}
                   </h3>
                   <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                    <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
+                    <MapPin className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                     <span>
                       Kec. {item.district || item.districtId}, Kab. {item.regency || "Subang"}
+                      {item.notes?.match(/^\[Lokasi:\s*([^\]]+)\]/) && ` · ${item.notes.match(/^\[Lokasi:\s*([^\]]+)\]/)?.[1].trim()}`}
                     </span>
                   </p>
                 </div>
@@ -149,7 +150,7 @@ export function PartialOrderForm({ item }: { item: CatalogItem }) {
                 <div className="p-3 rounded-xl bg-muted/40 border border-border/60">
                   <span className="text-muted-foreground text-xs block">Kadar Air / Mutu</span>
                   <span className="text-base font-bold text-foreground">
-                    {item.quality !== null ? `${item.quality}% (Deklarasi)` : "Belum diukur"}
+                    {item.quality !== null && item.quality !== undefined ? `${item.quality}% (Hasil Uji)` : "Belum diuji (Standar pasar)"}
                   </span>
                 </div>
               </div>

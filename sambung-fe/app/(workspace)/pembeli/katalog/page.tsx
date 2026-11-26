@@ -304,6 +304,7 @@ export default function BuyerCatalogPage() {
                       <MapPin className="w-3.5 h-3.5 shrink-0" />
                       <span>
                         Kec. {item.district || item.districtId}, {item.regency || "Subang"}
+                        {item.notes?.match(/^\[Lokasi:\s*([^\]]+)\]/) && ` · ${item.notes.match(/^\[Lokasi:\s*([^\]]+)\]/)?.[1].trim()}`}
                       </span>
                     </p>
                   </div>

@@ -6,6 +6,7 @@ export const offerInputSchema = z.object({
   regency: z.string().optional().default("Subang"),
   districtId: z.string().optional().default("Pagaden"),
   district: z.string().optional().default("Pagaden"),
+  pickupAddress: z.string().max(255, "Lokasi pengambilan maksimal 255 karakter.").optional().nullable(),
   farmerName: z.string().optional(),
   totalVolumeKg: z.number().positive("Volume harus berupa angka positif.").max(Number.MAX_SAFE_INTEGER / 100).refine(
     (value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-8,
