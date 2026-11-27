@@ -51,10 +51,14 @@ function AdminLoginContent() {
   };
 
   return (
-    <div className="w-full space-y-8">
-      <div className="space-y-3">
-        <h1 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-          Portal Pengawas & Tata Kelola
+    <div className="admin-surface overflow-hidden p-7 sm:p-9 w-full space-y-7">
+      <div className="space-y-3 border-b border-border pb-6">
+        <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md text-xs font-semibold bg-muted text-foreground">
+          <span className="admin-live-dot bg-[#78B000]" aria-hidden="true" />
+          <span>Portal Pengawas</span>
+        </span>
+        <h1 className="font-display text-2xl sm:text-[28px] font-bold tracking-tight text-foreground leading-tight">
+          Portal Pengawas &amp; Tata Kelola
         </h1>
         <p className="text-sm text-muted-foreground leading-relaxed">
           Akses khusus staf pengawas data harga, kalibrasi parameter pasar, dan audit sistem.
@@ -63,12 +67,12 @@ function AdminLoginContent() {
 
       <form onSubmit={handleLogin} className="space-y-5">
         <div className="space-y-2">
-          <Label htmlFor="admin-email" className="text-xs font-semibold">
+          <Label htmlFor="admin-email" className="text-xs font-semibold text-foreground">
             Alamat Email Resmi
           </Label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-muted-foreground">
-              <Mail className="w-4 h-4" />
+              <Mail className="w-4 h-4" aria-hidden="true" />
             </div>
             <Input
               id="admin-email"
@@ -76,7 +80,7 @@ function AdminLoginContent() {
               placeholder="admin@sambung.id"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="pl-10 min-h-11 text-sm tabular-nums"
+              className="pl-10 min-h-11 text-sm tabular-nums rounded-lg"
               disabled={adminLoginMutation.isPending}
               required
             />
@@ -84,12 +88,12 @@ function AdminLoginContent() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="admin-password" className="text-xs font-semibold">
+          <Label htmlFor="admin-password" className="text-xs font-semibold text-foreground">
             Kata Sandi Pengelola
           </Label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-muted-foreground">
-              <Lock className="w-4 h-4" />
+              <Lock className="w-4 h-4" aria-hidden="true" />
             </div>
             <Input
               id="admin-password"
@@ -97,7 +101,7 @@ function AdminLoginContent() {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="pl-10 min-h-11 text-sm"
+              className="pl-10 min-h-11 text-sm rounded-lg"
               disabled={adminLoginMutation.isPending}
               required
             />
@@ -105,34 +109,37 @@ function AdminLoginContent() {
         </div>
 
         {errorMsg && (
-          <div className="px-3 py-2.5 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs leading-relaxed">
+          <div
+            role="alert"
+            className="px-4 py-3 rounded-lg status-error text-xs font-medium leading-relaxed"
+          >
             {errorMsg}
           </div>
         )}
 
-        <div className="flex flex-col gap-5 pt-2">
+        <div className="flex flex-col gap-4 pt-2">
           <Button
             type="submit"
-            className="w-full min-h-11 font-semibold"
+            className="admin-cta w-full min-h-11 rounded-lg font-semibold cursor-pointer"
             disabled={adminLoginMutation.isPending}
           >
-            {adminLoginMutation.isPending ? "Mengautentikasi..." : "Masuk ke Panel Pengawasan"}
-            <ArrowRight className="w-4 h-4 ml-2" />
+            <span>{adminLoginMutation.isPending ? "Mengautentikasi..." : "Masuk ke Panel Pengawasan"}</span>
+            <ArrowRight className="cta-arrow w-4 h-4 ml-2" aria-hidden="true" />
           </Button>
-          <div className="flex items-center justify-end w-full pt-4 border-t border-border/60 text-xs text-muted-foreground">
-              <Link href="/masuk" className="font-medium text-foreground hover:underline flex items-center gap-1">
-                Masuk Sebagai Petani / Penggiling
-              </Link>
+          <div className="flex items-center justify-end w-full pt-4 border-t border-border text-xs text-muted-foreground">
+            <Link
+              href="/masuk"
+              className="admin-breadcrumb-link font-semibold text-foreground py-1"
+            >
+              Masuk Sebagai Petani / Penggiling
+            </Link>
           </div>
         </div>
 
         {IS_DEMO_FE && (
-          <div className="pt-3">
-            <div className="rounded-xl border border-border/60 bg-muted/40 px-3 py-4 text-xs space-y-1.5">
-              <p className="font-semibold text-foreground">Akun Demo Pengawas:</p>
-              <p className="text-muted-foreground text-xs">Email: admin@sambung.id</p>
-              <p className="text-muted-foreground tabular-nums text-xs">Sandi: admin123</p>
-            </div>
+          <div className="border-t border-border pt-4 text-xs space-y-1 text-muted-foreground">
+            <p className="font-semibold text-[var(--admin-gold-text)]">Akun Demo Pengawas</p>
+            <p className="tabular-nums">Email: admin@sambung.id · Sandi: admin123</p>
           </div>
         )}
       </form>
