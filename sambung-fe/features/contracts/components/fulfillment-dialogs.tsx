@@ -211,8 +211,17 @@ export function ReceiveConfirmDialog({
             />
           </div>
 
-          <div className="p-3 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/70 text-emerald-900 dark:text-emerald-300 text-[11px] leading-relaxed">
-            Dengan mengonfirmasi, Anda menyatakan bahwa gabah telah diterima dan transaksi komitmen pasokan ini dinyatakan <strong>selesai tuntas</strong>. Lembar bukti kesepakatan akhir dapat langsung diunduh.
+          <div className="p-3 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/70 text-emerald-900 dark:text-emerald-300 text-[11px] leading-relaxed space-y-1">
+            <p>
+              Dengan mengonfirmasi, Anda menyatakan bahwa gabah telah diterima dan transaksi komitmen pasokan ini dinyatakan <strong>selesai tuntas</strong>. Lembar bukti kesepakatan akhir dapat langsung diunduh.
+            </p>
+            {contract.payment?.status === "paid" && contract.payment.escrowStatus === "held" && (
+              <p>
+                Dana escrow bersih sebesar{" "}
+                <strong>{formatRupiah(contract.payment.contractAmount)}</strong>{" "}
+                akan langsung dicairkan kepada pihak petani.
+              </p>
+            )}
           </div>
 
           {error && (

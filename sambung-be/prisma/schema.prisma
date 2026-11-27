@@ -114,14 +114,52 @@ model Contract {
   buyerSignedAt DateTime? @db.Timestamptz(6)
   shippedAt DateTime? @db.Timestamptz(6)
   completedAt DateTime? @db.Timestamptz(6)
+  paymentDueAt DateTime? @map("payment_due_at") @db.Timestamptz(6)
+  paymentGraceEndsAt DateTime? @map("payment_grace_ends_at") @db.Timestamptz(6)
+  paymentReminderSentAt DateTime? @map("payment_reminder_sent_at") @db.Timestamptz(6)
   expiresAt DateTime @db.Timestamptz(6)
   cancelReason String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   history ContractPrice[]
+  payments Payment[]
   @@index([offerId,status])
   @@index([buyerId])
   @@index([status, expiresAt])
+  @@index([status, paymentDueAt, paymentGraceEndsAt])
+}
+model Payment {
+  id                    String    @id @default(uuid()) @db.Uuid
+  contractId            String    @map("contract_id") @db.Uuid
+  contract              Contract  @relation(fields: [contractId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  attempt               Int
+  orderId               String    @unique @map("order_id")
+  contractAmount        BigInt    @map("contract_amount")
+  buyerFeeAmount        BigInt    @default(0) @map("buyer_fee_amount")
+  grossAmount           BigInt    @map("gross_amount")
+  currency              String    @default("IDR")
+  provider              String    @default("midtrans_sandbox")
+  status                String    @default("pending")
+  escrowStatus          String    @default("unpaid") @map("escrow_status")
+  paymentType           String?   @map("payment_type")
+  paymentChannel        String?   @map("payment_channel")
+  paymentReference      String?   @map("payment_reference")
+  midtransTransactionId String?   @map("midtrans_transaction_id")
+  midtransStatus        String?   @map("midtrans_status")
+  fraudStatus           String?   @map("fraud_status")
+  snapToken             String?   @map("snap_token")
+  redirectUrl           String?   @map("redirect_url")
+  rawNotification       Json?     @map("raw_notification")
+  paidAt                DateTime? @map("paid_at") @db.Timestamptz(6)
+  releasedAt            DateTime? @map("released_at") @db.Timestamptz(6)
+  expiresAt             DateTime? @map("expires_at") @db.Timestamptz(6)
+  lastSyncedAt          DateTime? @map("last_synced_at") @db.Timestamptz(6)
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([contractId, attempt])
+  @@index([contractId, createdAt(sort: Desc)])
+  @@map("contract_payment")
 }
 model ContractPrice {
   id String @id @default(uuid()) @db.Uuid

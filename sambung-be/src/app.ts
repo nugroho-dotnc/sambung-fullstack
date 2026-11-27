@@ -1,5 +1,6 @@
 import { marketRouter } from "./modules/offers/offers.routes.ts";
 import { contractRouter } from "./modules/contracts/contracts.routes.ts";
+import { paymentsRouter } from "./modules/payments/payments.routes.ts";
 import { forecastRouter } from "./modules/forecast/forecast.routes.ts";
 import { notificationRouter } from "./modules/notifications/notifications.routes.ts";
 import { adminRouter } from "./modules/admin/admin.routes.ts";
@@ -68,6 +69,7 @@ export function createApp(db: PrismaClient, origin: string, consentVersion = "de
     },
     authRouter(db, secureCookie, consentVersion)
   );
+  app.use(paymentsRouter(db));
   app.use("/contracts", contractRouter(db));
   app.use(forecastRouter());
   app.use(aiRouter(db));

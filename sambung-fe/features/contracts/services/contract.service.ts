@@ -1,5 +1,9 @@
 import { apiClient } from "@/lib/api/client";
-import { contractSchema } from "../schemas";
+import {
+  contractSchema,
+  initiatePaymentResponseSchema,
+  syncPaymentResponseSchema,
+} from "../schemas";
 
 export type Quote = {
   regionId: string;
@@ -66,5 +70,24 @@ export class ContractService {
       headers: { "Idempotency-Key": key },
     });
     return contractSchema.parse(data);
+  }
+
+  static async initiatePayment(
+    contractId: string,
+    options?: { recreate?: boolean }
+  ) {
+    const { data } = await apiClient.post<{ data: unknown }>(
+      `/contracts/${encodeURIComponent(contractId)}/payment/initiate`,
+      { recreate: options?.recreate ?? false }
+    );
+    return initiatePaymentResponseSchema.parse(data);
+  }
+
+  static async syncPayment(contractId: string) {
+    const { data } = await apiClient.post<{ data: unknown }>(
+      `/contracts/${encodeURIComponent(contractId)}/payment/sync`,
+      {}
+    );
+    return syncPaymentResponseSchema.parse(data);
   }
 }
