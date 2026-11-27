@@ -11,12 +11,13 @@ jobs:
       - name: Install SSH client and key
         run: |
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          echo "${{ secrets.DEPLOY_SSH_KEY_PROD }}" > ~/.ssh/id_ed25519
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY_PROD }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -p "${{ secrets.DEPLOY_PORT || 22 }}" "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+          ssh-keyscan -v -T 10 -p "${{ secrets.DEPLOY_PORT || 22 }}" "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+          echo "Keyscan succeeded"
 
       - name: Trigger update on prod server
         run: |
-          ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=3 \
+          ssh -v -o ServerAliveInterval=30 -o ServerAliveCountMax=3 \
             -p "${{ secrets.DEPLOY_PORT || 22 }}" \
             "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}"
