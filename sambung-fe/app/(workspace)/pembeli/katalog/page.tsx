@@ -4,7 +4,6 @@ import { useState, useMemo } from "react";
 import {
   Search,
   Download,
-  Lock,
   Wheat,
   MapPin,
   CheckCircle2,
@@ -36,7 +35,6 @@ import { ListPagination, paginateItems } from "@/components/shared/list-paginati
 import { useCurrentUser } from "@/features/auth/hooks/use-auth";
 import { useCatalog } from "@/features/catalog/hooks/use-catalog";
 import { useFairPriceParams } from "@/features/fair-price/hooks/use-fair-price";
-import { useCurrentUser } from "@/features/auth/hooks/use-auth";
 import {
   canUserExportCsv,
   canUserUpgradeToPro,
@@ -114,7 +112,7 @@ export default function BuyerCatalogPage() {
 
   // CSV Export Function (PR-07)
   function handleExportCsv() {
-    if (!canExportCsv || filteredItems.length === 0) return;
+    if (!canUserExportCsv || filteredItems.length === 0) return;
 
     const headers = [
       "ID Pasokan",

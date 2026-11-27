@@ -1,43 +1,20 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
+import { PrismaClient } from "@prisma/client";
 import { createApp } from "../../src/app.ts";
-import { prisma } from "../../src/db/prisma.ts";
-import { digest } from "../../src/modules/auth/session.ts";
 import { digest } from "../../src/modules/auth/session.ts";
 
 test("integrasi prakiraan AI - pemanggilan endpoint, parameter, dan metadata", async () => {
   const origin = "http://localhost:3000";
   const testUrl = process.env.TEST_DATABASE_URL;
-  const db = testUrl ? new PrismaClient({ datasourceUrl: testUrl }) : prisma;
+  assert.ok(testUrl && new URL(testUrl).pathname.endsWith("_test"), "Gunakan TEST_DATABASE_URL khusus uji (_test).");
+  const db = new PrismaClient({ datasourceUrl: testUrl });
   const app = createApp(db, origin);
   const server = app.listen(0);
   const port = server.address().port;
   const base = `http://127.0.0.1:${port}`;
   let accountId = null;
-  let tokenHash = null;
-
-  const suffix = randomUUID().slice(0, 8);
-  const farmer = await prisma.account.create({
-    data: {
-      role: "petani",
-      name: `Petani Forecast ${suffix}`,
-      phone: `62855${randomUUID().replace(/\D/g, "").slice(0, 8)}`,
-      province: "Jawa Timur",
-      regency: "Jember",
-      district: "Sumbersari",
-    },
-  });
-  const token = randomBytes(32).toString("hex");
-  await prisma.authSession.create({
-    data: {
-      phone: farmer.phone,
-      accountId: farmer.id,
-      tokenHash: digest(token),
-      expiresAt: new Date(Date.now() + 120_000),
-    },
-  });
-  const cookie = `sambung_session=${token}`;
 
   try {
     // 1. Ambil metadata prakiraan (tetap terbuka)
@@ -52,7 +29,7 @@ test("integrasi prakiraan AI - pemanggilan endpoint, parameter, dan metadata", a
     assert.ok(meta.activeProvinces.includes("Jawa Timur"));
     assert.equal(meta.sourceMode, "live");
 
-    // 1b. Tanpa sesi login -> 401 UNAUTHENTICATED
+    // 2. Tanpa sesi login -> 401 UNAUTHENTICATED
     const resAnon = await fetch(`${base}/forecasts?province=Jawa%20Timur&horizonWeeks=2`, {
       headers: { Origin: origin },
     });
@@ -60,7 +37,29 @@ test("integrasi prakiraan AI - pemanggilan endpoint, parameter, dan metadata", a
     const anonBody = await resAnon.json();
     assert.equal(anonBody.code, "UNAUTHENTICATED");
 
-    // 2. Ambil prakiraan Jawa Timur 2 pekan dengan sesi aktif
+    const farmer = await db.account.create({
+      data: {
+        role: "petani",
+        name: "Petani Uji Prakiraan",
+        phone: `62855${randomUUID().replace(/\D/g, "").slice(0, 8)}`,
+        province: "Jawa Timur",
+        regency: "Jember",
+        district: "Sumbersari",
+      },
+    });
+    accountId = farmer.id;
+    const token = randomBytes(32).toString("hex");
+    await db.authSession.create({
+      data: {
+        phone: farmer.phone,
+        accountId,
+        tokenHash: digest(token),
+        expiresAt: new Date(Date.now() + 120_000),
+      },
+    });
+    const cookie = `sambung_session=${token}`;
+
+    // 3. Ambil prakiraan Jawa Timur 2 pekan dengan sesi aktif
     const resJatim2w = await fetch(`${base}/forecasts?province=Jawa%20Timur&horizonWeeks=2`, {
       headers: { Origin: origin, Cookie: cookie },
     });
@@ -90,8 +89,13 @@ test("integrasi prakiraan AI - pemanggilan endpoint, parameter, dan metadata", a
     assert.equal(resNotFound.status, 404);
   } finally {
     server.close();
-    await prisma.authSession.deleteMany({ where: { accountId: farmer.id } }).catch(() => {});
-    await prisma.account.deleteMany({ where: { id: farmer.id } }).catch(() => {});
-    await prisma.$disconnect();
+    try {
+      if (accountId) {
+        await db.authSession.deleteMany({ where: { accountId } });
+        await db.account.deleteMany({ where: { id: accountId } });
+      }
+    } finally {
+      await db.$disconnect();
+    }
   }
 });

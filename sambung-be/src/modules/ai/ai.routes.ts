@@ -4,6 +4,7 @@ import { ApiError } from "../../shared/api-error.ts";
 import {
   hasFullAnalyticsAccess,
   isBuyerPro,
+  requireActiveActor,
   resolveOptionalActor,
 } from "../auth/session.ts";
 import {
@@ -93,14 +94,6 @@ export function aiRouter(db: PrismaClient) {
     res.set("Cache-Control", "no-store");
     const actor = await requireActiveActor(db, req);
     const query = priceHistoryQuerySchema.parse(req.query);
-    const actor = await resolveOptionalActor(db, req);
-    if (!actor) {
-      throw new ApiError(
-        401,
-        "UNAUTHENTICATED",
-        "Masuk terlebih dahulu untuk melihat riwayat harga."
-      );
-    }
     if (
       actor.role === "pembeli" &&
       !isBuyerPro(actor) &&
