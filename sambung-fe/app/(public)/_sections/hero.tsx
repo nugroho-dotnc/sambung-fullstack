@@ -6,7 +6,7 @@ import Link from "next/link";
 
 export default function HeroSection() {
     return (
-        <section className="relative min-h-[calc(100vh-4rem)] min-h-[580px] flex items-center overflow-hidden">
+        <section className="relative min-h-[calc(100vh)] min-h-[580px] flex items-center overflow-hidden">
             {/* Background Image Placeholder */}
             <div className="absolute inset-0 z-0">
                 <Image
@@ -17,11 +17,11 @@ export default function HeroSection() {
                     unoptimized
                     className="object-cover object-top sm:object-right md:object-center"
                 />
-                {/* Color overlay that fades to transparent from bottom to top on mobile, and from left to right on desktop
+                {/* Color overlay that fades to transparent from bottom to top on mobile, and from left to right on desktop */}
                 <div
-                    className="absolute inset-0 bg-gradient-to-t sm:bg-gradient-to-r from-background via-background/90 to-transparent"
+                    className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent"
                     aria-hidden="true"
-                /> */}
+                />
             </div>
 
             <div className="relative z-10 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-32 pb-16 sm:pb-20 text-center sm:text-left space-y-6">
