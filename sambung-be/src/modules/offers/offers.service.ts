@@ -11,7 +11,9 @@ export function present(row: Prisma.OfferGetPayload<{include:typeof include}>) {
   const {owner,region,contracts,...offer}=row;
   const { cleanNotes, moderationStatus, moderationIssue } = extractModeration(row.notes);
   const sum=(status:string)=>contracts.filter(c=>c.status===status).reduce((n,c)=>n+Math.round(Number(c.volumeKg)*100),0)/100;
-  const reservedVolumeKg=sum("pending"), approvedVolumeKg=sum("approved"), completedVolumeKg=sum("completed");
+  const reservedVolumeKg=sum("pending");
+  const approvedVolumeKg=sum("approved")+sum("signed")+sum("shipping");
+  const completedVolumeKg=sum("completed");
   const availableVolumeKg=Math.round((Number(row.totalVolumeKg)-reservedVolumeKg-approvedVolumeKg-completedVolumeKg)*100)/100;
   return {...offer,notes:cleanNotes,moderationStatus,moderationIssue,province:region.province,regency:region.regency,district:region.id,farmerName:owner.name,
     farmerBusiness:owner.businessName ?? undefined,isDirectFarmer:true,totalVolumeKg:Number(row.totalVolumeKg),
