@@ -62,6 +62,8 @@ Semua perubahan penting pada proyek **SAMBUNG** (`sambung-be` dan `sambung-fe`) 
   - Menampilkan alur sekuensial lengkap: Pesanan Diajukan $\rightarrow$ Histori Tawar Balik $\rightarrow$ Harga Disepakati $\rightarrow$ Tanda Tangan Petani & Pembeli $\rightarrow$ Pengiriman $\rightarrow$ Penerimaan Selesai (atau status Pembatalan) dengan icon Lucide murni tanpa emotikon sesuai referensi visual.
 
 ### Changed
+- **Frontend (`sambung-fe`) — Penerapan Palet Warna Resmi di `globals.css` (`2026-11-28`)**:
+  - Menambahkan token palet `--prime-1` (`#78b000`), `--prime-2` (`#2f8208`), `--prime-3` (`#0d5907`), `--second-1` (`#e7a303`), `--second-2` (`#c08809`), dan `--second-3` (`#855c05`) pada `:root`, `.dark`, dan `@theme inline` di `sambung-fe/app/globals.css`, serta memetakannya ke token semantik (`--primary`, `--secondary`, `--accent`, `--highlight`, `--brand-*`, `--ring`, `--chart-*`, `--price-*`, dan `--sidebar-*`) dengan menjaga kontras mode terang dan gelap.
 - **Frontend (`sambung-fe`) — Tata Letak Header Kartu Kontrak (`/kontrak`) (`2026-11-28`)**:
   - Merapikan bagian atas kartu kontrak di `sambung-fe/app/(workspace)/kontrak/page.tsx` dengan memisahkan baris lencana jenis gabah dan status menggunakan `justify-between` (`whitespace-nowrap`) serta menampilkan `ID Kontrak: #{contract.id}` pada baris tersendiri di bawahnya agar teks lencana tidak terpotong dua baris.
 - **Backend (`sambung-be`) — Pengetatan Alur Kontrak, Validasi Wilayah, & Fallback Harga Nasional (`2026-11-28`)**:

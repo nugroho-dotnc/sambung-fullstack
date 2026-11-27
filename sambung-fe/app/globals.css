@@ -11,13 +11,21 @@
 :root {
   color-scheme: light;
 
+  /* Palet Resmi SAMBUNG: Hijau Agraria (prime) & Emas Panen (second) */
+  --prime-1: #78b000;
+  --prime-2: #2f8208;
+  --prime-3: #0d5907;
+  --second-1: #e7a303;
+  --second-2: #c08809;
+  --second-3: #855c05;
+
   /* Brand Core - Agrarian Forest & Harvest Amber */
-  --brand-forest: #1B4D2E;
-  --brand-forest-light: #2A6A3B;
-  --brand-olive: #657D28;
-  --brand-sunflower: #F59E0B;
-  --brand-honey: #D97706;
-  --brand-terracotta: #C2410C;
+  --brand-forest: var(--prime-3);
+  --brand-forest-light: var(--prime-2);
+  --brand-olive: var(--prime-1);
+  --brand-sunflower: var(--second-1);
+  --brand-honey: var(--second-2);
+  --brand-terracotta: var(--second-3);
   --brand-cream: #FEF9EE;
 
   /* Surfaces & Canvas */
@@ -28,20 +36,20 @@
   --canvas: #F1F5F9;
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --highlight: #F59E0B;
-  --highlight-foreground: #0F172A;
+  --secondary: color-mix(in srgb, var(--second-1) 16%, #ffffff);
+  --secondary-foreground: var(--second-3);
+  --accent: color-mix(in srgb, var(--prime-1) 14%, #ffffff);
+  --accent-foreground: var(--prime-3);
+  --highlight: var(--second-1);
+  --highlight-foreground: #1c1302;
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --ring: var(--prime-2);
 
   /* Primary Interactive */
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --primary-hover: #153E24;
+  --primary: var(--prime-3);
+  --primary-foreground: #ffffff;
+  --primary-hover: var(--prime-2);
 
   /* Destructive */
   --destructive: oklch(0.577 0.245 27.325);
@@ -49,23 +57,23 @@
   --destructive-surface: #FEF2F2;
 
   /* Domain Price & Lamp tokens */
-  --price-within: #15803D;
-  --price-within-surface: #F0FDF4;
-  --price-caution: #B45309;
-  --price-caution-surface: #FFFBEB;
+  --price-within: var(--prime-2);
+  --price-within-surface: color-mix(in srgb, var(--prime-1) 12%, #ffffff);
+  --price-caution: var(--second-3);
+  --price-caution-surface: color-mix(in srgb, var(--second-1) 14%, #ffffff);
   --price-low: #B91C1C;
   --price-low-surface: #FEF2F2;
-  --review: #92400E;
-  --review-surface: #FEF3C7;
+  --review: var(--second-3);
+  --review-surface: color-mix(in srgb, var(--second-1) 18%, #ffffff);
 
   /* Charts & Map */
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --chart-1: var(--prime-2);
+  --chart-2: var(--second-1);
+  --chart-3: var(--prime-1);
+  --chart-4: var(--second-2);
+  --chart-5: var(--prime-3);
   --interval: #E2E8F0;
-  --map-low: #15803D;
+  --map-low: var(--prime-2);
   --map-mid: #F8FAFC;
   --map-high: #B91C1C;
   --map-missing: #CBD5E1;
@@ -73,12 +81,12 @@
   /* Sidebar */
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-primary: var(--prime-3);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: color-mix(in srgb, var(--prime-1) 14%, #ffffff);
+  --sidebar-accent-foreground: var(--prime-3);
   --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-ring: var(--prime-2);
 
   --contract: var(--secondary-foreground);
   --contract-surface: var(--secondary);
@@ -108,12 +116,19 @@
 .dark {
   color-scheme: dark;
 
-  --brand-forest: #4ADE80;
-  --brand-forest-light: #22C55E;
-  --brand-olive: #A3E635;
-  --brand-sunflower: #FBBF24;
-  --brand-honey: #F59E0B;
-  --brand-terracotta: #FB923C;
+  --prime-1: #78b000;
+  --prime-2: #2f8208;
+  --prime-3: #0d5907;
+  --second-1: #e7a303;
+  --second-2: #c08809;
+  --second-3: #855c05;
+
+  --brand-forest: var(--prime-1);
+  --brand-forest-light: var(--prime-2);
+  --brand-olive: var(--prime-1);
+  --brand-sunflower: var(--second-1);
+  --brand-honey: var(--second-2);
+  --brand-terracotta: var(--second-3);
   --brand-cream: #292015;
 
   --background: oklch(0.145 0 0);
@@ -125,52 +140,52 @@
   --canvas: #17231B;
   --muted: oklch(0.269 0 0);
   --muted-foreground: oklch(0.708 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --highlight: #FBBF24;
-  --highlight-foreground: #09100C;
+  --secondary: color-mix(in srgb, var(--second-3) 32%, #181612);
+  --secondary-foreground: var(--second-1);
+  --accent: color-mix(in srgb, var(--prime-2) 28%, #141a12);
+  --accent-foreground: var(--prime-1);
+  --highlight: var(--second-1);
+  --highlight-foreground: #171002;
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --ring: var(--prime-1);
 
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --primary-hover: #38C46E;
+  --primary: var(--prime-1);
+  --primary-foreground: #071204;
+  --primary-hover: var(--prime-2);
 
   --destructive: oklch(0.704 0.191 22.216);
   --destructive-foreground: #2A0808;
   --destructive-surface: #380E0E;
 
-  --price-within: #4ADE80;
-  --price-within-surface: #072B15;
-  --price-caution: #FBBF24;
-  --price-caution-surface: #332007;
+  --price-within: var(--prime-1);
+  --price-within-surface: color-mix(in srgb, var(--prime-3) 40%, #0d140c);
+  --price-caution: var(--second-1);
+  --price-caution-surface: color-mix(in srgb, var(--second-3) 35%, #18130b);
   --price-low: #F87171;
   --price-low-surface: #380E0E;
-  --review: #FCD34D;
-  --review-surface: #2E1F09;
+  --review: var(--second-1);
+  --review-surface: color-mix(in srgb, var(--second-3) 32%, #18130b);
 
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --chart-1: var(--prime-1);
+  --chart-2: var(--second-1);
+  --chart-3: var(--prime-2);
+  --chart-4: var(--second-2);
+  --chart-5: var(--second-3);
   --interval: #1E3125;
-  --map-low: #4ADE80;
+  --map-low: var(--prime-1);
   --map-mid: #17231B;
   --map-high: #F87171;
   --map-missing: #334155;
 
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-primary: var(--prime-1);
+  --sidebar-primary-foreground: #071204;
+  --sidebar-accent: color-mix(in srgb, var(--prime-2) 28%, #141a12);
+  --sidebar-accent-foreground: var(--prime-1);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: var(--prime-1);
 
   --contract: var(--secondary-foreground);
   --contract-surface: var(--secondary);
@@ -187,6 +202,14 @@
   --font-heading: var(--font-jakarta);
   --font-display: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   --font-signature: var(--font-alex-brush), cursive;
+
+  /* Palet Utama & Sekunder */
+  --color-prime-1: var(--prime-1);
+  --color-prime-2: var(--prime-2);
+  --color-prime-3: var(--prime-3);
+  --color-second-1: var(--second-1);
+  --color-second-2: var(--second-2);
+  --color-second-3: var(--second-3);
 
   /* Brand */
   --color-brand-forest: var(--brand-forest);
