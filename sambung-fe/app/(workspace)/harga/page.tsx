@@ -23,6 +23,10 @@ import { AsyncBoundary } from "@/components/shared/async-boundary";
 import { useCurrentUser } from "@/features/auth/hooks/use-auth";
 import { ProUpgradeBanner } from "@/features/subscription/components/pro-upgrade-banner";
 import {
+  canUserExportCsv,
+  canUserUpgradeToPro,
+} from "@/features/subscription/domain/permissions";
+import {
   PRICE_HISTORY_RANGE_OPTIONS,
   mapHistoryRangeToBoardPeriod,
   type PriceHistoryRange,
@@ -252,7 +256,8 @@ export default function PriceBoardPage() {
         range={effectiveRange}
         statusFilter={statusFilter}
         onStatusFilterChange={setStatusFilter}
-        canExportCsv={!isFreeBuyer}
+        canExportCsv={canUserExportCsv(user)}
+        canUpgradeToPro={canUserUpgradeToPro(user)}
         data={historyQuery.data}
         isLoading={historyQuery.isLoading}
         isError={historyQuery.isError}

@@ -72,8 +72,23 @@ test("kontrak dua pihak, reservasi serentak, tenggat, akses dan retry",async t=>
   assert.equal((await api(path+"/accept",buyer,{...accept,priceOfferVersion:1})).code,"VERSION_CONFLICT");
   const accepted=await api(path+"/accept",buyer,accept);
   assert.equal(accepted.data.status,"approved");assert.equal(accepted.data.farmerPhone,undefined);
-  for(let n=0;n<2;n++) assert.equal((await api(path+"/confirm",farmer,{})).data.status,"approved");
-  const done=await api(path+"/confirm",buyer,{});
+  const legacyConfirm=await api(path+"/confirm",farmer,{});
+  assert.equal(legacyConfirm.status,410);
+  assert.equal(legacyConfirm.code,"LEGACY_ACTION_DISABLED");
+  const farmerSigned=await api(path+"/sign",farmer,{type:"type",signature:"Petani Uji"});
+  assert.equal(farmerSigned.data.status,"approved");
+  const bothSigned=await api(path+"/sign",buyer,{type:"type",signature:"Pembeli Uji"});
+  assert.equal(bothSigned.data.status,"signed");
+  assert.equal(bothSigned.data.farmerPhone,undefined);
+  const contractAmount=BigInt(300)*BigInt(6800);
+  const buyerFeeAmount=BigInt(Math.round(Number(contractAmount)*0.005));
+  await db.payment.create({data:{contractId:first.data.id,attempt:1,orderId:`TEST-${first.data.id.slice(0,8)}`,
+    contractAmount,buyerFeeAmount,grossAmount:contractAmount+buyerFeeAmount,
+    status:"paid",escrowStatus:"held",paidAt:new Date()}});
+  const shipped=await api(path+"/ship",farmer,{});
+  assert.equal(shipped.data.status,"shipping");
+  assert.ok(shipped.data.farmerPhone);
+  const done=await api(path+"/receive",buyer,{});
   assert.equal(done.data.status,"completed");assert.ok(done.data.farmerPhone);
   assert.equal(await stock(),700);
   const race=await Promise.all([buyer,other].map(u=>api("/contracts",u,{...input,volumeKg:600})));
@@ -99,7 +114,7 @@ test("kontrak dua pihak, reservasi serentak, tenggat, akses dan retry",async t=>
   assert.equal(await stock(),700);
   const interrupted=await make();
   await api("/contracts/"+interrupted+"/accept",farmer,{priceOfferVersion:1,...await price("accept",6500)});
-  await api("/contracts/"+interrupted+"/confirm",buyer,{});
+  await api("/contracts/"+interrupted+"/sign",buyer,{type:"type",signature:"Pembeli Uji"});
   assert.equal((await api("/contracts/"+interrupted+"/cancel",farmer,{reason:"Kendala di lapangan"})).data.status,"cancelled");
   assert.equal(await stock(),700);
   const active=await make();

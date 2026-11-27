@@ -328,6 +328,19 @@ test("Buyer Subscription Pembeli Pro: Rp99rb Midtrans Snap, stacking 30d, fee 0.
     return { status: res.status, data: await res.json() };
   }
 
+  // 0. Anonymous (unauthenticated): 401 UNAUTHENTICATED on /price-history & /forecasts
+  const anonHistAll = await api("/price-history?region=Jawa%20Timur&range=all");
+  assert.equal(anonHistAll.status, 401);
+  assert.equal(anonHistAll.data.code, "UNAUTHENTICATED");
+
+  const anonHist12w = await api("/price-history?region=Jawa%20Timur&range=12w");
+  assert.equal(anonHist12w.status, 401);
+  assert.equal(anonHist12w.data.code, "UNAUTHENTICATED");
+
+  const anonForecast = await api("/forecasts?province=Jawa%20Timur");
+  assert.equal(anonForecast.status, 401);
+  assert.equal(anonForecast.data.code, "UNAUTHENTICATED");
+
   // 1. Petani: eligible=false, checkout forbidden 403, full access to /price-history & /forecasts
   const farmerSub = await api("/subscription/me", { cookie: farmerCookie });
   assert.equal(farmerSub.status, 200);

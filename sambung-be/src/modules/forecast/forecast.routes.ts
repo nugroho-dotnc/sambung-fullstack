@@ -1,11 +1,11 @@
 import { Router } from "express";
 import type { PrismaClient } from "@prisma/client";
 import { ApiError } from "../../shared/api-error.ts";
-import { isBuyerPro, resolveOptionalActor } from "../auth/session.ts";
+import { isBuyerPro, requireActiveActor } from "../auth/session.ts";
 import { forecastQuerySchema } from "./forecast.types.ts";
 import { getForecasts, getForecastMeta } from "./forecast.service.ts";
 
-export function forecastRouter(db?: PrismaClient) {
+export function forecastRouter(db: PrismaClient) {
   const router = Router();
 
   router.get("/forecasts/meta", async (_req, res) => {
@@ -14,47 +14,46 @@ export function forecastRouter(db?: PrismaClient) {
   });
 
   router.get("/forecasts", async (req, res) => {
+    res.set("Cache-Control", "no-store");
+    const actor = await requireActiveActor(db, req);
     const query = forecastQuerySchema.parse(req.query);
-    if (db) {
-      const actor = await resolveOptionalActor(db, req);
-      if (actor?.role === "pembeli" && !isBuyerPro(actor)) {
-        const forecastMeta = await getForecastMeta();
-        const actorProvNorm = actor.province.trim().toLowerCase();
-        const matchedProvince = forecastMeta.allProvinces.find(
-          (prov) => prov.trim().toLowerCase() === actorProvNorm
+    if (actor.role === "pembeli" && !isBuyerPro(actor)) {
+      const forecastMeta = await getForecastMeta();
+      const actorProvNorm = actor.province.trim().toLowerCase();
+      const matchedProvince = forecastMeta.allProvinces.find(
+        (prov) => prov.trim().toLowerCase() === actorProvNorm
+      );
+      const allowedProvince =
+        matchedProvince ?? forecastMeta.activeProvinces[0] ?? forecastMeta.allProvinces[0];
+
+      if (
+        query.province &&
+        allowedProvince &&
+        query.province.trim().toLowerCase() !== allowedProvince.toLowerCase()
+      ) {
+        throw new ApiError(
+          403,
+          "SUBSCRIPTION_REQUIRED",
+          "Prakiraan tren lintas provinsi hanya tersedia untuk paket Pembeli Pro."
         );
-        const allowedProvince =
-          matchedProvince ?? forecastMeta.activeProvinces[0] ?? forecastMeta.allProvinces[0];
-
-        if (
-          query.province &&
-          allowedProvince &&
-          query.province.trim().toLowerCase() !== allowedProvince.toLowerCase()
-        ) {
-          throw new ApiError(
-            403,
-            "SUBSCRIPTION_REQUIRED",
-            "Prakiraan tren lintas provinsi hanya tersedia untuk paket Pembeli Pro."
-          );
-        }
-
-        const data = await getForecasts({
-          ...query,
-          province: allowedProvince,
-        });
-        res.json({
-          meta: {
-            ...data.meta,
-            restrictedPreview: true,
-            allowedProvince,
-          },
-          records: data.records.map((record) => ({
-            ...record,
-            shapContributions: [],
-          })),
-        });
-        return;
       }
+
+      const data = await getForecasts({
+        ...query,
+        province: allowedProvince,
+      });
+      res.json({
+        meta: {
+          ...data.meta,
+          restrictedPreview: true,
+          allowedProvince,
+        },
+        records: data.records.map((record) => ({
+          ...record,
+          shapContributions: [],
+        })),
+      });
+      return;
     }
 
     const data = await getForecasts(query);

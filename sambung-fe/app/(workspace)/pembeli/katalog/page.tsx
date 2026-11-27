@@ -5,6 +5,7 @@ import { useState, useMemo } from "react";
 import {
   Search,
   Download,
+  Lock,
   Wheat,
   MapPin,
   CheckCircle2,
@@ -25,6 +26,11 @@ import { PageHeader } from "@/components/shared/page-header";
 import { AsyncBoundary } from "@/components/shared/async-boundary";
 import { useCatalog } from "@/features/catalog/hooks/use-catalog";
 import { useFairPriceParams } from "@/features/fair-price/hooks/use-fair-price";
+import { useCurrentUser } from "@/features/auth/hooks/use-auth";
+import {
+  canUserExportCsv,
+  canUserUpgradeToPro,
+} from "@/features/subscription/domain/permissions";
 import { formatRupiah } from "@/features/offers/components/offer-summary";
 import { evaluatePriceLight, extractPriceReference } from "@/features/price-check";
 import { useMobile } from "@/hooks/use-mobile";
@@ -39,6 +45,9 @@ const COMMODITY_SELECT_OPTIONS = [
 
 export default function BuyerCatalogPage() {
   const isMobile = useMobile();
+  const { data: user } = useCurrentUser();
+  const canExportCsv = canUserExportCsv(user);
+  const canUpgradeToPro = canUserUpgradeToPro(user);
   const [selectedGrain, setSelectedGrain] = useState<"ALL" | "GKP" | "GKG">("ALL");
   const [selectedRegency, setSelectedRegency] = useState<string>("Semua");
   const [searchQuery, setSearchQuery] = useState("");
@@ -84,7 +93,7 @@ export default function BuyerCatalogPage() {
 
   // CSV Export Function (PR-07)
   function handleExportCsv() {
-    if (filteredItems.length === 0) return;
+    if (!canExportCsv || filteredItems.length === 0) return;
 
     const headers = [
       "ID Pasokan",
@@ -130,15 +139,39 @@ export default function BuyerCatalogPage() {
         title="Katalog Pasokan Gabah Petani"
         description="Jelajahi ketersediaan pasokan panen riil langsung dari petani dan kelompok tani mitra terdaftar."
         actions={
-          <Button
-            variant="outline"
-            className="min-h-10 text-xs gap-1.5"
-            onClick={handleExportCsv}
-            disabled={filteredItems.length === 0}
-          >
-            <Download className="w-3.5 h-3.5" />
-            Unduh Rekap Pasokan (CSV)
-          </Button>
+          canExportCsv ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-10 text-xs gap-1.5"
+              onClick={handleExportCsv}
+              disabled={filteredItems.length === 0}
+            >
+              <Download className="w-3.5 h-3.5" />
+              Unduh Rekap Pasokan (CSV)
+            </Button>
+          ) : canUpgradeToPro ? (
+            <Button
+              variant="outline"
+              className="min-h-10 text-xs gap-1.5 cursor-pointer"
+              nativeButton={false}
+              render={<Link href="/langganan" />}
+            >
+              <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              Unduh Rekap Pasokan (Pro)
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              disabled
+              title="Fitur ekspor CSV hanya tersedia untuk akun Pembeli Pro dan Pengawas."
+              className="min-h-10 text-xs gap-1.5"
+            >
+              <Lock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              Unduh Rekap Pasokan (Pro)
+            </Button>
+          )
         }
       />
 

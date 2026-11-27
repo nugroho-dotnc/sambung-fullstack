@@ -133,12 +133,42 @@ test("Price History (PIHPS BI 2019-2026 All 35 Regions + AI Forecast + Admin Ing
     return { status: res.status, data: await res.json() };
   }
 
+  // Create active admin session before hitting protected /price-history routes
+  const adminAccount = await db.account.create({
+    data: {
+      name: "Admin Price Test",
+      role: "admin",
+      phone: randomUUID(),
+      email: `admin-ph-${randomUUID().slice(0, 8)}@sambung.id`,
+      passwordHash: digest("secret"),
+      province: "Jawa Timur",
+      regency: "Jember",
+      district: "Sumbersari",
+    },
+  });
+  const token = randomBytes(32).toString("hex");
+  await db.authSession.create({
+    data: {
+      phone: adminAccount.phone,
+      accountId: adminAccount.id,
+      tokenHash: digest(token),
+      expiresAt: new Date(Date.now() + 120_000),
+    },
+  });
+  const adminCookie = `sambung_session=${token}`;
+
+  // Anonymous calls must be rejected 401 UNAUTHENTICATED without hitting upstream forecast
+  const unauthHist = await reqJson("/price-history?region=Jawa%20Timur&range=all");
+  assert.equal(unauthHist.status, 401);
+  assert.equal(unauthHist.data.code, "UNAUTHENTICATED");
+  assert.equal(forecastCalls, 0);
+
   // Strict query validation -> 422
-  const invalidQuery = await reqJson("/price-history?unknown=1");
+  const invalidQuery = await reqJson("/price-history?unknown=1", { cookie: adminCookie });
   assert.equal(invalidQuery.status, 422);
 
   // 12w range auto-syncs +2w & +4w prediction rows -> 12 actual + 2 predicted = 14 rows
-  const res12w = await reqJson("/price-history?region=Jawa%20Timur&range=12w");
+  const res12w = await reqJson("/price-history?region=Jawa%20Timur&range=12w", { cookie: adminCookie });
   assert.equal(res12w.status, 200);
   assert.equal(res12w.data.actualCount, 411);
   assert.equal(res12w.data.predictionCount, 2);
@@ -167,24 +197,26 @@ test("Price History (PIHPS BI 2019-2026 All 35 Regions + AI Forecast + Admin Ing
   assert.equal(nov30.predictionHorizonWeeks, 2);
 
   // range=all returns all 413 rows (411 actual + 2 predicted) and years 2026..2019
-  const resAll = await reqJson("/price-history?region=Jawa%20Timur&range=all");
+  const resAll = await reqJson("/price-history?region=Jawa%20Timur&range=all", { cookie: adminCookie });
   assert.equal(resAll.status, 200);
   assert.equal(resAll.data.rows.length, 413);
   assert.deepEqual(resAll.data.availableYears, [2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019]);
 
   // Year filter (2025) & status=predicted filter
-  const res2025 = await reqJson("/price-history?region=Jawa%20Timur&range=2025");
+  const res2025 = await reqJson("/price-history?region=Jawa%20Timur&range=2025", { cookie: adminCookie });
   assert.equal(res2025.status, 200);
   assert.ok(res2025.data.rows.length >= 52);
   assert.ok(res2025.data.rows.every((r) => r.year === 2025));
 
-  const resPredOnly = await reqJson("/price-history?region=Jawa%20Timur&range=all&status=predicted");
+  const resPredOnly = await reqJson("/price-history?region=Jawa%20Timur&range=all&status=predicted", {
+    cookie: adminCookie,
+  });
   assert.equal(resPredOnly.status, 200);
   assert.equal(resPredOnly.data.rows.length, 2);
   assert.equal(forecastCalls, 1);
 
   // Verify Nasional and non-producer province (DKI Jakarta) parity on latest week
-  const resNasional = await reqJson("/price-history?region=Nasional&range=12w");
+  const resNasional = await reqJson("/price-history?region=Nasional&range=12w", { cookie: adminCookie });
   assert.equal(resNasional.status, 200);
   assert.equal(resNasional.data.hasFullHistory, true);
   assert.equal(resNasional.data.actualCount, 411);
@@ -194,7 +226,7 @@ test("Price History (PIHPS BI 2019-2026 All 35 Regions + AI Forecast + Admin Ing
   assert.equal(nasLatest.wholesalePrice, 15670);
   assert.equal(nasLatest.retailPrice, 16730);
 
-  const resJakarta = await reqJson("/price-history?region=DKI%20Jakarta&range=12w");
+  const resJakarta = await reqJson("/price-history?region=DKI%20Jakarta&range=12w", { cookie: adminCookie });
   assert.equal(resJakarta.status, 200);
   assert.equal(resJakarta.data.hasFullHistory, true);
   assert.equal(resJakarta.data.actualCount, 411);
@@ -205,29 +237,6 @@ test("Price History (PIHPS BI 2019-2026 All 35 Regions + AI Forecast + Admin Ing
   assert.equal(jktLatest.retailPrice, 17050);
 
   // Admin ingest (dry-run persist:false must NOT alter DB; persist:true preserves prior predictedMillerPrice)
-  const adminAccount = await db.account.create({
-    data: {
-      name: "Admin Price Test",
-      role: "admin",
-      phone: randomUUID(),
-      email: `admin-ph-${randomUUID().slice(0, 8)}@sambung.id`,
-      passwordHash: digest("secret"),
-      province: "Jawa Timur",
-      regency: "Jember",
-      district: "Sumbersari",
-    },
-  });
-  const token = randomBytes(32).toString("hex");
-  await db.authSession.create({
-    data: {
-      phone: adminAccount.phone,
-      accountId: adminAccount.id,
-      tokenHash: digest(token),
-      expiresAt: new Date(Date.now() + 120_000),
-    },
-  });
-  const adminCookie = `sambung_session=${token}`;
-
   const dryRun = await reqJson("/admin/ai/ingest", {
     method: "POST",
     cookie: adminCookie,
@@ -245,7 +254,7 @@ test("Price History (PIHPS BI 2019-2026 All 35 Regions + AI Forecast + Admin Ing
     },
   });
   assert.equal(dryRun.status, 200);
-  const nov30AfterDry = await reqJson("/price-history?region=Jawa%20Timur&range=12w");
+  const nov30AfterDry = await reqJson("/price-history?region=Jawa%20Timur&range=12w", { cookie: adminCookie });
   assert.equal(nov30AfterDry.data.rows.find((r) => r.weekStart === "2026-11-30").rowStatus, "predicted");
 
   const persisted = await reqJson("/admin/ai/ingest", {
@@ -266,7 +275,7 @@ test("Price History (PIHPS BI 2019-2026 All 35 Regions + AI Forecast + Admin Ing
   });
   assert.equal(persisted.status, 200);
 
-  const afterIngest = await reqJson("/price-history?region=Jawa%20Timur&range=12w");
+  const afterIngest = await reqJson("/price-history?region=Jawa%20Timur&range=12w", { cookie: adminCookie });
   const mergedNov30 = afterIngest.data.rows.find((r) => r.weekStart === "2026-11-30");
   assert.equal(mergedNov30.rowStatus, "actual_with_prediction");
   assert.equal(mergedNov30.source, "admin_ingest");

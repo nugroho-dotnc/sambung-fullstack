@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import type { Prisma, PrismaClient } from "@prisma/client";
 import type { Request } from "express";
+import { ApiError } from "../../shared/api-error.ts";
 
 export const digest = (value: string) => createHash("sha256").update(value).digest("hex");
 export function sessionHash(req: Request) {
@@ -72,6 +73,17 @@ export async function resolveOptionalActor(db: PrismaClient, req: Request) {
     },
   });
   return session?.account ?? null;
+}
+
+/**
+ * Requires an active authenticated account from the session cookie, throwing 401 otherwise.
+ */
+export async function requireActiveActor(db: PrismaClient, req: Request) {
+  const actor = await resolveOptionalActor(db, req);
+  if (!actor) {
+    throw new ApiError(401, "UNAUTHENTICATED", "Masuk terlebih dahulu.");
+  }
+  return actor;
 }
 
 /**

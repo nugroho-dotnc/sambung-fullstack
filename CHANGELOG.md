@@ -62,6 +62,10 @@ Semua perubahan penting pada proyek **SAMBUNG** (`sambung-be` dan `sambung-fe`) 
   - Menampilkan alur sekuensial lengkap: Pesanan Diajukan $\rightarrow$ Histori Tawar Balik $\rightarrow$ Harga Disepakati $\rightarrow$ Tanda Tangan Petani & Pembeli $\rightarrow$ Pengiriman $\rightarrow$ Penerimaan Selesai (atau status Pembatalan) dengan icon Lucide murni tanpa emotikon sesuai referensi visual.
 
 ### Changed
+- **Frontend (`sambung-fe`) — Pembatasan Ekspor CSV Khusus Pembeli Pro & Pengawas (`2026-11-28`)**:
+  - Menambahkan helper izin fail-closed `canUserExportCsv` dan `canUserUpgradeToPro` pada `sambung-fe/features/subscription/domain/permissions.ts` sehingga hanya akun **Pembeli Pro** dan **Admin** yang dapat mengekspor CSV (menutup celah pada akun Pembeli Gratis, Petani, maupun keadaan memuat/anonim).
+  - Menerapkan pembatasan serta tombol terkunci pada seluruh titik ekspor CSV pengguna: `/harga` (`sambung-fe/app/(workspace)/harga/page.tsx`, `sambung-fe/features/price-board/components/price-history-table.tsx`), `/peta` dan `/peta/tabel` (`sambung-fe/features/region-map/components/provincial-table.tsx`), serta `/pembeli/katalog` (`sambung-fe/app/(workspace)/pembeli/katalog/page.tsx`).
+  - Menyelaraskan deskripsi perbandingan manfaat dan informasi akun petani pada halaman langganan (`sambung-fe/app/(workspace)/langganan/page.tsx`).
 - **Backend (`sambung-be`) — Pengetatan Alur Kontrak, Validasi Wilayah, & Fallback Harga Nasional (`2026-11-28`)**:
   - Memperbarui `contracts.routes.ts`, `contracts.schemas.ts`, `contracts.service.ts`, dan `contracts.expiry.ts`: menonaktifkan aksi warisan `confirm` (`410 LEGACY_ACTION_DISABLED`), membuka kontak mitra setelah pembayaran lunas/`shipping`/`completed`, dan mendukung pencatatan timbang/kadar air aktual saat konfirmasi penerimaan.
   - Memperbarui `auth.routes.ts`, `auth.service.ts`, `offers.routes.ts`, `offers.schemas.ts`, `offers.service.ts`, `ai-rate-limit.ts`, dan `pricing/ai-price.client.ts`: penolakan akun tertutup (`ACCOUNT_CLOSED`), validasi wilayah resmi saat pendaftaran, perbaikan kunci peta `/regions` per tingkat wilayah, validasi tanggal `availableOn` agar tidak di masa lalu, notifikasi & audit log pembatalan pesanan saat penarikan tawaran, serta fallback otomatis ke acuan `"Nasional"` saat perhitungan harga wajar regional mengembalikan `404`/`422`.
@@ -158,6 +162,8 @@ Semua perubahan penting pada proyek **SAMBUNG** (`sambung-be` dan `sambung-fe`) 
   - Kontak nomor telepon dan WhatsApp mitra kini baru dibuka ketika kedua belah pihak telah menyelesaikan tanda tangan digital (status `signed`, `shipping`, `completed`), bukan lagi pada saat harga disepakati (`approved`).
 
 ### Fixed
+- **Backend (`sambung-be`) — Penyelarasan Uji Integrasi Kontrak Sekuensial (`2026-11-28`)**:
+  - Memperbarui [contracts.test.mjs](file:///D:/KULIAH%20PNJ/sambung-fullstack/sambung-be/tests/integration/contracts.test.mjs) dari pemanggilan warisan `POST /contracts/:id/confirm` (yang resmi mengembalikan `410 LEGACY_ACTION_DISABLED`) ke alur sekuensial `sign` $\rightarrow$ pembayaran escrow `paid` $\rightarrow$ `ship` $\rightarrow$ `receive`.
 - **Frontend (`sambung-fe`) — Perbaikan State Controlled/Uncontrolled Komponen Base UI `<Select>` (`2026-11-28`)**:
   - Mengubah operan `value` pada komponen `<Select>` dari `... || undefined` menjadi `... || null` agar Base UI `Select` selalu berjalan dalam mode *controlled* sejak render pertama (menghindari galat `changing the uncontrolled value state of Select to be controlled` saat nilai awal kosong berubah menjadi nilai terpilih):
     - `sambung-fe/features/fair-price/components/fair-price-simulator.tsx` (pilihan komoditas gabah `grainType` dan wilayah provinsi `region`).
@@ -185,6 +191,12 @@ Semua perubahan penting pada proyek **SAMBUNG** (`sambung-be` dan `sambung-fe`) 
   - Menghapus direktori `sambung-fe/data/ai/` (`fair_price_params.json`, `forecast_produsen.json`, `model_evaluation.json`, `price_board_4tier.json`, `spatial_disparity.json`) setelah seluruh halaman dan komponen transaksi beralih penuh ke endpoint live `sambung-be`.
 - **Backend (`sambung-be`) — Penghapusan Protokol Gradio SSE & Fallback File Snapshot Lokal (`2026-11-27`)**:
   - Menghapus seluruh impor `node:fs/promises`, jalur `/gradio_api/call/*`, serta penggunaan `AI_SNAPSHOT_PATH` dan `AI_FORECAST_SNAPSHOT_PATH` dari modul `forecast`, `pricing`, `.env`, `.env.example`, dan README `sambung-be`.
+
+### Security
+- **Backend (`sambung-be`) — Wajib Autentikasi Sesi Aktif pada `GET /price-history` & `GET /forecasts` (`2026-11-28`)**:
+  - Menambahkan helper `requireActiveActor` di [session.ts](file:///D:/KULIAH%20PNJ/sambung-fullstack/sambung-be/src/modules/auth/session.ts) yang melempar `401 UNAUTHENTICATED` saat cookie sesi tidak ada, tidak valid, kedaluwarsa, atau berasal dari akun nonaktif.
+  - Memasang `requireActiveActor` dan header `Cache-Control: no-store` pada `GET /price-history` di [ai.routes.ts](file:///D:/KULIAH%20PNJ/sambung-fullstack/sambung-be/src/modules/ai/ai.routes.ts) serta `GET /forecasts` di [forecast.routes.ts](file:///D:/KULIAH%20PNJ/sambung-fullstack/sambung-be/src/modules/forecast/forecast.routes.ts) untuk menutup celah akses anonim terhadap riwayat penuh dan prakiraan 34 provinsi beserta TreeSHAP.
+  - Memperbarui cakupan uji integrasi di [ai.routes.test.mjs](file:///D:/KULIAH%20PNJ/sambung-fullstack/sambung-be/tests/integration/ai.routes.test.mjs), [forecast.test.mjs](file:///D:/KULIAH%20PNJ/sambung-fullstack/sambung-be/tests/integration/forecast.test.mjs), [price-history.test.mjs](file:///D:/KULIAH%20PNJ/sambung-fullstack/sambung-be/tests/integration/price-history.test.mjs), dan [subscriptions.test.mjs](file:///D:/KULIAH%20PNJ/sambung-fullstack/sambung-be/tests/integration/subscriptions.test.mjs) untuk memverifikasi penolakan anonim `401 UNAUTHENTICATED` serta skenario terautentikasi.
 
 ---
 

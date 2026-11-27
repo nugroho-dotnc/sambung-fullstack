@@ -1,9 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useMemo } from "react";
 import type { ProvincialPriceComparison } from "../domain/map-types";
 import { formatRupiah } from "@/features/offers/components/offer-summary";
-import { Search, Download, ArrowUpDown } from "lucide-react";
+import { useCurrentUser } from "@/features/auth/hooks/use-auth";
+import {
+  canUserExportCsv,
+  canUserUpgradeToPro,
+} from "@/features/subscription/domain/permissions";
+import { Search, Download, ArrowUpDown, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface ProvincialTableProps {
@@ -20,6 +26,10 @@ export function ProvincialTable({
   selectedProvince,
   onSelectProvince,
 }: ProvincialTableProps) {
+  const { data: user } = useCurrentUser();
+  const canExportCsv = canUserExportCsv(user);
+  const canUpgradeToPro = canUserUpgradeToPro(user);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<SortField>("percentageDiff");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
@@ -56,6 +66,7 @@ export function ProvincialTable({
   };
 
   const handleExportCsv = () => {
+    if (!canExportCsv || filteredAndSortedData.length === 0) return;
     const headers = [
       "Provinsi",
       "Komoditas",
@@ -105,15 +116,42 @@ export function ProvincialTable({
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportCsv}
-            className="text-xs font-semibold gap-1.5 cursor-pointer shadow-2xs"
-          >
-            <Download className="w-3.5 h-3.5 text-primary" />
-            <span>Unduh CSV</span>
-          </Button>
+          {canExportCsv ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={filteredAndSortedData.length === 0}
+              onClick={handleExportCsv}
+              className="text-xs font-semibold gap-1.5 cursor-pointer shadow-2xs"
+            >
+              <Download className="w-3.5 h-3.5 text-primary" />
+              <span>Unduh CSV</span>
+            </Button>
+          ) : canUpgradeToPro ? (
+            <Button
+              variant="outline"
+              size="sm"
+              nativeButton={false}
+              render={<Link href="/langganan" />}
+              className="text-xs font-semibold gap-1.5 cursor-pointer shadow-2xs"
+            >
+              <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              <span>Unduh CSV (Pro)</span>
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled
+              title="Fitur ekspor CSV hanya tersedia untuk akun Pembeli Pro dan Pengawas."
+              className="text-xs font-semibold gap-1.5 shadow-2xs"
+            >
+              <Lock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <span>Unduh CSV (Pro)</span>
+            </Button>
+          )}
           <span className="text-xs text-muted-foreground tabular-nums">
             {filteredAndSortedData.length} provinsi
           </span>

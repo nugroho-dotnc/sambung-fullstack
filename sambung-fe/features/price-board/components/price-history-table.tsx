@@ -35,6 +35,7 @@ interface PriceHistoryTableProps {
   statusFilter: PriceHistoryStatusFilter;
   onStatusFilterChange: (next: PriceHistoryStatusFilter) => void;
   canExportCsv?: boolean;
+  canUpgradeToPro?: boolean;
   data?: PriceHistoryResponse;
   isLoading: boolean;
   isError: boolean;
@@ -152,7 +153,8 @@ export const PriceHistoryTable = memo(function PriceHistoryTable({
   range,
   statusFilter,
   onStatusFilterChange,
-  canExportCsv = true,
+  canExportCsv = false,
+  canUpgradeToPro = false,
   data,
   isLoading,
   isError,
@@ -215,7 +217,7 @@ export const PriceHistoryTable = memo(function PriceHistoryTable({
   }
 
   function handleExportCsv() {
-    if (!filteredChronologicalRows.length) return;
+    if (!canExportCsv || !filteredChronologicalRows.length) return;
     const csv = generatePriceHistoryCsv(region, filteredChronologicalRows);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -281,9 +283,8 @@ export const PriceHistoryTable = memo(function PriceHistoryTable({
               <Download className="w-3.5 h-3.5 text-primary" />
               Unduh CSV Riwayat
             </Button>
-          ) : (
+          ) : canUpgradeToPro ? (
             <Button
-              type="button"
               variant="outline"
               size="sm"
               className="min-h-9 text-xs font-semibold gap-1.5 cursor-pointer"
@@ -291,6 +292,18 @@ export const PriceHistoryTable = memo(function PriceHistoryTable({
               render={<Link href="/langganan" />}
             >
               <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              Unduh CSV (Pro)
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled
+              title="Fitur ekspor CSV hanya tersedia untuk akun Pembeli Pro dan Pengawas."
+              className="min-h-9 text-xs font-semibold gap-1.5"
+            >
+              <Lock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
               Unduh CSV (Pro)
             </Button>
           )}

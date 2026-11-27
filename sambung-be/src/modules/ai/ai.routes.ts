@@ -1,7 +1,7 @@
 import { Router } from "express";
 import type { PrismaClient } from "@prisma/client";
 import { ApiError } from "../../shared/api-error.ts";
-import { isBuyerPro, resolveOptionalActor } from "../auth/session.ts";
+import { isBuyerPro, requireActiveActor } from "../auth/session.ts";
 import {
   fairPriceCalculateBodySchema,
   fairPriceParamsQuerySchema,
@@ -42,9 +42,10 @@ export function aiRouter(db: PrismaClient) {
   });
 
   router.get("/price-history", async (req, res) => {
+    res.set("Cache-Control", "no-store");
+    const actor = await requireActiveActor(db, req);
     const query = priceHistoryQuerySchema.parse(req.query);
-    const actor = await resolveOptionalActor(db, req);
-    if (actor?.role === "pembeli" && !isBuyerPro(actor) && !FREE_BUYER_HISTORY_RANGES.has(query.range)) {
+    if (actor.role === "pembeli" && !isBuyerPro(actor) && !FREE_BUYER_HISTORY_RANGES.has(query.range)) {
       throw new ApiError(
         403,
         "SUBSCRIPTION_REQUIRED",

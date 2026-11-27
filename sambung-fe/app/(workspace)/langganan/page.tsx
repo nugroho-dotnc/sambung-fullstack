@@ -104,9 +104,9 @@ function getSubscriptionPaymentStatusLabel(status: string): {
 const PLAN_COMPARISON_ROWS = [
   {
     icon: BarChart3,
-    title: "Riwayat Harga /harga & Ekspor CSV",
-    freeValue: "4, 8, dan 12 pekan terakhir (tanpa CSV)",
-    proValue: "Lengkap 2019–Sekarang (35 wilayah) + Unduh CSV",
+    title: "Riwayat Harga & Ekspor CSV",
+    freeValue: "4, 8, dan 12 pekan terakhir (ekspor CSV terkunci)",
+    proValue: "Lengkap 2019–Sekarang (35 wilayah) + Ekspor CSV (Harga, Peta & Katalog)",
   },
   {
     icon: TrendingUp,
@@ -294,7 +294,7 @@ export default function SubscriptionPage() {
 
           <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
             {isFarmer
-              ? "Anda sudah memiliki akses penuh atas riwayat harga 2019–sekarang, unduhan CSV, prakiraan tren AI lintas provinsi, serta hak bersih 100% pada setiap transaksi escrow. Paket Pembeli Pro hanya ditujukan bagi akun Pembeli / Penggilingan."
+              ? "Anda tetap menikmati akses gratis untuk jual beli gabah, Cek Harga Wajar AI, pemantauan harga pasar, serta hak bersih 100% pada setiap transaksi escrow. Fitur ekspor CSV dan paket Pembeli Pro khusus tersedia untuk akun Pembeli / Penggilingan."
               : "Paket langganan Pembeli Pro hanya berlaku khusus untuk akun Pembeli / Penggilingan."}
           </p>
         </Card>
