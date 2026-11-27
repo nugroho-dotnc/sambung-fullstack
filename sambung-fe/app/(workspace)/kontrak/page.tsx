@@ -197,29 +197,30 @@ export default function ContractsListPage() {
                   className="rounded-2xl border-border/80 bg-card p-5 space-y-4 hover:border-foreground/30 transition shadow-2xs flex flex-col justify-between"
                 >
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300">
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 whitespace-nowrap">
                           Gabah {contract.grainType}
                         </span>
-                        <span className="text-xs text-muted-foreground">
-                          #{contract.id}
+
+                        <span
+                          className={`text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${
+                            contract.status === "signed" || contract.status === "completed"
+                              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300"
+                              : contract.status === "shipping"
+                              ? "bg-blue-100 text-blue-800 dark:bg-blue-950/70 dark:text-blue-300"
+                              : contract.status === "approved" || contract.status === "pending"
+                              ? "bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {statusMeta.label}
                         </span>
                       </div>
 
-                      <span
-                        className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                          contract.status === "signed" || contract.status === "completed"
-                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300"
-                            : contract.status === "shipping"
-                            ? "bg-blue-100 text-blue-800 dark:bg-blue-950/70 dark:text-blue-300"
-                            : contract.status === "approved" || contract.status === "pending"
-                            ? "bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300"
-                            : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {statusMeta.label}
-                      </span>
+                      <p className="text-xs text-muted-foreground break-all">
+                        ID Kontrak: #{contract.id}
+                      </p>
                     </div>
 
                     <div>
