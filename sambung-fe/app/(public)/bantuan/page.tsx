@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button";
 import {
   BookOpen,
   ShieldCheck,
@@ -46,7 +46,7 @@ const GLOSSARY_ITEMS: GlossaryItem[] = [
     term: "Kesepakatan Digital Terikat",
     category: "transaksi",
     definition:
-      "Catatan komitmen resmi antara petani dan pembeli untuk mengikat harga gabah, kuota volume, dan jadwal serah terima fisik secara transparan dan bebas komisi perantara.",
+      "Catatan komitmen resmi antara petani dan produsen untuk mengikat harga gabah, kuota volume, dan jadwal serah terima fisik secara transparan dan bebas komisi perantara.",
   },
   {
     term: "Bilah Spektrum Lampu Harga",
@@ -58,7 +58,7 @@ const GLOSSARY_ITEMS: GlossaryItem[] = [
     term: "Pencadangan Volume Atomik",
     category: "transaksi",
     definition:
-      "Mekanisme penguncian kuota tonase secara otomatis dan instan saat pembeli mengajukan pesanan parsial, menjamin tidak terjadi penjualan ganda (overbooking) pada tawaran yang sama.",
+      "Mekanisme penguncian kuota tonase secara otomatis dan instan saat produsen mengajukan pesanan parsial, menjamin tidak terjadi penjualan ganda (overbooking) pada tawaran yang sama.",
   },
   {
     term: "Farmer's Share (Porsi Petani)",
@@ -71,6 +71,18 @@ const GLOSSARY_ITEMS: GlossaryItem[] = [
     category: "intelijen",
     definition:
       "Batas harga pembelian dasar yang ditetapkan oleh regulator pemerintah (Badan Pangan Nasional) untuk mencegah kejatuhan harga gabah petani di bawah biaya operasional produksi sawah.",
+  },
+  {
+    term: "Rekening Bersama (Escrow) & Biaya Layanan",
+    category: "transaksi",
+    definition:
+      "Dana pembayaran dari produsen ditahan sementara dengan aman oleh sistem selama gabah dikirim hingga diterima. Petani menerima 100% nilai gabah bersih tanpa potongan, sedangkan produsen menanggung biaya layanan transaksi ringan 0,5% (atau 0,25% bagi anggota Produsen Pro).",
+  },
+  {
+    term: "Produsen Pro",
+    category: "transaksi",
+    definition:
+      "Paket langganan opsional khusus akun Produsen atau Penggilingan (Rp99.000 per 30 hari) untuk membuka riwayat harga sejak 2019, unduh data tabel (CSV), peta serta perkiraan harga semua provinsi beserta faktor penyebabnya, dan potongan 50% biaya layanan transaksi menjadi 0,25%.",
   },
 ];
 
@@ -109,7 +121,7 @@ export default function BantuanPage() {
         </h1>
         <p className="mt-1 text-sm text-muted-foreground leading-relaxed max-w-3xl">
           Panduan istilah domain komoditas gabah, tata kelola kesepakatan digital terikat,
-          serta komitmen perlindungan kerahasiaan data privasi petani dan pembeli.
+          serta komitmen perlindungan kerahasiaan data privasi petani dan produsen.
         </p>
       </div>
 
@@ -238,7 +250,7 @@ export default function BantuanPage() {
                   Perlindungan Kontak (Contact Masking)
                 </h4>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Nomor telepon petani dan pembeli <strong>hanya saling terbuka</strong> saat
+                  Nomor telepon petani dan produsen <strong>hanya saling terbuka</strong> saat
                   kesepakatan pasokan telah berstatus <strong>Disetujui</strong> kedua belah pihak.
                   Sebelum negosiasi disepakati dan setelah transaksi selesai atau dibatalkan,
                   kontak ditutup kembali untuk mencegah spam atau tekanan pihak luar.
@@ -280,19 +292,20 @@ export default function BantuanPage() {
               </div>
             </div>
 
-            {/* Zero Commission */}
+            {/* Zero Commission for Farmers */}
             <div className="flex items-start gap-3.5 pt-5 border-t border-border/70">
-              <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 shrink-0 mt-0.5">
+              <div className="p-2 rounded-xl bg-primary/10 text-primary shrink-0 mt-0.5">
                 <CircleDollarSign className="w-4 h-4" />
               </div>
               <div className="space-y-1">
                 <h4 className="font-display font-bold text-sm text-foreground">
-                  100% Bebas Potongan Komisi Platform
+                  100% Tanpa Potongan Hasil Panen Petani
                 </h4>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Platform SAMBUNG tidak memungut komisi persentase dari hasil penjualan petani
-                  maupun pembelian penggilingan. Seluruh nilai transaksi menjadi hak penuh petani
-                  dan pembeli yang bersepakat.
+                  Petani menerima 100% nilai gabah yang disepakati tanpa potongan apa pun maupun
+                  biaya langganan. Untuk menjaga keamanan transaksi melalui rekening bersama (escrow),
+                  produsen menanggung biaya layanan transaksi ringan sebesar 0,5% (atau 0,25% bagi
+                  anggota Produsen Pro).
                 </p>
               </div>
             </div>
@@ -326,15 +339,15 @@ export default function BantuanPage() {
               Jika Anda memerlukan konsultasi terkait penentuan harga gabah wajar daerah atau
               penggunaan bilah kalkulator spektrum panen, buka kalkulator acuan harga wajar.
             </p>
-            <Button
+            <ButtonLink
               size="sm"
               variant="outline"
               className="w-full text-xs font-semibold justify-between cursor-pointer"
-              render={<Link href="/harga-wajar" />}
+              href="/harga-wajar"
             >
               <span>Kalkulator Acuan Harga Wajar</span>
               <ExternalLink className="w-3.5 h-3.5" />
-            </Button>
+            </ButtonLink>
           </Card>
         </div>
       </div>

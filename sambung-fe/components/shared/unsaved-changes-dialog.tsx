@@ -67,7 +67,7 @@ export function UnsavedChangesDialog({
             type="button"
             onClick={() => void onSaveAndExit()}
             disabled={isSaving}
-            className="w-full sm:w-auto text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+            className="w-full sm:w-auto text-xs font-semibold"
           >
             <Save className="w-3.5 h-3.5 mr-1" />
             {isSaving ? "Menyimpan…" : "Simpan Draf & Keluar"}

@@ -51,7 +51,7 @@ function AdminLoginContent() {
   };
 
   return (
-    <div className="admin-surface overflow-hidden p-7 sm:p-9 w-full space-y-7">
+    <div className="overflow-hidden p-4 sm:p-6 w-full space-y-7">
       <div className="space-y-3 border-b border-border pb-6">
         <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md text-xs font-semibold bg-muted text-foreground">
           <span className="admin-live-dot bg-[#78B000]" aria-hidden="true" />

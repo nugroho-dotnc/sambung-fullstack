@@ -163,13 +163,13 @@ export default function AdminContractsPage() {
         <div className="overflow-x-auto">
           <table className="admin-table w-full text-left border-collapse text-[13px]">
             <caption className="sr-only">
-              Daftar kontrak dan kesepakatan pasokan antara petani dan pembeli dengan kontak tersamar
+              Daftar kontrak dan kesepakatan pasokan antara petani dan produsen dengan kontak tersamar
             </caption>
             <thead>
               <tr className="border-b border-border bg-muted/50 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 <th scope="col" className="py-3.5 px-5 first:pl-6 last:pr-6">ID Kontrak</th>
                 <th scope="col" className="py-3.5 px-5 first:pl-6 last:pr-6">Petani (Penjual)</th>
-                <th scope="col" className="py-3.5 px-5 first:pl-6 last:pr-6">Pembeli (Mitra)</th>
+                <th scope="col" className="py-3.5 px-5 first:pl-6 last:pr-6">Produsen (Mitra)</th>
                 <th scope="col" className="py-3.5 px-5 first:pl-6 last:pr-6">Komoditas &amp; Volume</th>
                 <th scope="col" className="py-3.5 px-5 first:pl-6 last:pr-6 text-right">Harga Sepakat</th>
                 <th scope="col" className="py-3.5 px-5 first:pl-6 last:pr-6 text-right">Total Nilai</th>

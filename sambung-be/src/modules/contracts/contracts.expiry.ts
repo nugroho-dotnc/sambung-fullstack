@@ -3,7 +3,10 @@ import {
   cancelUnpaidSignedContracts,
   sendPaymentOverdueReminders,
 } from "../payments/payments.service.ts";
-import { sendSubscriptionExpiryReminders } from "../subscriptions/subscriptions.service.ts";
+import {
+  sendSubscriptionExpiredNotices,
+  sendSubscriptionExpiryReminders,
+} from "../subscriptions/subscriptions.service.ts";
 import {
   autoCompleteAndReleaseShippedContracts,
   cancelUnshippedPaidContracts,
@@ -36,7 +39,10 @@ export function startExpiry(db: PrismaClient) {
       console.error("Gagal memproses penyelesaian otomatis kontrak terkirim.")
     );
     await sendSubscriptionExpiryReminders(db).catch(() =>
-      console.error("Gagal mengirim pengingat masa aktif langganan Pembeli Pro.")
+      console.error("Gagal mengirim pengingat masa aktif langganan Produsen Pro.")
+    );
+    await sendSubscriptionExpiredNotices(db).catch(() =>
+      console.error("Gagal mengirim pemberitahuan berakhirnya langganan Produsen Pro.")
     );
   };
   void sweep();

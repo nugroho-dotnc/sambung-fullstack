@@ -78,14 +78,14 @@ export default function PriceMapSection() {
             {/* 3 Summary Metrics */}
             <div className="pt-4 border-t border-border/80 grid grid-cols-1 sm:grid-cols-3 gap-5">
               <div className="p-4 rounded-xl bg-muted/40 border border-border/80 space-y-1">
-                <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400">
+                <div className="flex items-center gap-1.5 text-primary">
                   <TrendingDown className="w-4 h-4" />
                   <p className="text-xs font-bold uppercase tracking-wider">
                     Harga Terendah (Sentra Surplus)
                   </p>
                 </div>
                 <p className="text-sm font-bold text-foreground">{minPriceItem.province}</p>
-                <p className="text-2xl font-black text-emerald-700 dark:text-emerald-400 font-display tabular-nums">
+                <p className="text-2xl font-black text-primary font-display tabular-nums">
                   {formatRupiah(minPriceItem.price)}
                   <span className="text-xs font-normal text-muted-foreground">/kg</span>
                 </p>

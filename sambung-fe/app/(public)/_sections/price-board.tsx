@@ -10,6 +10,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox";
 import { AsyncBoundary } from "@/components/shared/async-boundary";
 import { formatRupiah } from "@/features/offers/components/offer-summary";
 import type { PriceBoardPeriod } from "@/features/price-board/services/price-board.service";
@@ -83,24 +91,30 @@ export default function PriceBoardSection() {
             <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">
               Wilayah Pengamatan
             </label>
-            <Select
+            <Combobox
               items={regionOptions}
-              value={region}
-              onValueChange={(val) => {
-                if (val) setRegion(val);
+              value={regionOptions.find((opt) => opt.value === region) ?? null}
+              isItemEqualToValue={(item, val) => item.value === val.value}
+              itemToStringLabel={(opt) => opt.label}
+              onValueChange={(opt) => {
+                if (opt) setRegion(opt.value);
               }}
             >
-              <SelectTrigger className="w-full h-10 rounded-xl border border-border/80 bg-background px-3.5 text-xs font-semibold text-foreground shadow-2xs">
-                <SelectValue placeholder="Pilih wilayah" />
-              </SelectTrigger>
-              <SelectContent>
-                {regionOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <ComboboxInput
+                placeholder="Pilih atau cari wilayah..."
+                className="w-full h-10 rounded-xl border-border/80 bg-background text-xs font-semibold text-foreground shadow-2xs"
+              />
+              <ComboboxContent>
+                <ComboboxEmpty>Wilayah tidak ditemukan.</ComboboxEmpty>
+                <ComboboxList>
+                  {(opt: { value: string; label: string }) => (
+                    <ComboboxItem key={opt.value} value={opt}>
+                      {opt.label}
+                    </ComboboxItem>
+                  )}
+                </ComboboxList>
+              </ComboboxContent>
+            </Combobox>
           </div>
 
           <div className="space-y-1.5">
@@ -194,7 +208,7 @@ export default function PriceBoardSection() {
                   Bagian Petani (Farmer&apos;s Share)
                 </span>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-extrabold text-emerald-700 dark:text-emerald-400 tabular-nums font-display">
+                  <span className="text-4xl font-extrabold text-primary tabular-nums font-display">
                     {comparison.farmerSharePercent.toFixed(1)}%
                   </span>
                   <span className="text-xs text-muted-foreground font-semibold">

@@ -49,7 +49,7 @@ const chartConfig = {
   },
   farmerPrice: {
     label: "Petani (Setara Beras)",
-    color: "#10b981",
+    color: "var(--price-within)",
   },
   predictedMillerSeries: {
     label: "Prediksi AI (Penggilingan)",
@@ -57,7 +57,7 @@ const chartConfig = {
   },
   predictedFarmerSeries: {
     label: "Prediksi AI (Petani Setara Beras)",
-    color: "#059669",
+    color: "var(--primary)",
   },
 } satisfies ChartConfig;
 

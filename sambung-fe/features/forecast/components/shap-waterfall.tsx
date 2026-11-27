@@ -128,7 +128,7 @@ export function ShapWaterfall({
                 <div
                   className={`p-1.5 rounded-lg shrink-0 ${
                     isPushUp
-                      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
+                      ? "bg-primary/15 text-primary"
                       : isNeutral
                         ? "bg-muted text-muted-foreground"
                         : "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
@@ -149,7 +149,7 @@ export function ShapWaterfall({
               <div
                 className={`text-[11px] font-bold px-2 py-0.5 rounded-md border whitespace-nowrap tabular-nums flex items-center gap-1 shrink-0 ${
                   isPushUp
-                    ? "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                    ? "bg-primary/10 text-primary border-primary/25"
                     : isNeutral
                       ? "bg-muted text-muted-foreground border-border/80"
                       : "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
@@ -157,7 +157,7 @@ export function ShapWaterfall({
               >
                 {isPushUp ? (
                   <>
-                    <ArrowUpRight className="w-3 h-3 text-emerald-600" />
+                    <ArrowUpRight className="w-3 h-3 text-primary" />
                     <span>+Rp{factor.impact}/kg</span>
                   </>
                 ) : isNeutral ? (

@@ -3,8 +3,9 @@
 import { use } from "react";
 import Link from "next/link";
 import { ArrowLeft, Printer, ShieldCheck, QrCode } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { PageContainer } from "@/components/shared/page-container";
+import { BrandLogo } from "@/components/shared/brand-logo";
 import { DocumentSheetSkeleton } from "@/components/shared/page-skeletons";
 import { useContract } from "@/features/contracts/hooks/use-contracts";
 import {
@@ -39,10 +40,12 @@ export default function DigitalContractProofPage({
       <PageContainer>
         <div className="rounded-2xl border border-dashed p-12 text-center space-y-3">
           <h2 className="text-lg font-bold text-foreground">Dokumen Tidak Ditemukan</h2>
-          <Button
-            render={<Link href="/kontrak">Kembali ke Daftar Kontrak</Link>}
+          <ButtonLink
+            href="/kontrak"
             className="mt-3 min-h-10 text-xs"
-          />
+          >
+            Kembali ke Daftar Kontrak
+          </ButtonLink>
         </div>
       </PageContainer>
     );
@@ -79,9 +82,7 @@ export default function DigitalContractProofPage({
         <div className="flex flex-col sm:flex-row sm:items-start justify-between border-b-2 border-foreground/20 pb-6 gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs">
-                S
-              </div>
+              <BrandLogo size={28} className="w-7 h-7 rounded-md" />
               <span className="font-extrabold text-base tracking-wider uppercase font-display">
                 SAMBUNG
               </span>
@@ -114,14 +115,14 @@ export default function DigitalContractProofPage({
             Surat Bukti Kesepakatan Pasokan Gabah
           </h1>
           <p className="text-xs text-muted-foreground max-w-lg mx-auto">
-            Komitmen pasokan digital yang telah disepakati bersama antara pihak Petani dan Pembeli melalui platform SAMBUNG.
+            Komitmen pasokan digital yang telah disepakati bersama antara Petani dan Produsen melalui platform SAMBUNG.
           </p>
         </div>
 
         {/* Parties Box */}
         <div className="grid sm:grid-cols-2 gap-6 text-xs">
           <div className="rounded-xl border border-border/80 bg-muted/20 p-4 space-y-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400 block">
+            <span className="text-xs font-bold uppercase tracking-wider text-primary block">
               Pihak Pertama (Petani / Poktan)
             </span>
             <p className="text-sm font-bold text-foreground">
@@ -140,7 +141,7 @@ export default function DigitalContractProofPage({
 
           <div className="rounded-xl border border-border/80 bg-muted/20 p-4 space-y-2">
             <span className="text-xs font-bold uppercase tracking-wider text-blue-800 dark:text-blue-400 block">
-              Pihak Kedua (Pembeli / Penggilingan)
+              Pihak Kedua (Produsen / Penggilingan)
             </span>
             <p className="text-sm font-bold text-foreground">
               {contract.buyerBusiness || contract.buyerName}
@@ -195,8 +196,8 @@ export default function DigitalContractProofPage({
               </tr>
               <tr className="border-b border-border/50">
                 <td colSpan={3} className="px-3.5 py-2.5 text-right text-xs font-medium text-muted-foreground">
-                  Biaya Layanan Pembayaran ({formatFeeRatePercent(breakdown.feeRate)}
-                  {breakdown.isProDiscount ? " · Diskon Pembeli Pro" : ""} · Ditanggung Pembeli):
+                  Biaya Layanan Transaksi ({formatFeeRatePercent(breakdown.feeRate)}
+                  {breakdown.isProDiscount ? " · Produsen Pro" : ""} · Ditanggung Produsen):
                 </td>
                 <td className="px-3.5 py-2.5 text-right tabular-nums text-xs font-semibold text-foreground">
                   {formatRupiah(breakdown.buyerFeeAmount)}
@@ -204,9 +205,9 @@ export default function DigitalContractProofPage({
               </tr>
               <tr className="font-bold">
                 <td colSpan={3} className="p-3.5 text-right text-xs">
-                  Total Tagihan Escrow (Midtrans):
+                  Total Tagihan Produsen:
                 </td>
-                <td className="p-3.5 text-right tabular-nums text-sm text-emerald-700 dark:text-emerald-400">
+                <td className="p-3.5 text-right tabular-nums text-sm text-primary">
                   {formatRupiah(breakdown.grossAmount)}
                 </td>
               </tr>
@@ -214,14 +215,14 @@ export default function DigitalContractProofPage({
           </table>
         </div>
 
-        {/* Bukti Pembayaran & Status Escrow (Midtrans Sandbox) */}
+        {/* Bukti Pembayaran & Rekening Bersama */}
         {(Boolean(contract.payment) ||
           ["signed", "shipping", "completed"].includes(contract.status)) && (
           <div className="rounded-xl border border-border/80 bg-muted/15 p-4 space-y-3 text-xs">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2.5">
               <div className="flex items-center gap-2 font-bold text-foreground">
-                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Bukti Pembayaran &amp; Status Escrow (Midtrans Sandbox)</span>
+                <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
+                <span>Bukti Pembayaran &amp; Rekening Bersama</span>
               </div>
               <span className="font-semibold text-foreground">
                 {paymentMeta.label}
@@ -262,7 +263,7 @@ export default function DigitalContractProofPage({
                 </span>
               </div>
               <div className="flex justify-between gap-2">
-                <span className="text-muted-foreground">Waktu Pencairan Escrow:</span>
+                <span className="text-muted-foreground">Waktu Pencairan ke Petani:</span>
                 <span className="tabular-nums font-medium text-foreground">
                   {contract.payment?.escrowStatus === "released"
                     ? formatPaymentDateTime(contract.payment.releasedAt)
@@ -303,7 +304,7 @@ export default function DigitalContractProofPage({
               Penimbangan tonase riil, pemeriksaan mutu/kadar air fisik, dan serah terima gabah dilakukan secara mandiri di lokasi penjemputan gabah.
             </li>
             <li>
-              Pembayaran transaksi diproses melalui escrow Midtrans Sandbox (nilai gabah 100% menjadi hak bersih Petani ditambah biaya layanan 0,5% yang ditanggung Pembeli) dalam tenggat 7 hari sejak penandatanganan lengkap dengan masa tenggang 3 hari; dana escrow dicairkan kepada Petani setelah Pembeli mengonfirmasi penerimaan gabah.
+              Pembayaran diproses melalui rekening bersama (escrow) SAMBUNG (nilai gabah 100% menjadi hak bersih Petani ditambah biaya layanan transaksi {formatFeeRatePercent(breakdown.feeRate)}{breakdown.isProDiscount ? " tarif Produsen Pro" : ""} yang ditanggung Produsen) dalam tenggat 7 hari sejak penandatanganan lengkap dengan masa tenggang 3 hari; dana diteruskan kepada Petani setelah Produsen mengonfirmasi gabah diterima.
             </li>
           </ol>
         </div>
@@ -362,7 +363,7 @@ export default function DigitalContractProofPage({
             </span>
           </div>
 
-          {/* Pihak Kedua (Pembeli) */}
+          {/* Pihak Kedua (Produsen) */}
           <div className="space-y-3 order-2 sm:order-none">
             <span className="text-muted-foreground text-xs font-semibold block">Pihak Kedua</span>
             <div className="min-h-16 flex flex-col items-center justify-center">
@@ -387,7 +388,7 @@ export default function DigitalContractProofPage({
             </div>
             <div className="border-t border-foreground/30 pt-1">
               <p className="font-bold text-foreground">{contract.buyerName}</p>
-              <p className="text-xs text-muted-foreground">Pembeli / Penggilingan</p>
+              <p className="text-xs text-muted-foreground">Produsen / Penggilingan</p>
               {contract.buyerSignedAt && (
                 <span className="text-[10px] text-muted-foreground block mt-0.5">
                   Ditandatangani: {new Date(contract.buyerSignedAt).toLocaleDateString("id-ID", {

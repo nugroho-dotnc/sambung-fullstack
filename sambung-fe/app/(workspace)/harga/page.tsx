@@ -17,6 +17,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox";
 import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { AsyncBoundary } from "@/components/shared/async-boundary";
@@ -39,7 +47,7 @@ import { PriceHistoryTable } from "@/features/price-board/components/price-histo
 const FREE_BUYER_HISTORY_RANGES = new Set<PriceHistoryRange>(["4w", "8w", "12w"]);
 
 export default function PriceBoardPage() {
-  const { data: user } = useCurrentUser();
+  const { data: user, isLoading: isUserLoading } = useCurrentUser();
   const isFreeBuyer = user?.role === "pembeli" && !user?.isPro;
 
   const [region, setRegion] = useState<string>("Jawa Timur");
@@ -132,24 +140,30 @@ export default function PriceBoardPage() {
             <label className="text-xs font-medium text-muted-foreground block">
               Wilayah Pembanding (34 Provinsi)
             </label>
-            <Select
+            <Combobox
               items={regionOptions}
-              value={region}
-              onValueChange={(val) => {
-                if (val) setRegion(val);
+              value={regionOptions.find((opt) => opt.value === region) ?? null}
+              isItemEqualToValue={(item, val) => item.value === val.value}
+              itemToStringLabel={(opt) => opt.label}
+              onValueChange={(opt) => {
+                if (opt) setRegion(opt.value);
               }}
             >
-              <SelectTrigger className="w-full h-11 rounded-lg bg-background px-3 text-xs font-semibold text-foreground">
-                <SelectValue placeholder="Pilih wilayah" />
-              </SelectTrigger>
-              <SelectContent>
-                {regionOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <ComboboxInput
+                placeholder="Pilih atau cari wilayah..."
+                className="w-full h-11 rounded-lg bg-background text-xs font-semibold text-foreground"
+              />
+              <ComboboxContent>
+                <ComboboxEmpty>Wilayah tidak ditemukan.</ComboboxEmpty>
+                <ComboboxList>
+                  {(opt: { value: string; label: string }) => (
+                    <ComboboxItem key={opt.value} value={opt}>
+                      {opt.label}
+                    </ComboboxItem>
+                  )}
+                </ComboboxList>
+              </ComboboxContent>
+            </Combobox>
           </div>
 
           <div className="space-y-1.5">
@@ -188,8 +202,9 @@ export default function PriceBoardPage() {
       {isFreeBuyer && showProUpgradeNotice && (
         <div className="mb-8">
           <ProUpgradeBanner
-            title="Rentang Riwayat Lengkap 2019–Sekarang &amp; Ekspor CSV Khusus Pembeli Pro"
-            description="Paket Pembeli Gratis mencakup data 4, 8, dan 12 pekan terakhir. Aktifkan Pembeli Pro (Rp99.000/30 hari) untuk membuka pilihan 1 tahun, arsip 2019–sekarang di 35 wilayah, serta unduhan CSV."
+            title="Riwayat Harga Sejak 2019 & Unduh Data Khusus Produsen Pro"
+            description="Paket Gratis hanya menampilkan data 4, 8, dan 12 minggu terakhir. Aktifkan Produsen Pro (Rp99.000/30 hari) untuk membuka data 1 tahun hingga arsip sejak 2019 di 35 wilayah serta tombol unduh data (CSV)."
+            fromPath="/harga"
           />
         </div>
       )}
@@ -252,9 +267,9 @@ export default function PriceBoardPage() {
         range={effectiveRange}
         statusFilter={statusFilter}
         onStatusFilterChange={setStatusFilter}
-        canExportCsv={!isFreeBuyer}
+        canExportCsv={Boolean(user) && !isFreeBuyer}
         data={historyQuery.data}
-        isLoading={historyQuery.isLoading}
+        isLoading={isUserLoading || historyQuery.isLoading}
         isError={historyQuery.isError}
         error={historyQuery.error}
         onRetry={() => void historyQuery.refetch()}

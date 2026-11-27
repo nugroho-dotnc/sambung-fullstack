@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import Link from "next/link";
 import { PageContainer } from "@/components/shared/page-container";
 import { AsyncBoundary } from "@/components/shared/async-boundary";
+import { ListPagination, paginateItems } from "@/components/shared/list-pagination";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { useMobile } from "@/hooks/use-mobile";
 import { IS_MOCK_DATA } from "@/lib/config/fe-mode";
 import {
@@ -80,6 +80,11 @@ export default function NotificationsPage() {
 
   const [mockList, setMockList] = useState<NotificationItem[]>(MOCK_NOTIFICATIONS);
   const [filter, setFilter] = useState<string>("semua");
+  const notificationsPageSize = 6;
+  const [pageState, setPageState] = useState<{ key: string; page: number }>({
+    key: filter,
+    page: 1,
+  });
 
   const notifications = useMemo(() => {
     if (IS_MOCK_DATA) return mockList;
@@ -111,6 +116,12 @@ export default function NotificationsPage() {
     if (filter !== "semua") return n.category === filter;
     return true;
   });
+
+  const pagedNotifications = paginateItems(
+    filteredNotifications,
+    pageState.key === filter ? pageState.page : 1,
+    notificationsPageSize
+  );
 
   return (
     <PageContainer>
@@ -209,7 +220,7 @@ export default function NotificationsPage() {
         }
       >
         <div className="space-y-3">
-          {filteredNotifications.map((n) => (
+          {pagedNotifications.items.map((n) => (
             <Card
               key={n.id}
               className={`rounded-2xl border transition-all p-5 shadow-xs ${
@@ -222,7 +233,7 @@ export default function NotificationsPage() {
                 <div
                   className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
                     n.iconType === "sukses"
-                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                      ? "bg-primary/10 text-primary"
                       : n.iconType === "kontrak"
                       ? "bg-blue-500/10 text-blue-700 dark:text-blue-400"
                       : n.iconType === "peringatan"
@@ -262,15 +273,15 @@ export default function NotificationsPage() {
 
                   <div className="pt-2 flex flex-wrap items-center justify-between gap-2">
                     {n.linkHref ? (
-                      <Button
+                      <ButtonLink
                         size="sm"
                         variant="outline"
                         className="text-xs font-semibold gap-1.5 h-8 px-3 cursor-pointer"
-                        render={<Link href={n.linkHref} />}
+                        href={n.linkHref}
                       >
                         <span>{n.linkText || "Buka Detail"}</span>
                         <ArrowRight className="w-3.5 h-3.5" />
-                      </Button>
+                      </ButtonLink>
                     ) : (
                       <div />
                     )}
@@ -291,6 +302,14 @@ export default function NotificationsPage() {
             </Card>
           ))}
         </div>
+        <ListPagination
+          totalItems={pagedNotifications.totalItems}
+          currentPage={pagedNotifications.currentPage}
+          pageSize={notificationsPageSize}
+          onPageChange={(page) => setPageState({ key: filter, page })}
+          itemLabel="notifikasi"
+          className="pt-4"
+        />
       </AsyncBoundary>
     </PageContainer>
   );

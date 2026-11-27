@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Sprout } from "lucide-react";
 import { useCurrentUser } from "@/features/auth/hooks/use-auth";
+import { BrandLogo } from "@/components/shared/brand-logo";
 
 export default function Footer() {
   const pathname = usePathname();
@@ -20,9 +20,7 @@ export default function Footer() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-left">
         <div className="space-y-1">
           <div className="flex items-center justify-center sm:justify-start gap-2">
-            <div className="w-5 h-5 rounded-md bg-primary text-primary-foreground flex items-center justify-center text-xs">
-              <Sprout className="w-3.5 h-3.5" />
-            </div>
+            <BrandLogo size={24} className="w-6 h-6 rounded-md" />
             <p className="font-bold text-foreground text-sm">
               SAMBUNG
             </p>

@@ -6,6 +6,8 @@ import type {
   PriceObservationRecord,
 } from "@/features/admin/domain/admin-types";
 
+import type { SubscriptionPayment } from "@/features/subscription/schemas";
+
 export interface MockDatabase {
   users: UserProfile[];
   currentSession: UserProfile | null;
@@ -13,6 +15,7 @@ export interface MockDatabase {
   offers: HarvestOffer[];
   contracts: Contract[];
   observations: PriceObservationRecord[];
+  subscriptionPayments?: SubscriptionPayment[];
   parameters: {
     orderExpiryHours: number;
     fairPriceToleranceDelta: number;
@@ -346,6 +349,7 @@ function getInitialDatabase(): MockDatabase {
       },
     ],
     observations: [...SEED_OBSERVATIONS],
+    subscriptionPayments: [],
     parameters: INITIAL_PARAMETERS,
     auditLogs: [...SEED_AUDIT_LOGS],
   };
@@ -381,6 +385,11 @@ export function readDb(): MockDatabase {
     // Auto-heal parameters
     if (!db.parameters || !db.parameters.governmentFloorPriceGKP) {
       db.parameters = { ...INITIAL_PARAMETERS, ...(db.parameters || {}) };
+      changed = true;
+    }
+
+    if (!Array.isArray(db.subscriptionPayments)) {
+      db.subscriptionPayments = [];
       changed = true;
     }
 

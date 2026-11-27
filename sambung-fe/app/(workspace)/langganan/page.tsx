@@ -1,11 +1,16 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
+  AlertTriangle,
+  ArrowLeft,
+  ArrowRight,
   Award,
   BarChart3,
   CheckCircle2,
+  Clock,
   Copy,
   CreditCard,
   Crown,
@@ -14,15 +19,25 @@ import {
   RefreshCw,
   ShieldCheck,
   TrendingUp,
+  XCircle,
 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AsyncBoundary } from "@/components/shared/async-boundary";
 import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { useCurrentUser } from "@/features/auth/hooks/use-auth";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { authKeys, useCurrentUser } from "@/features/auth/hooks/use-auth";
 import {
   formatPaymentChannel,
   formatPaymentDateTime,
@@ -30,11 +45,16 @@ import {
 import { openSnapCheckout } from "@/features/contracts/lib/midtrans-snap";
 import { formatRupiah } from "@/features/offers/components/offer-summary";
 import { ProBadge } from "@/features/subscription/components/pro-badge";
+import { sanitizeSubscriptionReturnPath } from "@/features/subscription/domain/return-path";
 import {
+  subscriptionKeys,
+  useCancelSubscription,
   useCheckoutSubscription,
   useMySubscription,
   useSyncSubscription,
 } from "@/features/subscription/hooks/use-subscription";
+import { ApiError } from "@/lib/api/errors";
+import { IS_MOCK_DATA } from "@/lib/config/fe-mode";
 
 const MIDTRANS_SIMULATOR_URL = "https://simulator.sandbox.midtrans.com";
 
@@ -64,8 +84,7 @@ function getSubscriptionPaymentStatusLabel(status: string): {
     case "paid":
       return {
         label: "Lunas",
-        classes:
-          "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-300/70 dark:border-emerald-800/60",
+        classes: "bg-primary/15 text-primary border border-primary/30",
       };
     case "pending":
       return {
@@ -76,12 +95,14 @@ function getSubscriptionPaymentStatusLabel(status: string): {
     case "expired":
       return {
         label: "Kedaluwarsa",
-        classes: "bg-destructive/15 text-destructive border border-destructive/40",
+        classes:
+          "bg-destructive/15 text-destructive border border-destructive/40",
       };
     case "failed":
       return {
         label: "Gagal",
-        classes: "bg-destructive/15 text-destructive border border-destructive/40",
+        classes:
+          "bg-destructive/15 text-destructive border border-destructive/40",
       };
     case "cancelled":
       return {
@@ -104,37 +125,44 @@ function getSubscriptionPaymentStatusLabel(status: string): {
 const PLAN_COMPARISON_ROWS = [
   {
     icon: BarChart3,
-    title: "Riwayat Harga /harga & Ekspor CSV",
-    freeValue: "4, 8, dan 12 pekan terakhir (tanpa CSV)",
-    proValue: "Lengkap 2019–Sekarang (35 wilayah) + Unduh CSV",
+    title: "Riwayat Harga & Unduh Data (/harga & /katalog)",
+    freeValue: "Data 4, 8, dan 12 minggu terakhir (tanpa unduh data)",
+    proValue: "Data lengkap sejak 2019 (35 wilayah) + unduh file Excel/CSV",
   },
   {
     icon: TrendingUp,
-    title: "Prakiraan Tren Harga AI (/prakiraan)",
-    freeValue: "1 provinsi domisili akun (ringkasan harga)",
-    proValue: "Seluruh provinsi + Faktor Penggerak AI lengkap",
+    title: "Perkiraan Harga & Peta Wilayah (/prakiraan & /peta)",
+    freeValue:
+      "Hanya provinsi Anda (tanpa rincian pemicu harga & peringkat wilayah)",
+    proValue:
+      "Semua provinsi, rincian pemicu harga, tabel peringkat & unduh data peta",
   },
   {
     icon: Percent,
-    title: "Biaya Layanan Escrow Kontrak",
-    freeValue: "0,5% dari nilai gabah (ditanggung pembeli)",
-    proValue: "0,25% dari nilai gabah — Hemat 50%",
+    title: "Biaya Layanan Pembayaran Kontrak",
+    freeValue: "0,5% dari nilai gabah (ditanggung Produsen)",
+    proValue: "0,25% dari nilai gabah — hemat setengahnya",
   },
   {
     icon: Award,
-    title: "Lencana Identitas & Negosiasi",
-    freeValue: "Lencana pembeli standar",
-    proValue: "Lencana Pembeli Pro di profil dan kontrak",
+    title: "Tanda Produsen Pro",
+    freeValue: "Akun Produsen standar",
+    proValue: "Ikon Mahkota Produsen Pro di profil dan halaman kontrak",
   },
 ] as const;
 
-export default function SubscriptionPage() {
+function SubscriptionPageContent() {
+  const searchParams = useSearchParams();
+  const returnPath = sanitizeSubscriptionReturnPath(searchParams.get("from"));
+  const queryClient = useQueryClient();
+
   const { data: user, isLoading: isUserLoading } = useCurrentUser();
   const isBuyer = user?.role === "pembeli";
 
   const subQuery = useMySubscription({ enabled: isBuyer });
   const checkoutMutation = useCheckoutSubscription();
   const syncMutation = useSyncSubscription();
+  const cancelMutation = useCancelSubscription();
 
   const [localError, setLocalError] = useState<string | null>(null);
   const [copiedRef, setCopiedRef] = useState(false);
@@ -144,8 +172,52 @@ export default function SubscriptionPage() {
   const sub = subQuery.data;
   const latestPayment = sub?.latestPayment ?? null;
   const isBusy =
-    checkoutMutation.isPending || syncMutation.isPending || isOpeningCheckout;
+    checkoutMutation.isPending ||
+    syncMutation.isPending ||
+    cancelMutation.isPending ||
+    isOpeningCheckout;
   const safeRedirectUrl = getSafeSandboxRedirectUrl(latestPayment?.redirectUrl);
+  const paymentConfigured = Boolean(sub?.midtransConfigured ?? true);
+
+  const latestPendingOrderId =
+    latestPayment?.status === "pending" ? latestPayment.orderId : null;
+  const syncOrder = syncMutation.mutateAsync;
+
+  useEffect(() => {
+    if (!latestPendingOrderId || isOpeningCheckout) return;
+
+    let inFlight = false;
+    const runSilentSync = async () => {
+      if (inFlight || document.visibilityState !== "visible") return;
+      inFlight = true;
+      try {
+        const res = await syncOrder({ orderId: latestPendingOrderId });
+        if (res.payment.status === "paid") {
+          toast.success(
+            "Pembayaran diterima! Produsen Pro Anda sekarang aktif."
+          );
+        }
+      } catch {
+        // Silent background sync; manual check button handles visible error feedback.
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    const intervalId = window.setInterval(() => {
+      void runSilentSync();
+    }, 6000);
+
+    const onFocus = () => {
+      void runSilentSync();
+    };
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [latestPendingOrderId, isOpeningCheckout, syncOrder]);
 
   async function runSyncAfterPopup(
     trigger: "success" | "pending" | "error" | "close",
@@ -159,23 +231,25 @@ export default function SubscriptionPage() {
     }
 
     try {
-      const res = await syncMutation.mutateAsync(orderId ? { orderId } : undefined);
+      const res = await syncMutation.mutateAsync(
+        orderId ? { orderId } : undefined
+      );
       setLocalError(null);
       if (res.payment.status === "paid") {
         toast.success(
-          "Langganan Pembeli Pro aktif. Seluruh fitur analitik penuh dan diskon fee 0,25% sudah terbuka."
+          "Produsen Pro sudah aktif! Semua data harga lengkap dan diskon biaya layanan 0,25% siap digunakan."
         );
       } else if (res.awaitingMethodSelection) {
         toast.info(
-          "Sesi pembayaran masih aktif dan menunggu Anda memilih metode pembayaran."
+          "Tagihan masih aktif. Silakan pilih metode pembayaran yang Anda inginkan."
         );
       } else if (res.payment.status === "pending") {
-        toast.info(
-          "Tagihan langganan masih menunggu penyelesaian pembayaran di Midtrans Sandbox."
-        );
-      } else if (["failed", "expired", "cancelled"].includes(res.payment.status)) {
+        toast.info("Tagihan masih menunggu pembayaran diselesaikan.");
+      } else if (
+        ["failed", "expired", "cancelled"].includes(res.payment.status)
+      ) {
         toast.warning(
-          "Sesi pembayaran sebelumnya belum selesai. Anda dapat membuat sesi baru."
+          "Tagihan sebelumnya sudah tidak aktif. Anda dapat membuat tagihan baru."
         );
       }
     } catch (err) {
@@ -188,12 +262,24 @@ export default function SubscriptionPage() {
   }
 
   async function handleCheckout(recreate = false) {
+    if (!paymentConfigured) {
+      setLocalError(
+        "Pembayaran online belum aktif di server saat ini. Hubungi pengawas sistem atau coba lagi nanti."
+      );
+      return;
+    }
+
     setLocalError(null);
     popupHandledRef.current = false;
     setIsOpeningCheckout(true);
 
     try {
       const session = await checkoutMutation.mutateAsync({ recreate });
+      if (IS_MOCK_DATA) {
+        await runSyncAfterPopup("success", session.payment.orderId);
+        return;
+      }
+
       const result = await openSnapCheckout({
         snapToken: session.snapToken,
         redirectUrl: session.redirectUrl,
@@ -216,14 +302,14 @@ export default function SubscriptionPage() {
       });
       if (result.mode === "redirect") {
         toast.info(
-          "Halaman Midtrans Sandbox dibuka pada tab baru. Tekan Cek Status Pembayaran setelah selesai membayar."
+          "Halaman pembayaran dibuka di tab baru. Setelah selesai membayar, tekan Cek Status Pembayaran."
         );
       }
     } catch (err) {
       const msg =
         err instanceof Error
           ? err.message
-          : "Gagal membuka pembayaran langganan Midtrans Sandbox.";
+          : "Gagal menyiapkan halaman pembayaran. Silakan coba lagi.";
       setLocalError(msg);
       toast.error(msg);
     } finally {
@@ -238,10 +324,10 @@ export default function SubscriptionPage() {
         latestPayment?.orderId ? { orderId: latestPayment.orderId } : undefined
       );
       if (res.payment.status === "paid") {
-        toast.success("Pembayaran langganan terkonfirmasi lunas dan Pembeli Pro aktif.");
+        toast.success("Pembayaran diterima! Produsen Pro Anda sekarang aktif.");
       } else if (res.awaitingMethodSelection) {
         toast.info(
-          "Metode pembayaran belum dipilih pada jendela Snap. Status tagihan masih menunggu."
+          "Anda belum memilih metode pembayaran. Silakan selesaikan pembayaran atau ganti metode."
         );
       } else {
         toast.info(
@@ -252,7 +338,36 @@ export default function SubscriptionPage() {
       const msg =
         err instanceof Error
           ? err.message
-          : "Gagal menyinkronkan status pembayaran langganan.";
+          : "Gagal memeriksa status pembayaran langganan.";
+      setLocalError(msg);
+      toast.error(msg);
+    }
+  }
+
+  async function handleCancelPending() {
+    setLocalError(null);
+    try {
+      await cancelMutation.mutateAsync(
+        latestPayment?.orderId ? { orderId: latestPayment.orderId } : undefined
+      );
+      toast.info("Tagihan langganan berhasil dibatalkan.");
+    } catch (err) {
+      if (err instanceof ApiError && err.code === "ALREADY_SETTLED") {
+        toast.success(
+          "Pembayaran Anda ternyata sudah lunas! Produsen Pro sekarang aktif."
+        );
+        void queryClient.invalidateQueries({ queryKey: subscriptionKeys.me() });
+        void queryClient.invalidateQueries({ queryKey: authKeys.currentUser() });
+        void queryClient.invalidateQueries({ queryKey: ["price-history"] });
+        void queryClient.invalidateQueries({ queryKey: ["forecasts"] });
+        void queryClient.invalidateQueries({ queryKey: ["spatial-disparity"] });
+        void queryClient.invalidateQueries({ queryKey: ["contracts"] });
+        return;
+      }
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Gagal membatalkan tagihan langganan.";
       setLocalError(msg);
       toast.error(msg);
     }
@@ -270,32 +385,45 @@ export default function SubscriptionPage() {
     return (
       <PageContainer>
         <PageHeader
-          title="Paket Langganan SAMBUNG"
-          description="Informasi keanggotaan dan keterbukaan fitur analitik pada platform SAMBUNG."
+          title="Keanggotaan SAMBUNG"
+          description="Informasi keanggotaan dan keterbukaan fitur pada platform SAMBUNG."
         />
+        {returnPath && (
+          <div className="mb-5">
+            <ButtonLink
+                href={returnPath}
+              variant="outline"
+              size="sm"
+              className="min-h-9 text-xs cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 mr-1.5" />
+              Kembali ke Fitur Sebelumnya
+            </ButtonLink>
+          </div>
+        )}
         <Card className="rounded-2xl border-border/80 bg-card p-6 sm:p-8 max-w-2xl space-y-4">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shrink-0">
+            <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
               <ShieldCheck className="w-6 h-6" />
             </div>
             <div>
               <h2 className="text-base font-bold text-foreground">
                 {isFarmer
-                  ? "Akun Petani Gratis 100% Selamanya"
-                  : "Akun Pengawas Sistem Tidak Memerlukan Langganan"}
+                  ? "Akun Petani Gratis Selamanya"
+                  : "Akun Pengawas Tidak Perlu Berlangganan"}
               </h2>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {isFarmer
-                  ? "Seluruh fitur petani tidak dikenai biaya langganan maupun potongan escrow."
-                  : "Seluruh modul pengawasan, analitik harga, dan evaluasi model terbuka bagi pengawas."}
+                  ? "Semua fitur petani gratis penuh dan hasil jual gabah diterima 100% tanpa potongan."
+                  : "Semua halaman pengawasan, data harga, dan perkiraan harga sudah terbuka."}
               </p>
             </div>
           </div>
 
           <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
             {isFarmer
-              ? "Anda sudah memiliki akses penuh atas riwayat harga 2019–sekarang, unduhan CSV, prakiraan tren AI lintas provinsi, serta hak bersih 100% pada setiap transaksi escrow. Paket Pembeli Pro hanya ditujukan bagi akun Pembeli / Penggilingan."
-              : "Paket langganan Pembeli Pro hanya berlaku khusus untuk akun Pembeli / Penggilingan."}
+              ? "Anda sudah bisa melihat riwayat harga sejak 2019, mengunduh data tabel, melihat perkiraan harga di semua provinsi, dan menerima hasil penjualan gabah 100% utuh tanpa potongan. Paket Produsen Pro hanya untuk akun Produsen / Penggilingan."
+              : "Paket Produsen Pro hanya berlaku untuk akun Produsen / Penggilingan."}
           </p>
         </Card>
       </PageContainer>
@@ -305,9 +433,23 @@ export default function SubscriptionPage() {
   return (
     <PageContainer>
       <PageHeader
-        title="Paket Langganan Pembeli Pro"
-        description="Buka riwayat harga lengkap 2019–sekarang + ekspor CSV, prakiraan AI lintas provinsi beserta faktor pendorong, dan diskon biaya layanan escrow 50% (0,25%)."
+        title="Produsen Pro"
+        description="Buka riwayat harga lengkap sejak 2019, perkiraan harga di semua provinsi beserta penyebabnya, unduh data tabel, dan hemat 50% biaya layanan transaksi."
       />
+
+      {returnPath && (
+        <div className="mb-5 flex flex-wrap items-center gap-2">
+          <ButtonLink
+            href={returnPath}
+            variant="outline"
+            size="sm"
+            className="min-h-9 text-xs cursor-pointer"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 mr-1.5" />
+            Kembali ke Fitur Sebelumnya
+          </ButtonLink>
+        </div>
+      )}
 
       <AsyncBoundary
         isLoading={isUserLoading || subQuery.isLoading}
@@ -319,22 +461,24 @@ export default function SubscriptionPage() {
         {sub && (
           <div className="space-y-8">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              {/* Left Column: Current Status & Midtrans Snap Checkout */}
+              {/* Left Column: Current Status & Checkout */}
               <Card className="lg:col-span-5 rounded-2xl border-border/80 bg-card p-6 sm:p-7 space-y-5">
                 <div className="flex items-start justify-between gap-3 border-b border-border/60 pb-4">
                   <div>
                     <span className="text-xs font-semibold text-primary">
-                      Status Keanggotaan
+                      Status Paket Anda
                     </span>
                     <h2 className="type-subheading font-bold text-foreground mt-0.5">
-                      {sub.isPro ? "Pembeli Pro Aktif" : "Paket Pembeli Gratis"}
+                      {sub.isPro ? "Produsen Pro Aktif" : "Paket Produsen Gratis"}
                     </h2>
                   </div>
                   {sub.isPro ? (
                     <ProBadge size="sm" />
                   ) : (
                     <Badge variant="outline" className="text-xs font-semibold">
-                      {sub.status === "expired" ? "Masa Aktif Berakhir" : "Paket Gratis"}
+                      {sub.status === "expired"
+                        ? "Masa Aktif Berakhir"
+                        : "Paket Gratis"}
                     </Badge>
                   )}
                 </div>
@@ -343,7 +487,7 @@ export default function SubscriptionPage() {
                 <div className="rounded-xl bg-muted/35 border border-border/70 p-4 space-y-2">
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="text-xs font-medium text-muted-foreground">
-                      Tarif Tetap Pembeli Pro
+                      Biaya Langganan Produsen Pro
                     </span>
                     <span className="text-2xl font-extrabold font-display tabular-nums text-foreground">
                       {formatRupiah(sub.priceIdr)}
@@ -356,27 +500,72 @@ export default function SubscriptionPage() {
                   {sub.isPro && sub.proExpiresAt ? (
                     <div className="pt-2 border-t border-border/50 text-xs space-y-1">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-muted-foreground">Berlaku Hingga</span>
-                        <span className="font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">
+                        <span className="text-muted-foreground">
+                          Berlaku Hingga
+                        </span>
+                        <span className="font-bold text-primary tabular-nums">
                           {formatPaymentDateTime(sub.proExpiresAt)}
                         </span>
                       </div>
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-muted-foreground">Sisa Masa Aktif</span>
+                        <span className="text-muted-foreground">
+                          Sisa Masa Aktif
+                        </span>
                         <span className="font-semibold text-foreground tabular-nums">
                           {sub.remainingDays} hari lagi
                         </span>
                       </div>
                       <p className="text-[11px] text-muted-foreground pt-1 leading-relaxed">
-                        Perpanjangan sebelum habis akan menyambung +30 hari langsung dari tanggal berakhir saat ini tanpa menghanguskan sisa hari.
+                        Jika diperpanjang sebelum habis, masa aktif langsung
+                        ditambah +30 hari dari tanggal berakhir tanpa memotong
+                        sisa hari Anda.
                       </p>
                     </div>
                   ) : (
                     <p className="pt-2 border-t border-border/50 text-[11px] text-muted-foreground leading-relaxed">
-                      Pembayaran manual per 30 hari melalui Midtrans Sandbox (tanpa perpanjangan otomatis diam-diam). Petani tetap menerima 100% bersih tanpa potongan.
+                      Bayar manual Rp99.000 per 30 hari hanya saat dibutuhkan —
+                      tidak ada perpanjangan atau pemotongan saldo otomatis.
+                      Petani tetap menerima 100% hasil panen tanpa potongan.
                     </p>
                   )}
                 </div>
+
+                {!sub.isPro && sub.status === "expired" && sub.proExpiresAt && (
+                  <div className="rounded-xl border border-amber-300/80 bg-amber-50/75 dark:border-amber-800/70 dark:bg-amber-950/30 p-3.5 text-xs text-amber-950 dark:text-amber-200 flex items-start gap-2.5 leading-relaxed">
+                    <Clock className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                    <span>
+                      Masa aktif Produsen Pro Anda berakhir pada{" "}
+                      <strong>{formatPaymentDateTime(sub.proExpiresAt)}</strong>.
+                      Aktifkan kembali kapan saja untuk membuka data historis
+                      lengkap dan tarif biaya layanan 0,25%.
+                    </span>
+                  </div>
+                )}
+
+                {sub.isPro && returnPath && (
+                  <ButtonLink
+                    href={returnPath}
+                    variant="secondary"
+                    className="w-full min-h-10 text-xs font-semibold cursor-pointer"
+                  >
+                    <span>Lanjutkan ke Fitur Sebelumnya</span>
+                    <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                  </ButtonLink>
+                )}
+
+                {!paymentConfigured && !IS_MOCK_DATA && (
+                  <div
+                    role="alert"
+                    className="rounded-xl border border-amber-400/80 bg-amber-50/85 dark:border-amber-800/70 dark:bg-amber-950/35 p-3.5 text-xs text-amber-950 dark:text-amber-200 flex items-start gap-2.5 leading-relaxed"
+                  >
+                    <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                    <span>
+                      Pembayaran online sedang tidak tersedia karena konfigurasi
+                      pembayaran di server belum aktif. Hubungi admin atau coba
+                      lagi nanti.
+                    </span>
+                  </div>
+                )}
 
                 {localError && (
                   <div
@@ -388,7 +577,7 @@ export default function SubscriptionPage() {
                   </div>
                 )}
 
-                {/* Pending Snap Checkout Session Details */}
+                {/* Pending Checkout Details */}
                 {latestPayment && latestPayment.status === "pending" && (
                   <div className="rounded-xl border border-amber-300/80 bg-amber-50/75 dark:border-amber-800/70 dark:bg-amber-950/30 p-4 space-y-2.5 text-xs">
                     <div className="flex items-center justify-between gap-2">
@@ -399,9 +588,22 @@ export default function SubscriptionPage() {
                         {latestPayment.orderId}
                       </span>
                     </div>
-                    {(latestPayment.paymentChannel || latestPayment.paymentType) && (
+                    {latestPayment.expiresAt && (
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-muted-foreground">Kanal Pembayaran</span>
+                        <span className="text-muted-foreground">
+                          Batas Pembayaran
+                        </span>
+                        <span className="font-medium text-foreground tabular-nums">
+                          {formatPaymentDateTime(latestPayment.expiresAt)}
+                        </span>
+                      </div>
+                    )}
+                    {(latestPayment.paymentChannel ||
+                      latestPayment.paymentType) && (
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-muted-foreground">
+                          Metode Pembayaran
+                        </span>
                         <span className="font-semibold text-foreground">
                           {formatPaymentChannel(latestPayment)}
                         </span>
@@ -409,7 +611,9 @@ export default function SubscriptionPage() {
                     )}
                     {latestPayment.paymentReference && (
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-muted-foreground">Kode / Nomor VA</span>
+                        <span className="text-muted-foreground">
+                          Kode / Nomor Pembayaran
+                        </span>
                         <div className="flex items-center gap-1.5">
                           <span className="font-mono font-bold text-foreground">
                             {latestPayment.paymentReference}
@@ -434,18 +638,18 @@ export default function SubscriptionPage() {
                 <div className="space-y-2.5">
                   <Button
                     type="button"
-                    disabled={isBusy}
+                    disabled={isBusy || (!paymentConfigured && !IS_MOCK_DATA)}
                     onClick={() => void handleCheckout(false)}
-                    className="w-full min-h-11 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                    className="w-full min-h-11 text-xs font-semibold cursor-pointer"
                   >
                     <CreditCard className="w-4 h-4 mr-2" />
                     {checkoutMutation.isPending || isOpeningCheckout
-                      ? "Menyiapkan Sesi Pembayaran…"
+                      ? "Menyiapkan Tagihan…"
                       : latestPayment?.status === "pending"
                       ? "Lanjutkan Pembayaran"
                       : sub.isPro
                       ? `Perpanjang +30 Hari (${formatRupiah(sub.priceIdr)})`
-                      : `Aktifkan Pembeli Pro (${formatRupiah(sub.priceIdr)})`}
+                      : `Aktifkan Produsen Pro (${formatRupiah(sub.priceIdr)})`}
                   </Button>
 
                   {latestPayment && (
@@ -472,7 +676,9 @@ export default function SubscriptionPage() {
                           type="button"
                           variant="outline"
                           className="min-h-9 text-xs cursor-pointer"
-                          disabled={isBusy}
+                          disabled={
+                            isBusy || (!paymentConfigured && !IS_MOCK_DATA)
+                          }
                           onClick={() => void handleCheckout(true)}
                         >
                           Ganti Metode Pembayaran
@@ -482,6 +688,21 @@ export default function SubscriptionPage() {
                   )}
 
                   {latestPayment?.status === "pending" && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="w-full min-h-9 text-xs text-destructive hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+                      disabled={isBusy}
+                      onClick={() => void handleCancelPending()}
+                    >
+                      <XCircle className="w-3.5 h-3.5 mr-1.5" />
+                      {cancelMutation.isPending
+                        ? "Membatalkan…"
+                        : "Batalkan Tagihan"}
+                    </Button>
+                  )}
+
+                  {latestPayment?.status === "pending" && !IS_MOCK_DATA && (
                     <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px] text-muted-foreground">
                       {safeRedirectUrl && (
                         <a
@@ -490,7 +711,7 @@ export default function SubscriptionPage() {
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 hover:text-foreground underline underline-offset-2"
                         >
-                          Buka Halaman Midtrans
+                          Buka Halaman Pembayaran
                           <ExternalLink className="w-3 h-3" />
                         </a>
                       )}
@@ -500,7 +721,7 @@ export default function SubscriptionPage() {
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 hover:text-foreground underline underline-offset-2"
                       >
-                        Simulator Pembayaran Sandbox
+                        Simulator Pembayaran (Uji Coba)
                         <ExternalLink className="w-3 h-3" />
                       </a>
                     </div>
@@ -516,51 +737,60 @@ export default function SubscriptionPage() {
                       Rincian Manfaat Paket
                     </span>
                     <h2 className="type-subheading font-bold text-foreground mt-0.5">
-                      Perbandingan Paket Gratis vs Pembeli Pro
+                      Perbandingan Paket Gratis vs Produsen Pro
                     </h2>
                   </div>
                   <Crown className="w-5 h-5 text-amber-500 shrink-0" />
                 </div>
 
-                <div className="divide-y divide-border/60">
-                  {PLAN_COMPARISON_ROWS.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <div
-                        key={item.title}
-                        className="py-4 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4"
-                      >
-                        <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                          <Icon className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1 space-y-2">
-                          <p className="text-xs sm:text-sm font-bold text-foreground">
-                            {item.title}
-                          </p>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-                            <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2">
-                              <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-0.5">
-                                Paket Gratis
-                              </span>
-                              <span className="text-muted-foreground">
-                                {item.freeValue}
-                              </span>
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border/60 hover:bg-transparent">
+                      <TableHead className="px-2 py-2.5 text-xs font-semibold text-muted-foreground whitespace-normal">
+                        Fitur
+                      </TableHead>
+                      <TableHead className="px-2 py-2.5 text-xs font-semibold text-muted-foreground whitespace-normal">
+                        Paket Gratis
+                      </TableHead>
+                      <TableHead className="px-2 py-2.5 text-xs font-bold text-primary whitespace-normal">
+                        Produsen Pro
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {PLAN_COMPARISON_ROWS.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <TableRow
+                          key={item.title}
+                          className="border-border/60 hover:bg-muted/30"
+                        >
+                          <TableCell className="px-2 py-3.5 align-top whitespace-normal text-xs font-semibold text-foreground">
+                            <div className="flex items-start gap-2">
+                              <Icon
+                                className="w-4 h-4 text-primary shrink-0 mt-0.5"
+                                aria-hidden="true"
+                              />
+                              <span>{item.title}</span>
                             </div>
-                            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2">
-                              <span className="block text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 mb-0.5">
-                                Pembeli Pro
-                              </span>
-                              <span className="font-semibold text-foreground flex items-start gap-1.5">
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                                <span>{item.proValue}</span>
-                              </span>
+                          </TableCell>
+                          <TableCell className="px-2 py-3.5 align-top whitespace-normal text-xs text-muted-foreground leading-relaxed">
+                            {item.freeValue}
+                          </TableCell>
+                          <TableCell className="px-2 py-3.5 align-top whitespace-normal text-xs font-semibold text-foreground leading-relaxed">
+                            <div className="flex items-start gap-1.5">
+                              <CheckCircle2
+                                className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5"
+                                aria-hidden="true"
+                              />
+                              <span>{item.proValue}</span>
                             </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
               </Card>
             </div>
 
@@ -572,7 +802,7 @@ export default function SubscriptionPage() {
                     Riwayat Pembayaran Langganan
                   </h2>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Catatan transaksi aktivasi dan perpanjangan Pembeli Pro melalui Midtrans Sandbox.
+                    Catatan transaksi aktivasi dan perpanjangan Produsen Pro Anda.
                   </p>
                 </div>
                 <span className="text-xs px-3 py-1 rounded-full bg-muted text-muted-foreground tabular-nums font-semibold">
@@ -582,25 +812,30 @@ export default function SubscriptionPage() {
 
               {sub.history.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border/80 p-8 text-center text-xs text-muted-foreground">
-                  Belum ada riwayat pembayaran langganan Pembeli Pro.
+                  Belum ada riwayat pembayaran Produsen Pro.
                 </div>
               ) : (
                 <div className="overflow-x-auto rounded-xl border border-border/80">
                   <table className="w-full min-w-[680px] text-left text-xs border-collapse">
                     <thead className="bg-muted/60 border-b border-border/80 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                       <tr>
-                        <th className="py-3 px-4">Order ID</th>
-                        <th className="py-3 px-4">Periode Aktif</th>
+                        <th className="py-3 px-4">Nomor Tagihan</th>
+                        <th className="py-3 px-4">Masa Aktif</th>
                         <th className="py-3 px-4 text-right">Nominal</th>
-                        <th className="py-3 px-4">Kanal Bayar</th>
+                        <th className="py-3 px-4">Metode Bayar</th>
                         <th className="py-3 px-4">Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/60">
                       {sub.history.map((item) => {
-                        const statusMeta = getSubscriptionPaymentStatusLabel(item.status);
+                        const statusMeta = getSubscriptionPaymentStatusLabel(
+                          item.status
+                        );
                         return (
-                          <tr key={item.id} className="hover:bg-muted/30 transition-colors">
+                          <tr
+                            key={item.id}
+                            className="hover:bg-muted/30 transition-colors"
+                          >
                             <td className="py-3 px-4 whitespace-nowrap">
                               <span className="font-mono font-semibold text-foreground block">
                                 {item.orderId}
@@ -646,5 +881,22 @@ export default function SubscriptionPage() {
         )}
       </AsyncBoundary>
     </PageContainer>
+  );
+}
+
+export default function SubscriptionPage() {
+  return (
+    <Suspense
+      fallback={
+        <PageContainer>
+          <PageHeader
+            title="Produsen Pro"
+            description="Memuat informasi langganan Anda…"
+          />
+        </PageContainer>
+      }
+    >
+      <SubscriptionPageContent />
+    </Suspense>
   );
 }

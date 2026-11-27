@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Sprout, Menu, ArrowUpRight } from "lucide-react";
+import { Menu, ArrowUpRight } from "lucide-react";
+import { BrandLogo } from "@/components/shared/brand-logo";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { useCurrentUser } from "@/features/auth/hooks/use-auth";
 import { getDashboardRoute } from "@/features/auth/domain/role-routes";
@@ -78,9 +79,7 @@ export default function PublicNavbar() {
                   <div className="space-y-6">
                     <SheetHeader className="text-left">
                       <SheetTitle className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-xs">
-                          <Sprout className="w-4 h-4" />
-                        </div>
+                        <BrandLogo size={32} className="w-8 h-8 rounded-lg" />
                         <div className="flex flex-col text-left">
                           <span className="font-display font-extrabold text-base tracking-tight text-foreground leading-none">
                             SAMBUNG
@@ -124,9 +123,10 @@ export default function PublicNavbar() {
               </Sheet>
 
               <Link href="/" className="flex items-center gap-2.5 group">
-                <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-xs transition-transform group-hover:scale-105 shrink-0">
-                  <Sprout className="w-4 h-4" />
-                </div>
+                <BrandLogo
+                  size={32}
+                  className="w-8 h-8 rounded-lg transition-transform group-hover:scale-105"
+                />
                 <div className="flex flex-col text-left">
                   <span className="font-display font-extrabold text-sm sm:text-base tracking-tight text-foreground leading-none">
                     SAMBUNG
@@ -172,7 +172,7 @@ export default function PublicNavbar() {
             <div className="flex items-center gap-2">
               <Link
                 href={workspaceHref}
-                className="group inline-flex items-center gap-2.5 pl-4 pr-1.5 py-1.5 rounded-full bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 text-xs font-semibold shadow-xs hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-all shrink-0 cursor-pointer"
+                className="group inline-flex items-center gap-2.5 pl-4 pr-1.5 py-1.5 rounded-full bg-brand-forest text-white dark:bg-white dark:text-brand-forest text-xs font-semibold shadow-xs transition-all shrink-0 cursor-pointer"
               >
                 <span>
                   {user
@@ -183,7 +183,7 @@ export default function PublicNavbar() {
                     ? "Masuk"
                     : "Mulai Bertransaksi"}
                 </span>
-                <div className="w-6 h-6 rounded-full bg-white text-zinc-900 dark:bg-zinc-900 dark:text-white flex items-center justify-center transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 shadow-2xs">
+                <div className="w-6 h-6 rounded-full bg-white text-brand-forest dark:bg-brand-forest-light dark:text-white flex items-center justify-center transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 shadow-2xs">
                   <ArrowUpRight className="w-3.5 h-3.5" />
                 </div>
               </Link>

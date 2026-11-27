@@ -59,10 +59,10 @@ function interpolateRgb(c1: [number, number, number], c2: [number, number, numbe
 
 /**
  * Continuous diverging color scale centered strictly at 0%.
- * Negative (below median) interpolates toward emerald green; positive toward amber/orange.
+ * Negative (below median) interpolates toward agrarian green (--prime-2); positive toward amber/orange.
  */
 function divergingColor(diffPct: number): string {
-  const LOW_GREEN: [number, number, number] = [4, 120, 87]; // #047857
+  const LOW_GREEN: [number, number, number] = [47, 130, 8]; // #2f8208 (--prime-2)
   const MID_SLATE: [number, number, number] = [148, 163, 184]; // #94a3b8
   const HIGH_ORANGE: [number, number, number] = [234, 88, 12]; // #ea580c
   const MAX_ABS = 12.0;
@@ -140,7 +140,7 @@ export function IndonesiaSvgMap({
               className={`text-xs tabular-nums font-bold px-2 py-0.5 rounded-md ${
                 activeItem.percentageDiff > 0
                   ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
-                  : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                  : "bg-primary/15 text-primary"
               }`}
             >
               {activeItem.percentageDiff > 0
@@ -199,13 +199,13 @@ export function IndonesiaSvgMap({
             Perbandingan vs Harga Tengah Nasional (0%):
           </span>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums">
+            <span className="text-[11px] font-semibold text-primary tabular-nums">
               -12% (Lebih Rendah)
             </span>
             <div
               className="w-36 sm:w-48 h-2.5 rounded-full border border-border/60"
               style={{
-                background: "linear-gradient(to right, #047857 0%, #94a3b8 50%, #ea580c 100%)",
+                background: "linear-gradient(to right, #2f8208 0%, #94a3b8 50%, #ea580c 100%)",
               }}
               aria-label="Gradasi warna dari -12% hijau ke 0% abu-abu hingga +12% oranye"
             />

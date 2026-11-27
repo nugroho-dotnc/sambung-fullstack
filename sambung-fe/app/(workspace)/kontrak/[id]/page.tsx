@@ -1,11 +1,10 @@
 "use client";
 
 import { use } from "react";
-import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { PageContainer } from "@/components/shared/page-container";
 import { DetailSplitSkeleton } from "@/components/shared/page-skeletons";
-import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button";
 import { useContract } from "@/features/contracts/hooks/use-contracts";
 import { NegotiationRoom } from "@/features/contracts/components/negotiation-room";
 
@@ -33,10 +32,12 @@ export default function ContractDetailPage({
           <p className="text-xs text-muted-foreground">
             Kesepakatan kontrak dengan ID #{id} tidak ditemukan atau Anda tidak memiliki akses ke berkas ini.
           </p>
-          <Button
-            render={<Link href="/kontrak">Kembali ke Daftar Kontrak</Link>}
+          <ButtonLink
+            href="/kontrak"
             className="mt-3 min-h-10 text-xs"
-          />
+          >
+            Kembali ke Daftar Kontrak
+          </ButtonLink>
         </div>
       </PageContainer>
     );

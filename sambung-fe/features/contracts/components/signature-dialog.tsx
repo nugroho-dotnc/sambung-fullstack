@@ -357,7 +357,7 @@ export function SignatureDialog({
           </Button>
           <Button
             type="button"
-            className="min-h-10 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+            className="min-h-10 text-xs font-semibold"
             disabled={isSubmitting || (activeTab === "draw" ? !hasDrawn : !effectiveTypedName.trim())}
             onClick={() => void handleSubmit().catch(() => undefined)}
           >

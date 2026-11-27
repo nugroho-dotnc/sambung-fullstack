@@ -191,7 +191,7 @@ export function PartialOrderForm({ item }: { item: CatalogItem }) {
             <Card className="rounded-2xl border-border/80 bg-card p-6 space-y-4">
               <div className="flex items-start justify-between gap-3 border-b border-border/60 pb-3">
                 <div>
-                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300">
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-primary/15 text-primary">
                     Gabah {item.grainType}
                   </span>
                   <h3 className="font-bold text-lg text-foreground mt-1.5">
@@ -291,7 +291,7 @@ export function PartialOrderForm({ item }: { item: CatalogItem }) {
               upperBound={priceRef.upperBound}
               toleranceDelta={priceRef.toleranceDelta}
               onChange={setProposedPrice}
-              label={`2. Tentukan Harga Penawaran Pembeli (${item.grainType})`}
+              label={`2. Tentukan Harga Penawaran Produsen (${item.grainType})`}
               description={`Harga minta petani adalah Rp${item.askPrice.toLocaleString("id-ID")}/kg. Anda dapat mengajukan harga yang sama atau harga nego.`}
             />
 
@@ -315,7 +315,7 @@ export function PartialOrderForm({ item }: { item: CatalogItem }) {
           <div className="lg:col-span-5 space-y-6">
             <Card className="rounded-2xl border-border/80 bg-card p-6 space-y-4">
               <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5 border-b border-border/60 pb-3">
-                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <ShieldCheck className="w-4 h-4 text-primary" />
                 Ringkasan Nilai Pesanan
               </h3>
 
@@ -334,7 +334,7 @@ export function PartialOrderForm({ item }: { item: CatalogItem }) {
                 </div>
                 <div className="pt-2 border-t border-border/60 flex justify-between items-baseline">
                   <span className="text-sm font-bold text-foreground">Total Nilai Pesanan</span>
-                  <span className="text-xl font-extrabold tabular-nums text-emerald-700 dark:text-emerald-400">
+                  <span className="text-xl font-extrabold tabular-nums text-primary">
                     {formatRupiah(estimatedTotal)}
                   </span>
                 </div>

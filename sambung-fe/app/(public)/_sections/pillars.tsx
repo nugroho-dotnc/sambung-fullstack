@@ -6,7 +6,7 @@ export default function PillarsSection() {
     <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="rounded-2xl border-border/80 bg-card p-6 space-y-3 shadow-xs hover:border-primary/50 transition-colors">
-          <div className="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
+          <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
             <Scale className="w-6 h-6" />
           </div>
           <h3 className="font-bold text-lg text-foreground font-display">Acuan Rentang Harga Wajar</h3>
@@ -21,7 +21,7 @@ export default function PillarsSection() {
           </div>
           <h3 className="font-bold text-lg text-foreground font-display">Kesepakatan Digital Terikat</h3>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Petani dan pembeli menyepakati tonase dan harga secara langsung dalam komitmen digital terikat, dilengkapi bukti cetak resmi dan bebas komisi.
+            Petani dan produsen menyepakati tonase dan harga secara langsung dalam komitmen digital terikat, dilengkapi bukti cetak resmi dan bebas komisi.
           </p>
         </Card>
 

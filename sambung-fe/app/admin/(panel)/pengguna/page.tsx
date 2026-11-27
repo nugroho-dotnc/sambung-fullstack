@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAdminUsers } from "@/features/admin/hooks/use-admin";
+import { formatPaymentDateTime } from "@/features/contracts/domain/payment-helpers";
 import { ProBadge } from "@/features/subscription/components/pro-badge";
 import { Lock, UserX, Info } from "lucide-react";
 
@@ -51,7 +52,7 @@ export default function AdminUsersPage() {
               Daftar Pengguna &amp; Tata Kelola Privasi
             </h1>
             <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed max-w-3xl">
-              Pengawasan profil petani dan pembeli terdaftar. Penyamaran nomor telepon wajib
+              Pengawasan profil petani dan produsen terdaftar. Penyamaran nomor telepon wajib
               diterapkan bahkan bagi pengawas sistem guna melindungi privasi pengguna.
             </p>
           </div>
@@ -124,18 +125,29 @@ export default function AdminUsersPage() {
                         {u.name}
                       </td>
                       <td className="py-4 px-5 first:pl-6 last:pr-6 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5">
-                          <Badge
-                            variant="outline"
-                            className={`rounded-md px-2 py-0.5 text-xs font-semibold uppercase ${
-                              u.role === "admin"
-                                ? "admin-brand-pill"
-                                : "bg-muted text-foreground border-transparent"
-                            }`}
-                          >
-                            {u.role}
-                          </Badge>
-                          {u.role === "pembeli" && u.isPro && <ProBadge size="xs" />}
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5">
+                            <Badge
+                              variant="outline"
+                              className={`rounded-md px-2 py-0.5 text-xs font-semibold uppercase ${
+                                u.role === "admin"
+                                  ? "admin-brand-pill"
+                                  : "bg-muted text-foreground border-transparent"
+                              }`}
+                            >
+                              {u.role === "pembeli"
+                                ? "Produsen"
+                                : u.role === "petani"
+                                ? "Petani"
+                                : "Admin"}
+                            </Badge>
+                            {u.role === "pembeli" && u.isPro && <ProBadge size="xs" />}
+                          </div>
+                          {u.role === "pembeli" && u.isPro && u.proExpiresAt && (
+                            <p className="text-[11px] text-muted-foreground tabular-nums">
+                              Pro s.d. {formatPaymentDateTime(u.proExpiresAt)}
+                            </p>
+                          )}
                         </div>
                       </td>
                       <td className="py-4 px-5 first:pl-6 last:pr-6 text-muted-foreground whitespace-nowrap tabular-nums">

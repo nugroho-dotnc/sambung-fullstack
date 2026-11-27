@@ -44,7 +44,7 @@ type AuthSkeletonProps = {
   label?: string;
 };
 
-/** Skeleton fallback untuk halaman masuk Petani/Pembeli (/masuk). */
+/** Skeleton fallback untuk halaman masuk Petani/Produsen (/masuk). */
 export function LoginPageSkeleton({ label = "Memuat halaman masuk..." }: AuthSkeletonProps) {
   return (
     <div role="status" aria-busy="true" className="flex flex-col gap-6 w-full">
@@ -82,7 +82,15 @@ export function VerificationPageSkeleton({ label = "Memuat halaman verifikasi...
 
       <div className="space-y-5">
         <div className="space-y-3">
-          <FieldSkeleton labelWidth="w-24" inputHeight="h-12" />
+          <div className="space-y-3">
+            <Skeleton className="h-4 w-24 rounded-md" />
+            <div className="flex items-center justify-center gap-3 sm:gap-4">
+              <Skeleton className="h-14 w-14 sm:h-16 sm:w-16 rounded-xl" />
+              <Skeleton className="h-14 w-14 sm:h-16 sm:w-16 rounded-xl" />
+              <Skeleton className="h-14 w-14 sm:h-16 sm:w-16 rounded-xl" />
+              <Skeleton className="h-14 w-14 sm:h-16 sm:w-16 rounded-xl" />
+            </div>
+          </div>
           <div className="flex items-center justify-between pt-1">
             <Skeleton className="h-3.5 w-44 rounded-md" />
             <Skeleton className="h-3.5 w-28 rounded-md" />

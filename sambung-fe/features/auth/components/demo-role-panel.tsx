@@ -16,7 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const ROLE_OPTIONS = [
   { value: "petani", label: "Petani" },
-  { value: "pembeli", label: "Pembeli / produsen" },
+  { value: "pembeli", label: "Produsen / Penggilingan" },
   { value: "admin", label: "Admin" },
 ];
 

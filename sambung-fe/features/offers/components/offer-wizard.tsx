@@ -15,6 +15,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox";
 import { useCurrentUser } from "@/features/auth/hooks/use-auth";
 import { useOfferCommand } from "../hooks/use-offers";
 import {
@@ -474,8 +482,8 @@ function WizardForm({
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
               {step === 1 && "Lengkapi data hasil panen dan sesuaikan harga dengan acuan pasar setempat."}
-              {step === 2 && "Tinjau rincian komitmen pasokan sebelum ditayangkan ke katalog pembeli."}
-              {step === 3 && "Tawaran Anda kini aktif dan siap menerima pesanan dari mitra pembeli."}
+              {step === 2 && "Tinjau rincian komitmen pasokan sebelum ditayangkan ke katalog produsen."}
+              {step === 3 && "Tawaran Anda kini aktif dan siap menerima pesanan dari mitra produsen."}
             </p>
           </div>
           <div className="flex items-center gap-1.5 self-start sm:self-auto rounded-full border border-border/80 bg-muted/40 px-3.5 py-1 text-xs font-medium text-muted-foreground">
@@ -497,18 +505,18 @@ function WizardForm({
             key={item.num}
             className={`flex items-center gap-1.5 sm:gap-2.5 rounded-xl border p-2 sm:p-3 text-xs font-medium transition ${
               step === item.num
-                ? "border-emerald-500 bg-emerald-50/80 text-emerald-950 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-700 shadow-xs"
+                ? "border-primary bg-primary/10 text-primary shadow-xs"
                 : step > item.num
-                ? "border-emerald-300/80 bg-emerald-50/30 text-emerald-900 dark:bg-emerald-950/20 dark:text-emerald-300"
+                ? "border-primary/30 bg-primary/5 text-primary"
                 : "border-border/80 bg-card text-foreground"
             }`}
           >
             <span
               className={`flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
                 step === item.num
-                  ? "bg-emerald-600 text-white shadow-xs"
+                  ? "bg-primary text-primary-foreground shadow-xs"
                   : step > item.num
-                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300"
+                  ? "bg-primary/15 text-primary"
                   : "bg-muted text-foreground border border-border/80"
               }`}
             >
@@ -606,25 +614,39 @@ function WizardForm({
                       <span className="text-xs font-medium text-foreground block">
                         Wilayah Acuan Pasar (Kecamatan) <span className="text-destructive">*</span>
                       </span>
-                      <Select
-                        items={live ? choices.map((c) => ({ value: c.id, label: c.label })) : DISTRICT_SELECT_ITEMS}
-                        value={fields.districtId}
-                        disabled={initialOffer?.typeLocationLocked}
-                        onValueChange={(val) => {
-                          if (val) updateField("districtId", val);
-                        }}
-                      >
-                        <SelectTrigger className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-                          <SelectValue placeholder="Pilih kecamatan acuan" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {choices.map((opt) => (
-                            <SelectItem key={opt.id} value={opt.id}>
-                              {opt.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      {(() => {
+                        const districtItems = live
+                          ? choices.map((c) => ({ value: c.id, label: c.label }))
+                          : DISTRICT_SELECT_ITEMS;
+                        return (
+                          <Combobox
+                            items={districtItems}
+                            value={districtItems.find((opt) => opt.value === fields.districtId) ?? null}
+                            isItemEqualToValue={(item, val) => item.value === val.value}
+                            itemToStringLabel={(opt) => opt.label}
+                            disabled={initialOffer?.typeLocationLocked}
+                            onValueChange={(opt) => {
+                              if (opt) updateField("districtId", opt.value);
+                            }}
+                          >
+                            <ComboboxInput
+                              placeholder="Pilih atau cari kecamatan acuan..."
+                              disabled={initialOffer?.typeLocationLocked}
+                              className="w-full h-11 rounded-xl bg-background text-sm"
+                            />
+                            <ComboboxContent>
+                              <ComboboxEmpty>Kecamatan tidak ditemukan.</ComboboxEmpty>
+                              <ComboboxList>
+                                {(opt: { value: string; label: string }) => (
+                                  <ComboboxItem key={opt.value} value={opt}>
+                                    {opt.label}
+                                  </ComboboxItem>
+                                )}
+                              </ComboboxList>
+                            </ComboboxContent>
+                          </Combobox>
+                        );
+                      })()}
                     </div>
                     
                     {/* Opsi Kadar Air / Mutu Gabah */}
@@ -702,7 +724,7 @@ function WizardForm({
                     <div className="sm:col-span-2 space-y-1.5">
                       <label className="space-y-1.5">
                         <span className="text-xs font-medium text-foreground">
-                          Catatan Tambahan untuk Pembeli (Opsional)
+                          Catatan Tambahan untuk Produsen (Opsional)
                         </span>
                         <Textarea
                           value={fields.notes}
@@ -732,8 +754,8 @@ function WizardForm({
                     </div>
                   )}
                   {live && !reference.isLoading && !priceRef.isFallback && (
-                    <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/80 p-3 text-xs text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-300">
-                      <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+                    <div className="flex items-center gap-2 rounded-xl border border-primary/25 bg-primary/10 p-3 text-xs text-foreground">
+                      <CheckCircle2 className="w-4 h-4 shrink-0 text-primary" />
                       <span>
                         Acuan harga pasar aktif untuk wilayah {region?.id || fields.districtId} (Kab. {region?.regency || user?.regency || "Subang"}).
                       </span>
@@ -758,7 +780,7 @@ function WizardForm({
               <div className="lg:col-span-5 space-y-6">
                 <section className="rounded-2xl border border-border/80 bg-card p-6 space-y-4">
                   <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                    <ShieldCheck className="w-4 h-4 text-primary" />
                     Estimasi Nilai Total Pasokan
                   </h3>
 
@@ -776,13 +798,13 @@ function WizardForm({
                     <p className="flex items-start gap-2">
                       <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                       <span>
-                        Harga yang Anda masukkan akan ditampilkan langsung kepada pembeli di katalog pasar.
+                        Harga yang Anda masukkan akan ditampilkan langsung kepada produsen di katalog pasar.
                       </span>
                     </p>
                     <p className="flex items-start gap-2">
                       <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                       <span>
-                        Pembeli berhak mengajukan negosiasi harga sebelum kesepakatan final disetujui bersama.
+                        Produsen berhak mengajukan negosiasi harga sebelum kesepakatan final disetujui bersama.
                       </span>
                     </p>
                   </div>
@@ -833,14 +855,14 @@ function WizardForm({
           <div className="grid items-start gap-6 lg:grid-cols-12">
             <section className="lg:col-span-7 rounded-2xl border border-border/80 bg-card p-6 sm:p-7 space-y-5">
               <div className="border-b border-border/60 pb-3">
-                <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                <span className="text-xs font-bold uppercase tracking-wider text-primary">
                   Tinjauan Akhir
                 </span>
                 <h2 className="text-lg font-bold text-foreground mt-0.5">
                   Rincian Komitmen Pasokan Gabah
                 </h2>
                 <p className="text-xs text-muted-foreground">
-                  Periksa kembali seluruh data sebelum tawaran ini resmi dapat dipesan oleh pembeli.
+                  Periksa kembali seluruh data sebelum tawaran ini resmi dapat dipesan oleh produsen.
                 </p>
               </div>
 
@@ -865,25 +887,25 @@ function WizardForm({
               </h3>
               <ul className="text-xs text-muted-foreground space-y-3 leading-relaxed">
                 <li className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 mt-1.5 shrink-0" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
                   <span>
-                    Tawaran yang terbit akan tampil di katalog pasokan bagi pembeli terverifikasi.
+                    Tawaran yang terbit akan tampil di katalog pasokan bagi produsen terverifikasi.
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 mt-1.5 shrink-0" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
                   <span>
-                    Pembeli dapat memesan sebagian atau seluruh volume gabah Anda.
+                    Produsen dapat memesan sebagian atau seluruh volume gabah Anda.
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 mt-1.5 shrink-0" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
                   <span>
                     Nomor kontak dan identitas kedua belah pihak terlindungi dan baru dibuka secara otomatis setelah kesepakatan harga disetujui bersama.
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 mt-1.5 shrink-0" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
                   <span>
                     Kesepakatan pada aplikasi mengikat komitmen volume dan harga. Serah terima gabah fisik serta pembayaran diselesaikan langsung di lapangan.
                   </span>
@@ -941,7 +963,7 @@ function WizardForm({
       {/* Step 3: Success Confirmation */}
       {step === 3 && saved && (
         <section className="rounded-2xl border border-border/80 bg-card p-8 sm:p-12 text-center w-full mx-auto space-y-6">
-          <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 flex items-center justify-center mx-auto">
+          <div className="w-16 h-16 rounded-full bg-primary/15 text-primary flex items-center justify-center mx-auto">
             <CheckCircle2 className="w-10 h-10" />
           </div>
 
@@ -951,7 +973,7 @@ function WizardForm({
             </h2>
             <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
               Tawaran Anda untuk gabah <strong>{saved.grainType}</strong> sebanyak{" "}
-              <strong>{saved.totalVolumeKg.toLocaleString("id-ID")} kg</strong> kini telah aktif dan dapat dipesan oleh pembeli di platform SAMBUNG.
+              <strong>{saved.totalVolumeKg.toLocaleString("id-ID")} kg</strong> kini telah aktif dan dapat dipesan oleh produsen di platform SAMBUNG.
             </p>
           </div>
 

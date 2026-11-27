@@ -35,11 +35,11 @@ const chartConfig = {
   },
   ciRange: {
     label: "Rentang Wajar (80%)",
-    color: "#10b981",
+    color: "var(--price-within)",
   },
   forecastPrice: {
     label: "Prediksi Model AI",
-    color: "#10b981",
+    color: "var(--price-within)",
   },
 } satisfies ChartConfig;
 

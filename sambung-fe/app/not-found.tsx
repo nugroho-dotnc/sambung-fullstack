@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button";
 import { Sprout, Home, HelpCircle } from "lucide-react";
 
 export default function NotFound() {
@@ -25,24 +24,24 @@ export default function NotFound() {
       </p>
 
       <div className="flex flex-wrap items-center justify-center gap-3">
-        <Button
+        <ButtonLink
           size="default"
           className="gap-2 text-xs font-bold cursor-pointer"
-          render={<Link href="/" />}
+          href="/"
         >
           <Home className="w-4 h-4" />
           <span>Kembali ke Beranda</span>
-        </Button>
+        </ButtonLink>
 
-        <Button
+        <ButtonLink
           variant="outline"
           size="default"
           className="gap-2 text-xs font-semibold cursor-pointer"
-          render={<Link href="/bantuan" />}
+          href="/bantuan"
         >
           <HelpCircle className="w-4 h-4" />
           <span>Pusat Bantuan & Glosarium</span>
-        </Button>
+        </ButtonLink>
       </div>
     </div>
   );

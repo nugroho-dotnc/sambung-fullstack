@@ -4,6 +4,7 @@ import { handleOfferRequest } from "./offers";
 import { handleContractRequest } from "./contracts.handler";
 import { handleCatalogRequest } from "./catalog.handler";
 import { handleAdminRequest } from "./admin.handler";
+import { handleSubscriptionRequest } from "./subscription.handler";
 import { INDONESIA_REGIONS } from "@/features/regions/regions-catalog";
 
 function queryRegions(path: string) {
@@ -74,6 +75,10 @@ export async function mockRouter(
 
   if (path.startsWith("/catalog")) {
     return handleCatalogRequest(path, method);
+  }
+
+  if (path.startsWith("/subscription")) {
+    return handleSubscriptionRequest(path, method, body);
   }
 
   if (path.startsWith("/regions") && method === "GET") {

@@ -10,4 +10,4 @@ export const SHIPPING_OVERDUE_CANCEL_REASON =
 export const SHIPPING_OVERDUE_DISPUTE_REASON =
   "Pembayaran escrow lunas tetapi pengiriman melewati batas 7 hari. Menunggu pengawas memproses pengembalian dana.";
 export const AUTO_COMPLETE_HANDOVER_NOTE =
-  "Diselesaikan otomatis oleh sistem karena pembeli tidak mengonfirmasi penerimaan atau mengajukan keberatan dalam 5 hari sejak pengiriman.";
+  "Diselesaikan otomatis oleh sistem karena produsen tidak mengonfirmasi penerimaan atau mengajukan keberatan dalam 5 hari sejak pengiriman.";

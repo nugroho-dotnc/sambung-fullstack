@@ -2,7 +2,6 @@
 
 import { offerRequestId } from "../services/request-id";
 import { IS_MOCK_DATA } from "@/lib/config/fe-mode";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useMemo } from "react";
 import {
@@ -20,7 +19,7 @@ import {
   Send,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -33,6 +32,7 @@ import {
 import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { AsyncBoundary } from "@/components/shared/async-boundary";
+import { ListPagination, paginateItems } from "@/components/shared/list-pagination";
 import { useOffers, useOfferCommand } from "../hooks/use-offers";
 import { formatRupiah } from "./offer-summary";
 import { useMobile } from "@/hooks/use-mobile";
@@ -52,6 +52,12 @@ export function OffersWorkspace({
   const [searchQuery, setSearchQuery] = useState("");
   const [withdrawingId, setWithdrawingId] = useState<string | null>(null);
   const [publishingId, setPublishingId] = useState<string | null>(null);
+  const offersPageSize = 6;
+  const filterKey = `${activeTab}|${searchQuery}`;
+  const [pageState, setPageState] = useState<{ key: string; page: number }>({
+    key: filterKey,
+    page: 1,
+  });
 
   const offerTabOptions = useMemo(
     () => [
@@ -108,6 +114,12 @@ export function OffersWorkspace({
     });
   }, [offers, activeTab, searchQuery]);
 
+  const pagedOffers = paginateItems(
+    filteredOffers,
+    pageState.key === filterKey ? pageState.page : 1,
+    offersPageSize
+  );
+
   async function handlePublish(offer: HarvestOffer) {
     if(!IS_MOCK_DATA) {router.push("/petani/jual?draft="+encodeURIComponent(offer.id));return;}
     try {
@@ -153,17 +165,15 @@ export function OffersWorkspace({
     <PageContainer>
       <PageHeader
         title="Daftar Tawaran Panen Saya"
-        description="Pantau pasokan gabah yang Anda daftarkan, alokasi tonase yang dipesan pembeli, dan kelola pembaruan harga."
+        description="Pantau pasokan gabah yang Anda daftarkan, alokasi tonase yang dipesan produsen, dan kelola pembaruan harga."
         actions={
-          <Button
-            render={
-              <Link href="/petani/jual">
-                <Plus className="w-4 h-4 mr-2" />
-                {isMobile ? "Tawaran Baru" : "Pasang Tawaran Baru"}
-              </Link>
-            }
+          <ButtonLink
+            href="/petani/jual"
             className="min-h-11 px-5 font-semibold"
-          />
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            {isMobile ? "Tawaran Baru" : "Pasang Tawaran Baru"}
+          </ButtonLink>
         }
       />
 
@@ -247,7 +257,7 @@ export function OffersWorkspace({
                 Semua ({offers.length})
               </TabsTrigger>
               <TabsTrigger value="published" className=" px-3 text-xs rounded-lg">
-                <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
+                <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-primary" />
                 Terbit ({offers.filter((o) => o.status === "published").length})
               </TabsTrigger>
               <TabsTrigger value="draft" className=" px-3 text-xs rounded-lg">
@@ -292,25 +302,23 @@ export function OffersWorkspace({
                 {searchQuery
                   ? "Tidak ditemukan tawaran yang cocok dengan kata kunci pencarian Anda."
                   : activeTab === "all"
-                  ? "Anda belum memiliki daftar tawaran panen. Pasang tawaran pertama Anda agar dapat dilihat oleh pembeli."
+                  ? "Anda belum memiliki daftar tawaran panen. Pasang tawaran pertama Anda agar dapat dilihat oleh produsen."
                   : "Tidak ada tawaran dengan status ini saat ini."}
               </p>
               {activeTab === "all" && !searchQuery && (
-                <Button
-                  render={
-                    <Link href="/petani/jual">
-                      <Plus className="w-4 h-4 mr-1.5" />
-                      {isMobile ? "Pasang Tawaran" : "Pasang Tawaran Panen"}
-                    </Link>
-                  }
+                <ButtonLink
+                  href="/petani/jual"
                   className="mt-3 min-h-10 text-xs"
-                />
+                >
+                  <Plus className="w-4 h-4 mr-1.5" />
+                  {isMobile ? "Pasang Tawaran" : "Pasang Tawaran Panen"}
+                </ButtonLink>
               )}
             </div>
           }
         >
           <div className="grid gap-4 md:grid-cols-2">
-            {filteredOffers.map((offer) => {
+            {pagedOffers.items.map((offer) => {
               const location = offer.district || offer.districtId || "Pagaden";
               const percentAvailable =
                 offer.totalVolumeKg > 0
@@ -340,7 +348,7 @@ export function OffersWorkspace({
                     <span
                       className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
                         offer.status === "published"
-                          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300"
+                          ? "bg-primary/15 text-primary"
                           : offer.status === "draft"
                           ? "bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300"
                           : "bg-muted text-muted-foreground"
@@ -383,7 +391,7 @@ export function OffersWorkspace({
                     </div>
                     <div className="w-full h-2 rounded-full bg-muted overflow-hidden flex">
                       <div
-                        className="bg-emerald-500 h-full transition-all"
+                        className="bg-primary h-full transition-all"
                         style={{ width: `${percentAvailable}%` }}
                         title={`Tersedia: ${percentAvailable}%`}
                       />
@@ -401,16 +409,14 @@ export function OffersWorkspace({
 
                   {/* Actions Row */}
                   <div className="pt-2 border-t border-border/60 flex flex-wrap items-center justify-between gap-2">
-                    <Button
+                    <ButtonLink
                       variant="outline"
                       className="text-xs rounded-xl"
-                      render={
-                        <Link href={`/petani/tawaran/${offer.id}`}>
-                          {isMobile ? "Lihat Detail" : "Lihat Detail & Pesanan"}
-                          <ChevronRight className="w-3.5 h-3.5 ml-1" />
-                        </Link>
-                      }
-                    />
+                      href={`/petani/tawaran/${offer.id}`}
+                    >
+                      {isMobile ? "Lihat Detail" : "Lihat Detail & Pesanan"}
+                      <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                    </ButtonLink>
 
                     {offer.status === "draft" && (
                       <div className="flex items-center gap-2">
@@ -503,6 +509,14 @@ export function OffersWorkspace({
               );
             })}
           </div>
+          <ListPagination
+            totalItems={pagedOffers.totalItems}
+            currentPage={pagedOffers.currentPage}
+            pageSize={offersPageSize}
+            onPageChange={(page) => setPageState({ key: filterKey, page })}
+            itemLabel="tawaran"
+            className="pt-4"
+          />
         </AsyncBoundary>
       </div>
     </PageContainer>

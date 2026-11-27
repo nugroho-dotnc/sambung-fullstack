@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button";
 import { ShieldAlert, Home, LogIn } from "lucide-react";
 
 export default function UnauthorizedPage() {
@@ -20,29 +19,29 @@ export default function UnauthorizedPage() {
       </h1>
 
       <p className="text-sm text-muted-foreground max-w-md leading-relaxed mb-8">
-        Halaman yang Anda tuju memerlukan hak akses peran khusus (Petani, Pembeli, atau
+        Halaman yang Anda tuju memerlukan hak akses peran khusus (Petani, Produsen, atau
         Pengawas Sistem). Silakan masuk menggunakan akun dengan peran yang sesuai.
       </p>
 
       <div className="flex flex-wrap items-center justify-center gap-3">
-        <Button
+        <ButtonLink
           size="default"
           className="gap-2 text-xs font-bold cursor-pointer"
-          render={<Link href="/" />}
+          href="/"
         >
           <Home className="w-4 h-4" />
           <span>Kembali ke Beranda</span>
-        </Button>
+        </ButtonLink>
 
-        <Button
+        <ButtonLink
           variant="outline"
           size="default"
           className="gap-2 text-xs font-semibold cursor-pointer"
-          render={<Link href="/masuk" />}
+          href="/masuk"
         >
           <LogIn className="w-4 h-4" />
           <span>Ganti Akun Masuk</span>
-        </Button>
+        </ButtonLink>
       </div>
     </div>
   );

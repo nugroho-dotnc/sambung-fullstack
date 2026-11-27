@@ -465,6 +465,12 @@
   outline-offset: var(--focus-offset);
 }
 
+/* Input di dalam wrapper komposit (seperti InputGroup pada Combobox) memakai ring kontainer luar */
+[data-slot="input-group-control"]:focus-visible,
+[data-slot="combobox-chip-input"]:focus-visible {
+  outline: none;
+}
+
 /* ==========================================================================
    Custom utilities (v4: pakai @utility agar bisa dipakai dengan variant)
    ========================================================================== */
@@ -789,8 +795,9 @@
     transform: translateY(1px);
   }
 
-  .admin-panel input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
-  .admin-panel textarea,
+  .admin-panel input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([data-slot="input-group-control"]):not([data-slot="combobox-chip-input"]),
+  .admin-panel textarea:not([data-slot="input-group-control"]),
+  .admin-panel [data-slot="input-group"],
   .admin-panel [data-slot="select-trigger"] {
     transition:
       border-color 180ms ease,
@@ -798,14 +805,16 @@
       background-color 180ms ease;
   }
 
-  .admin-panel input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):hover:not(:disabled),
-  .admin-panel textarea:hover:not(:disabled),
+  .admin-panel input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([data-slot="input-group-control"]):not([data-slot="combobox-chip-input"]):hover:not(:disabled),
+  .admin-panel textarea:not([data-slot="input-group-control"]):hover:not(:disabled),
+  .admin-panel [data-slot="input-group"]:hover:not(:has(:disabled)),
   .admin-panel [data-slot="select-trigger"]:hover:not(:disabled) {
     border-color: var(--admin-input-hover-border);
   }
 
-  .admin-panel input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus-visible,
-  .admin-panel textarea:focus-visible,
+  .admin-panel input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([data-slot="input-group-control"]):not([data-slot="combobox-chip-input"]):focus-visible,
+  .admin-panel textarea:not([data-slot="input-group-control"]):focus-visible,
+  .admin-panel [data-slot="input-group"]:has([data-slot="input-group-control"]:focus-visible),
   .admin-panel [data-slot="select-trigger"]:focus-visible {
     border-color: var(--ring);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 22%, transparent);

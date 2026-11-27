@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useMemo } from "react";
 import {
   Search,
@@ -9,9 +8,10 @@ import {
   MapPin,
   CheckCircle2,
   ChevronRight,
+  Lock,
   ShieldCheck,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
   Select,
@@ -20,9 +20,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox";
 import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { AsyncBoundary } from "@/components/shared/async-boundary";
+import { ListPagination, paginateItems } from "@/components/shared/list-pagination";
+import { useCurrentUser } from "@/features/auth/hooks/use-auth";
 import { useCatalog } from "@/features/catalog/hooks/use-catalog";
 import { useFairPriceParams } from "@/features/fair-price/hooks/use-fair-price";
 import { formatRupiah } from "@/features/offers/components/offer-summary";
@@ -39,9 +49,17 @@ const COMMODITY_SELECT_OPTIONS = [
 
 export default function BuyerCatalogPage() {
   const isMobile = useMobile();
+  const { data: user, isLoading: isUserLoading } = useCurrentUser();
+  const isFreeBuyer = user?.role === "pembeli" && !user?.isPro;
   const [selectedGrain, setSelectedGrain] = useState<"ALL" | "GKP" | "GKG">("ALL");
   const [selectedRegency, setSelectedRegency] = useState<string>("Semua");
   const [searchQuery, setSearchQuery] = useState("");
+  const catalogPageSize = 6;
+  const catalogFilterKey = `${selectedGrain}|${selectedRegency}|${searchQuery}`;
+  const [pageState, setPageState] = useState<{ key: string; page: number }>({
+    key: catalogFilterKey,
+    page: 1,
+  });
 
   const { data: items = [], isLoading, isError, error, refetch } = useCatalog();
   const { data: fairPriceParams } = useFairPriceParams();
@@ -81,6 +99,12 @@ export default function BuyerCatalogPage() {
   const totalAvailableKg = useMemo(() => {
     return filteredItems.reduce((acc, curr) => acc + curr.availableVolumeKg, 0);
   }, [filteredItems]);
+
+  const pagedCatalog = paginateItems(
+    filteredItems,
+    pageState.key === catalogFilterKey ? pageState.page : 1,
+    catalogPageSize
+  );
 
   // CSV Export Function (PR-07)
   function handleExportCsv() {
@@ -130,26 +154,37 @@ export default function BuyerCatalogPage() {
         title="Katalog Pasokan Gabah Petani"
         description="Jelajahi ketersediaan pasokan panen riil langsung dari petani dan kelompok tani mitra terdaftar."
         actions={
-          <Button
-            variant="outline"
-            className="min-h-10 text-xs gap-1.5"
-            onClick={handleExportCsv}
-            disabled={filteredItems.length === 0}
-          >
-            <Download className="w-3.5 h-3.5" />
-            Unduh Rekap Pasokan (CSV)
-          </Button>
+          isUserLoading ? null : isFreeBuyer ? (
+            <ButtonLink
+              variant="outline"
+              className="min-h-10 text-xs font-semibold gap-1.5 cursor-pointer"
+              href="/langganan?from=%2Fpembeli%2Fkatalog"
+            >
+              <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              Unduh Data CSV (Pro)
+            </ButtonLink>
+          ) : (
+            <Button
+              variant="outline"
+              className="min-h-10 text-xs gap-1.5"
+              onClick={handleExportCsv}
+              disabled={filteredItems.length === 0}
+            >
+              <Download className="w-3.5 h-3.5" />
+              Unduh Rekap Pasokan (CSV)
+            </Button>
+          )
         }
       />
 
       {/* Aggregate Volume Header Banner */}
-      <div className="rounded-2xl border border-emerald-500/20 bg-emerald-50/50 dark:bg-emerald-950/20 p-5 mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5 mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0">
             <Wheat className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+            <span className="text-xs font-semibold uppercase tracking-wider text-primary">
               Total Pasokan Siap Dipesan
             </span>
             <p className="text-2xl font-bold tabular-nums text-foreground">
@@ -162,7 +197,7 @@ export default function BuyerCatalogPage() {
         </div>
 
         <div className="text-xs text-muted-foreground flex items-center gap-2">
-          <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+          <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
           <span>Komitmen pasokan langsung dari petani mitra terdaftar di Indonesia.</span>
         </div>
       </div>
@@ -193,24 +228,30 @@ export default function BuyerCatalogPage() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-            <Select
+            <Combobox
               items={regencyOptions}
-              value={selectedRegency}
-              onValueChange={(val) => {
-                if (val) setSelectedRegency(val);
+              value={regencyOptions.find((opt) => opt.value === selectedRegency) ?? null}
+              isItemEqualToValue={(item, val) => item.value === val.value}
+              itemToStringLabel={(opt) => opt.label}
+              onValueChange={(opt) => {
+                if (opt) setSelectedRegency(opt.value);
               }}
             >
-              <SelectTrigger className="w-full sm:w-auto h-10 min-w-44 rounded-xl border border-input bg-background px-3 text-xs shadow-2xs">
-                <SelectValue placeholder="Pilih kabupaten" />
-              </SelectTrigger>
-              <SelectContent>
-                {regencyOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <ComboboxInput
+                placeholder="Pilih atau cari kabupaten..."
+                className="w-full sm:w-56 h-10 rounded-xl bg-background text-xs shadow-2xs"
+              />
+              <ComboboxContent>
+                <ComboboxEmpty>Kabupaten tidak ditemukan.</ComboboxEmpty>
+                <ComboboxList>
+                  {(opt: { value: string; label: string }) => (
+                    <ComboboxItem key={opt.value} value={opt}>
+                      {opt.label}
+                    </ComboboxItem>
+                  )}
+                </ComboboxList>
+              </ComboboxContent>
+            </Combobox>
 
             <div className="relative w-full sm:w-64">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -248,7 +289,7 @@ export default function BuyerCatalogPage() {
         }
       >
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredItems.map((item) => {
+          {pagedCatalog.items.map((item) => {
             const savedRef = item.priceCheck?.reference;
             const liveRef = savedRef
               ? {
@@ -276,7 +317,7 @@ export default function BuyerCatalogPage() {
                 <div className="space-y-3">
                   {/* Top Badges */}
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300">
+                    <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-primary/15 text-primary">
                       Gabah {item.grainType}
                     </span>
 
@@ -285,7 +326,7 @@ export default function BuyerCatalogPage() {
                       className="group relative flex items-center gap-1 text-xs text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-full cursor-help"
                       title="Data pasokan ini dicatat langsung oleh petani berdasarkan hasil panen di lapangan, bukan stok fisik di gudang aplikasi."
                     >
-                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                      <CheckCircle2 className="w-3 h-3 text-primary" />
                       <span>Penawaran Petani</span>
                     </div>
                   </div>
@@ -321,7 +362,7 @@ export default function BuyerCatalogPage() {
                       <span
                         className={`font-semibold ${
                           evaluation.status === "HIJAU"
-                            ? "text-emerald-700 dark:text-emerald-400"
+                            ? "text-primary"
                             : evaluation.status === "TIDAK_TERSEDIA"
                               ? "text-muted-foreground"
                               : "text-amber-700 dark:text-amber-400"
@@ -357,20 +398,26 @@ export default function BuyerCatalogPage() {
 
                 {/* Card Action Button */}
                 <div className="pt-3 border-t border-border/60">
-                  <Button
+                  <ButtonLink
                     className="w-full min-h-10 text-xs font-semibold justify-between"
-                    render={
-                      <Link href={`/pembeli/katalog/${item.id}`}>
-                        {isMobile ? "Pesan Pasokan" : "Pesan Pasokan Ini"}
-                        <ChevronRight className="w-4 h-4 ml-1" />
-                      </Link>
-                    }
-                  />
+                    href={`/pembeli/katalog/${item.id}`}
+                  >
+                    {isMobile ? "Pesan Pasokan" : "Pesan Pasokan Ini"}
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </ButtonLink>
                 </div>
               </Card>
             );
           })}
         </div>
+        <ListPagination
+          totalItems={pagedCatalog.totalItems}
+          currentPage={pagedCatalog.currentPage}
+          pageSize={catalogPageSize}
+          onPageChange={(page) => setPageState({ key: catalogFilterKey, page })}
+          itemLabel="pasokan"
+          className="pt-5"
+        />
       </AsyncBoundary>
     </PageContainer>
   );

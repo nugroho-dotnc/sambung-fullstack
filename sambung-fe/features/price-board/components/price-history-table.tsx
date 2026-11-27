@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { memo, useMemo, useState } from "react";
 import {
   ChevronLeft,
@@ -15,7 +14,7 @@ import {
   TrendingDown,
   Minus,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { AsyncBoundary } from "@/components/shared/async-boundary";
 import { formatRupiah } from "@/features/offers/components/offer-summary";
@@ -111,7 +110,7 @@ function renderStatusBadge(row: PriceHistoryRow) {
   }
 
   return (
-    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-300/70 dark:border-emerald-800/60">
+    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-primary/15 text-primary border border-primary/30">
       <Database className="w-3 h-3 shrink-0" />
       {row.source === "admin_ingest" ? "Observasi Admin" : "Aktual PIHPS"}
     </span>
@@ -133,7 +132,7 @@ function renderDelta(deltaRp: number | null, deltaPct: number | null) {
       className={`inline-flex items-center gap-0.5 text-[10px] font-semibold tabular-nums ${
         isUp
           ? "text-amber-700 dark:text-amber-400"
-          : "text-emerald-700 dark:text-emerald-400"
+          : "text-primary"
       }`}
     >
       {isUp ? (
@@ -282,17 +281,15 @@ export const PriceHistoryTable = memo(function PriceHistoryTable({
               Unduh CSV Riwayat
             </Button>
           ) : (
-            <Button
-              type="button"
+            <ButtonLink
               variant="outline"
               size="sm"
               className="min-h-9 text-xs font-semibold gap-1.5 cursor-pointer"
-              nativeButton={false}
-              render={<Link href="/langganan" />}
+              href="/langganan?from=%2Fharga"
             >
               <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-              Unduh CSV (Pro)
-            </Button>
+              Unduh Data CSV (Pro)
+            </ButtonLink>
           )}
         </div>
       </div>
@@ -451,7 +448,7 @@ export const PriceHistoryTable = memo(function PriceHistoryTable({
 
                     <td className="py-3 px-4 text-right whitespace-nowrap tabular-nums">
                       {row.farmerSharePercent !== null ? (
-                        <span className="font-semibold text-emerald-700 dark:text-emerald-400">
+                        <span className="font-semibold text-primary">
                           {row.farmerSharePercent}%
                         </span>
                       ) : (

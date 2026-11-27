@@ -34,4 +34,15 @@ export const subscriptionService = {
     );
     return subscriptionSyncResponseSchema.parse(data);
   },
+
+  async cancelSubscription(options?: {
+    orderId?: string;
+  }): Promise<SubscriptionSyncResponse> {
+    const body = options?.orderId ? { orderId: options.orderId } : {};
+    const { data } = await apiClient.post<{ data: unknown }>(
+      "/subscription/cancel",
+      body
+    );
+    return subscriptionSyncResponseSchema.parse(data);
+  },
 };

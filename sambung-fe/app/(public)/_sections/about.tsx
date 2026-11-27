@@ -14,9 +14,9 @@ const ABOUT_CARDS: AboutCardItem[] = [
     icon: Database,
   },
   {
-    title: "Gratis, tanpa komisi",
+    title: "Gratis bagi petani",
     description:
-      "Cek harga dan nego langsung tanpa biaya langganan atau potongan.",
+      "Petani bisa cek harga, tawarkan panen, dan terima 100% hasil jual tanpa potongan.",
     icon: BadgePercent,
   },
   {

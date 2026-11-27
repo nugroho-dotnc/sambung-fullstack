@@ -1,7 +1,11 @@
 import { Router } from "express";
 import type { PrismaClient } from "@prisma/client";
 import { ApiError } from "../../shared/api-error.ts";
-import { isBuyerPro, resolveOptionalActor } from "../auth/session.ts";
+import {
+  hasFullAnalyticsAccess,
+  isBuyerPro,
+  resolveOptionalActor,
+} from "../auth/session.ts";
 import {
   fairPriceCalculateBodySchema,
   fairPriceParamsQuerySchema,
@@ -20,6 +24,42 @@ import { getPriceHistory } from "./price-history.service.ts";
 
 const FREE_BUYER_HISTORY_RANGES = new Set(["4w", "8w", "12w"]);
 
+function sanitizeSpatialDisparityForPreview(payload: unknown): unknown {
+  if (typeof payload !== "object" || payload === null || Array.isArray(payload)) {
+    return payload;
+  }
+  const source = payload as Record<string, unknown>;
+  const {
+    explainerMetrics: _explainerMetrics,
+    spatialShapMaxAdditivityErrRp: _maxErr,
+    provinces: rawProvinces,
+    ...rest
+  } = source;
+
+  const provinces = Array.isArray(rawProvinces)
+    ? rawProvinces.map((entry) => {
+        if (typeof entry !== "object" || entry === null || Array.isArray(entry)) {
+          return entry;
+        }
+        const {
+          surplusRatio: _surplusRatio,
+          spatialFactors: _spatialFactors,
+          ...provRest
+        } = entry as Record<string, unknown>;
+        return {
+          ...provRest,
+          spatialFactors: [],
+        };
+      })
+    : rawProvinces;
+
+  return {
+    ...rest,
+    restrictedPreview: true,
+    provinces,
+  };
+}
+
 /**
  * Express router exposing validated public AI proxy endpoints.
  */
@@ -33,7 +73,15 @@ export function aiRouter(db: PrismaClient) {
 
   router.get("/spatial-disparity", async (req, res) => {
     const query = spatialDisparityQuerySchema.parse(req.query);
-    res.json(await getSpatialDisparity(query));
+    const [actor, data] = await Promise.all([
+      resolveOptionalActor(db, req),
+      getSpatialDisparity(query),
+    ]);
+    res.json(
+      hasFullAnalyticsAccess(actor)
+        ? data
+        : sanitizeSpatialDisparityForPreview(data)
+    );
   });
 
   router.get("/price-board", async (req, res) => {
@@ -44,11 +92,22 @@ export function aiRouter(db: PrismaClient) {
   router.get("/price-history", async (req, res) => {
     const query = priceHistoryQuerySchema.parse(req.query);
     const actor = await resolveOptionalActor(db, req);
-    if (actor?.role === "pembeli" && !isBuyerPro(actor) && !FREE_BUYER_HISTORY_RANGES.has(query.range)) {
+    if (!actor) {
+      throw new ApiError(
+        401,
+        "UNAUTHENTICATED",
+        "Masuk terlebih dahulu untuk melihat riwayat harga."
+      );
+    }
+    if (
+      actor.role === "pembeli" &&
+      !isBuyerPro(actor) &&
+      !FREE_BUYER_HISTORY_RANGES.has(query.range)
+    ) {
       throw new ApiError(
         403,
         "SUBSCRIPTION_REQUIRED",
-        "Rentang riwayat harga di atas 12 pekan hanya tersedia untuk paket Pembeli Pro."
+        "Riwayat harga lebih dari 12 minggu hanya tersedia untuk anggota Produsen Pro."
       );
     }
     res.json(await getPriceHistory(db, query));

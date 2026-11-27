@@ -31,7 +31,7 @@ export function OfferSummary({ input }: { input: OfferInput }) {
           <dd
             className={`font-semibold text-foreground text-right ${
               isMono ? "tabular-nums" : ""
-            } ${isHighlight ? "text-base text-emerald-700 dark:text-emerald-400 font-bold" : ""}`}
+            } ${isHighlight ? "text-base text-primary font-bold" : ""}`}
           >
             {value}
           </dd>

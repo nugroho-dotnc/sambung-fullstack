@@ -1,22 +1,28 @@
 "use client";
 
-import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Crown, Lock } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button";
+import { buildSubscriptionUpgradeHref } from "../domain/return-path";
 
 interface ProUpgradeBannerProps {
   title: string;
   description: string;
   compact?: boolean;
   ctaLabel?: string;
+  fromPath?: string;
 }
 
 export function ProUpgradeBanner({
   title,
   description,
   compact = false,
-  ctaLabel = "Upgrade Pembeli Pro — Rp99.000/30 hari",
+  ctaLabel = "Aktifkan Produsen Pro — Rp99.000/30 hari",
+  fromPath,
 }: ProUpgradeBannerProps) {
+  const pathname = usePathname();
+  const upgradeHref = buildSubscriptionUpgradeHref(fromPath ?? pathname);
+
   return (
     <div
       className={`rounded-2xl border border-amber-300/80 bg-amber-50/75 dark:border-amber-800/70 dark:bg-amber-950/30 ${
@@ -37,15 +43,14 @@ export function ProUpgradeBanner({
         </div>
       </div>
 
-      <Button
-        nativeButton={false}
-        render={<Link href="/langganan" />}
+      <ButtonLink
+        href={upgradeHref}
         size={compact ? "sm" : "default"}
         className="shrink-0 min-h-9 text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white cursor-pointer"
       >
         <Crown className="w-3.5 h-3.5 mr-1.5" />
         {ctaLabel}
-      </Button>
+      </ButtonLink>
     </div>
   );
 }

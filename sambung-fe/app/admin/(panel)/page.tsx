@@ -1,13 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { ActivityRowsSkeleton } from "@/components/shared/page-skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button";
 import { useAdminStats, useAdminAuditLogs } from "@/features/admin/hooks/use-admin";
 import { useAiHealth } from "@/features/ai/hooks/use-ai-health";
 import {
@@ -235,23 +234,23 @@ export default function AdminDashboardPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3 shrink-0">
-            <Button
+            <ButtonLink
               variant="outline"
               className="min-h-10 rounded-lg text-xs font-semibold px-4 hover:border-[#C08809] hover:bg-muted/70 active:scale-[0.985] cursor-pointer"
-              render={<Link href="/admin/data-harga" />}
+              href="/admin/data-harga"
             >
               Observasi Data Harga
-            </Button>
-            <Button
+            </ButtonLink>
+            <ButtonLink
               className="admin-cta min-h-10 rounded-lg text-xs font-semibold px-4 cursor-pointer group"
-              render={<Link href="/admin/moderasi" />}
+              href="/admin/moderasi"
             >
               <span>{hasAnomaly ? "Tinjau Tawaran Anomali" : "Buka Panel Moderasi"}</span>
               <ArrowRight
                 className="cta-arrow w-4 h-4 ml-2 transition-transform group-hover:translate-x-0.5"
                 aria-hidden="true"
               />
-            </Button>
+            </ButtonLink>
           </div>
         </div>
       </Card>
@@ -267,18 +266,18 @@ export default function AdminDashboardPage() {
               Catatan peristiwa transaksi, mutasi status, dan tindakan sistem terkini.
             </p>
           </div>
-          <Button
+          <ButtonLink
             variant="outline"
             size="sm"
             className="min-h-9 rounded-lg text-xs font-semibold px-3.5 hover:border-[#C08809] hover:bg-muted/70 active:scale-[0.985] cursor-pointer self-start sm:self-auto group"
-            render={<Link href="/admin/log" />}
+            href="/admin/log"
           >
             <span>Buka Semua Log</span>
             <ArrowRight
               className="w-3.5 h-3.5 ml-1.5 transition-transform group-hover:translate-x-0.5"
               aria-hidden="true"
             />
-          </Button>
+          </ButtonLink>
         </div>
 
         <div className="divide-y divide-border">
@@ -331,7 +330,7 @@ export default function AdminDashboardPage() {
             Prinsip &amp; Batasan Otoritas Pengawas Sistem
           </p>
           <p className="text-xs text-muted-foreground leading-relaxed max-w-4xl">
-            Sebagai pengawas sistem SAMBUNG, wewenang Anda berfokus pada pemantauan integritas data acuan harga pasar, kalibrasi parameter sistem, dan penyisipan catatan edukatif pada tawaran anomali. Pengawas sistem tidak memiliki wewenang mengintervensi atau mengubah harga kesepakatan secara sepihak, dan data nomor kontak petani maupun pembeli tetap tersamar secara permanen demi menjaga privasi pengguna.
+            Sebagai pengawas sistem SAMBUNG, wewenang Anda berfokus pada pemantauan integritas data acuan harga pasar, kalibrasi parameter sistem, dan penyisipan catatan edukatif pada tawaran anomali. Pengawas sistem tidak memiliki wewenang mengintervensi atau mengubah harga kesepakatan secara sepihak, dan data nomor kontak petani maupun produsen tetap tersamar secara permanen demi menjaga privasi pengguna.
           </p>
         </div>
       </section>

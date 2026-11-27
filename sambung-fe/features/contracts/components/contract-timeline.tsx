@@ -90,12 +90,12 @@ export function ContractTimeline({
       return list;
     }
 
-    // 3. Harga Disepakati
+    // 3. Kesepakatan Harga
     const isPriceAgreed = ["approved", "signed", "shipping", "completed"].includes(contract.status);
     const lastHistoryItem = contract.history[contract.history.length - 1];
     list.push({
       id: "price_agreed",
-      title: "Harga Disepakati",
+      title: isPriceAgreed ? "Harga Disepakati" : "Menunggu Kesepakatan",
       description: isPriceAgreed
         ? `Disetujui bersama di ${formatRupiah(contract.currentPrice)}/kg · Draf surat kesepakatan terbit`
         : `Menunggu tanggapan harga dari pihak ${contract.currentTurnRole}`,
@@ -121,14 +121,14 @@ export function ContractTimeline({
       icon: PenTool,
     });
 
-    // 5. Tanda Tangan Pembeli
+    // 5. Tanda Tangan Produsen
     const isBuyerSigned = Boolean(contract.buyerSignedAt);
     list.push({
       id: "buyer_signature",
-      title: "Tanda Tangan Pihak Pembeli",
+      title: "Tanda Tangan Pihak Produsen",
       description: isBuyerSigned
         ? `Telah ditandatangani secara digital oleh ${contract.buyerName} (${contract.buyerSignatureType === "draw" ? "Goresan tangan" : "Ketik nama"})`
-        : "Menunggu tanda tangan digital dari pihak pembeli",
+        : "Menunggu tanda tangan digital dari pihak produsen",
       timestamp: contract.buyerSignedAt ?? null,
       state: isBuyerSigned ? "completed" : contract.status === "approved" ? "in_progress" : "pending",
       icon: PenTool,
@@ -162,7 +162,7 @@ export function ContractTimeline({
       list.push({
         id: "terminal_cancel_unpaid",
         title: "Kontrak Dibatalkan Sistem",
-        description: contract.cancelReason || "Pembeli tidak membayar dalam tenggat waktu.",
+        description: contract.cancelReason || "Produsen tidak membayar dalam tenggat waktu.",
         timestamp: contract.updatedAt,
         state: "cancelled",
         icon: XCircle,
@@ -185,7 +185,7 @@ export function ContractTimeline({
         : contract.status === "signed"
         ? inGracePhase
           ? "Masa tenggang 3 hari sedang berjalan. Segera selesaikan pembayaran melalui Midtrans Sandbox"
-          : "Kontrak sah mengikat. Menunggu pembeli melunasi pembayaran escrow dalam tenggat 7 hari"
+          : "Kontrak sah mengikat. Menunggu produsen melunasi pembayaran escrow dalam tenggat 7 hari"
         : "Menunggu penyelesaian pembayaran escrow setelah kedua pihak menandatangani kontrak",
       timestamp: paid ? (contract.payment?.paidAt ?? null) : null,
       state: paid
@@ -202,11 +202,11 @@ export function ContractTimeline({
       id: "grain_shipping",
       title: "Pengiriman Pasokan Gabah",
       description: isShipped
-        ? "Armada pengangkut telah diberangkatkan oleh petani menuju lokasi pembeli"
+        ? "Armada pengangkut telah diberangkatkan oleh petani menuju lokasi produsen"
         : contract.status === "signed" && paid
         ? "Pembayaran escrow telah lunas. Menunggu pihak petani memberangkatkan armada"
         : contract.status === "signed" && !paid
-        ? "Pengiriman gabah baru dapat dikonfirmasi setelah pembayaran escrow pembeli lunas"
+        ? "Pengiriman gabah baru dapat dikonfirmasi setelah pembayaran escrow produsen lunas"
         : "Akan diproses setelah tanda tangan lengkap dan pembayaran escrow terverifikasi",
       timestamp: contract.shippedAt ?? null,
       state: isShipped
@@ -225,10 +225,10 @@ export function ContractTimeline({
       title: "Penerimaan & Transaksi Selesai",
       description: isCompleted
         ? isReleased && contract.payment
-          ? `Gabah telah diterima oleh pembeli dan dana bersih ${formatRupiah(contract.payment.contractAmount)} telah dicairkan kepada petani`
-          : "Gabah telah diterima dan diperiksa oleh pembeli. Transaksi komitmen pasokan selesai tuntas"
+          ? `Gabah telah diterima oleh produsen dan dana bersih ${formatRupiah(contract.payment.contractAmount)} telah dicairkan kepada petani`
+          : "Gabah telah diterima dan diperiksa oleh produsen. Transaksi komitmen pasokan selesai tuntas"
         : contract.status === "shipping"
-        ? "Gabah sedang dalam perjalanan. Menunggu pembeli memeriksa dan mengonfirmasi penerimaan barang"
+        ? "Gabah sedang dalam perjalanan. Menunggu produsen memeriksa dan mengonfirmasi penerimaan barang"
         : "Tahap akhir penerimaan fisik komoditas dan pencairan dana escrow",
       timestamp: contract.completedAt ?? null,
       state: isCompleted ? "completed" : contract.status === "shipping" ? "in_progress" : "pending",
@@ -253,7 +253,7 @@ export function ContractTimeline({
         <div
           className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold select-none ${
             contract.status === "completed" || contract.status === "signed"
-              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/60"
+              ? "bg-primary/15 text-primary border border-primary/30"
               : contract.status === "shipping"
               ? "bg-blue-100 text-blue-800 dark:bg-blue-950/70 dark:text-blue-300 border border-blue-300 dark:border-blue-800/60"
               : contract.status === "approved" || contract.status === "pending"

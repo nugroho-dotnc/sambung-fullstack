@@ -15,9 +15,9 @@ export default function WorkspaceCtaSection() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Kartu Petani */}
-        <div className="rounded-3xl border border-emerald-500/20 bg-card p-6 sm:p-8 space-y-6 shadow-xs flex flex-col justify-between hover:border-emerald-500/40 transition-colors">
+        <div className="rounded-3xl border border-primary/20 bg-card p-6 sm:p-8 space-y-6 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-colors">
           <div className="space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shrink-0">
+            <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
               <Sprout className="w-6 h-6" />
             </div>
             <div className="space-y-2">
@@ -33,7 +33,7 @@ export default function WorkspaceCtaSection() {
             <AuthAwareLinkButton
               variant="outline"
               size="lg"
-              className="min-h-11 border-emerald-600/40 text-emerald-800 dark:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer font-semibold"
+              className="min-h-11 border-primary/40 text-primary hover:bg-primary/10 cursor-pointer font-semibold"
               guestHref="/masuk"
               guestLabel="Mulai Menjual"
               authenticatedLabel="Buka Ruang Kerja"
@@ -43,7 +43,7 @@ export default function WorkspaceCtaSection() {
           </div>
         </div>
 
-        {/* Kartu Pembeli */}
+        {/* Kartu Produsen */}
         <div className="rounded-3xl border border-amber-500/20 bg-card p-6 sm:p-8 space-y-6 shadow-xs flex flex-col justify-between hover:border-amber-500/40 transition-colors">
           <div className="space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0">
@@ -51,7 +51,7 @@ export default function WorkspaceCtaSection() {
             </div>
             <div className="space-y-2">
               <h3 className="text-xl sm:text-2xl font-bold font-display text-foreground">
-                Saya Penggilingan atau Pembeli
+                Saya Produsen / Penggilingan
               </h3>
               <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
                 Temukan pasokan gabah dari kelompok tani dan sepakati jumlahnya langsung.
@@ -66,7 +66,7 @@ export default function WorkspaceCtaSection() {
               guestHref="/masuk"
               guestLabel="Mulai Mencari Gabah"
               authenticatedLabel="Buka Ruang Kerja"
-              authenticatedLabelByRole={{ pembeli: "Buka Ruang Pembeli" }}
+              authenticatedLabelByRole={{ pembeli: "Buka Ruang Produsen" }}
               trailingIcon={<ArrowRight className="w-4 h-4 ml-2" />}
             />
           </div>

@@ -53,7 +53,7 @@ export function ShipConfirmDialog({
             Konfirmasi Pengiriman Gabah
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
-            Konfirmasi bahwa armada pengangkut telah diberangkatkan menuju lokasi pembeli.
+            Konfirmasi bahwa armada pengangkut telah diberangkatkan menuju lokasi produsen.
           </DialogDescription>
         </DialogHeader>
 
@@ -93,7 +93,7 @@ export function ShipConfirmDialog({
           </div>
 
           <div className="p-3 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/70 text-blue-900 dark:text-blue-300 text-[11px] leading-relaxed">
-            Status pesanan akan berubah menjadi <strong>&ldquo;Gabah Sedang Dikirim&rdquo;</strong> dan mitra pembeli akan menerima pemberitahuan untuk bersiap menerima barang.
+            Status pesanan akan berubah menjadi <strong>&ldquo;Gabah Sedang Dikirim&rdquo;</strong> dan mitra produsen akan menerima pemberitahuan untuk bersiap menerima barang.
           </div>
 
           {error && (
@@ -163,7 +163,7 @@ export function ReceiveConfirmDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center mb-1">
+          <div className="w-10 h-10 rounded-full bg-primary/15 text-primary flex items-center justify-center mb-1">
             <CheckCircle2 className="w-5 h-5" />
           </div>
           <DialogTitle className="text-lg font-bold text-foreground">
@@ -191,7 +191,7 @@ export function ReceiveConfirmDialog({
             </div>
             <div className="flex justify-between border-t border-border/60 pt-2">
               <span className="text-muted-foreground font-semibold">Total Nilai Transaksi:</span>
-              <span className="font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">
+              <span className="font-bold text-primary tabular-nums">
                 {formatRupiah(totalValue)}
               </span>
             </div>
@@ -211,7 +211,7 @@ export function ReceiveConfirmDialog({
             />
           </div>
 
-          <div className="p-3 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/70 text-emerald-900 dark:text-emerald-300 text-[11px] leading-relaxed space-y-1">
+          <div className="p-3 rounded-xl bg-primary/10 border border-primary/25 text-foreground text-[11px] leading-relaxed space-y-1">
             <p>
               Dengan mengonfirmasi, Anda menyatakan bahwa gabah telah diterima dan transaksi komitmen pasokan ini dinyatakan <strong>selesai tuntas</strong>. Lembar bukti kesepakatan akhir dapat langsung diunduh.
             </p>
@@ -244,7 +244,7 @@ export function ReceiveConfirmDialog({
           </Button>
           <Button
             type="button"
-            className="min-h-10 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+            className="min-h-10 text-xs font-semibold"
             disabled={isSubmitting}
             onClick={() => void handleSubmit().catch(() => undefined)}
           >

@@ -94,7 +94,7 @@ export function evaluatePriceLight({
   return {
     status: "KUNING_ATAS",
     label: "Di Atas Acuan Normal",
-    description: `Harga di atas rentang acuan normal (Rp${lowerBound.toLocaleString("id-ID")} - Rp${upperBound.toLocaleString("id-ID")}/kg). Pastikan mutu gabah Anda sebanding agar menarik bagi pembeli.`,
+    description: `Harga di atas rentang acuan normal (Rp${lowerBound.toLocaleString("id-ID")} - Rp${upperBound.toLocaleString("id-ID")}/kg). Pastikan mutu gabah Anda sebanding agar menarik bagi produsen.`,
     tone: "warning",
     lowerBound,
     upperBound,

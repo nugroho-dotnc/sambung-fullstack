@@ -188,7 +188,7 @@ export async function createSnapTransaction(
   input: CreateSnapTransactionInput
 ): Promise<SnapTransactionResult> {
   const customerDetails: Record<string, string> = {
-    first_name: input.customer.firstName.trim().slice(0, 50) || "Pembeli",
+    first_name: input.customer.firstName.trim().slice(0, 50) || "Produsen",
     phone: input.customer.phone.trim(),
   };
   const trimmedEmail = input.customer.email?.trim();

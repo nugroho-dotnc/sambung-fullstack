@@ -21,7 +21,7 @@ export const profileFields = {
 } as const;
 
 /**
- * Returns true when an account is a buyer with an unexpired Pembeli Pro period.
+ * Returns true when an account is a buyer with an unexpired Produsen Pro period.
  */
 export function isBuyerPro(
   user: { role?: string | null; proExpiresAt?: Date | string | null } | null | undefined,
@@ -33,6 +33,19 @@ export function isBuyerPro(
       ? user.proExpiresAt.getTime()
       : Date.parse(user.proExpiresAt);
   return Number.isFinite(expiresMs) && expiresMs > now.getTime();
+}
+
+/**
+ * Returns true when the caller is an active farmer, supervisor/admin, or unexpired Produsen Pro buyer.
+ */
+export function hasFullAnalyticsAccess(
+  actor: { role?: string | null; proExpiresAt?: Date | string | null } | null | undefined,
+  now: Date = new Date()
+): boolean {
+  if (!actor) return false;
+  if (actor.role === "petani" || actor.role === "admin") return true;
+  if (actor.role === "pembeli") return isBuyerPro(actor, now);
+  return false;
 }
 
 export function publicProfile<

@@ -24,6 +24,14 @@ const alexBrush = localFont({
 
 export const metadata: Metadata = {
   title: "Sambung",
+  icons: {
+    icon: [
+      { url: "/asset/image/logo.png", type: "image/png", sizes: "60x60" },
+    ],
+    apple: [
+      { url: "/asset/image/logo.png", type: "image/png", sizes: "60x60" },
+    ],
+  },
 };
 
 export default function RootLayout({

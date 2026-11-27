@@ -13,7 +13,7 @@ import {
   Check,
   MapPin,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useRegisterProfile } from "@/features/auth/hooks/use-auth";
@@ -144,7 +144,7 @@ function RegisterContent() {
     }
   };
 
-  const roleLabel = role === "petani" ? "Petani / Kelompok Tani" : "Pembeli / Penggilingan";
+  const roleLabel = role === "petani" ? "Petani / Kelompok Tani" : "Produsen / Penggilingan";
 
   return (
     <div className="w-full space-y-6">
@@ -176,17 +176,17 @@ function RegisterContent() {
           const isDone = step > item.num;
           const containerClass = `flex w-full items-center gap-1.5 sm:gap-2.5 rounded-xl border p-2 sm:p-3 text-xs font-medium text-left transition ${
             isActive
-              ? "border-emerald-500 bg-emerald-50/80 text-emerald-950 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-700 shadow-xs"
+              ? "border-primary bg-primary/10 text-primary shadow-xs"
               : isDone
-              ? "border-emerald-300/80 bg-emerald-50/30 text-emerald-900 hover:bg-emerald-50/60 dark:bg-emerald-950/20 dark:text-emerald-300 cursor-pointer"
+              ? "border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 cursor-pointer"
               : "border-border/80 bg-card text-foreground"
           }`;
 
           const badgeClass = `flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
             isActive
-              ? "bg-emerald-600 text-white shadow-xs"
+              ? "bg-primary text-primary-foreground shadow-xs"
               : isDone
-              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300"
+              ? "bg-primary/15 text-primary"
               : "bg-muted text-foreground border border-border/80"
           }`;
 
@@ -264,16 +264,16 @@ function RegisterContent() {
                   }}
                   className={`flex h-full cursor-pointer flex-col gap-3 rounded-xl border p-4 text-left transition-all ${
                     role === "petani"
-                      ? "border-emerald-500 bg-emerald-50/70 ring-2 ring-emerald-500/20 dark:border-emerald-600 dark:bg-emerald-950/30"
+                      ? "border-primary bg-primary/10 ring-2 ring-primary/20"
                       : "border-border bg-background hover:border-border/80 hover:bg-muted/20"
                   }`}
                 >
                   <div className="flex w-full items-center justify-between">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
                       <Sprout className="h-5 w-5" />
                     </div>
                     {role === "petani" && (
-                      <span className="flex size-5 items-center justify-center rounded-full bg-emerald-600 text-white">
+                      <span className="flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
                         <Check className="h-3.5 w-3.5" />
                       </span>
                     )}
@@ -296,7 +296,7 @@ function RegisterContent() {
                   }}
                   className={`flex h-full cursor-pointer flex-col gap-3 rounded-xl border p-4 text-left transition-all ${
                     role === "pembeli"
-                      ? "border-emerald-500 bg-emerald-50/70 ring-2 ring-emerald-500/20 dark:border-emerald-600 dark:bg-emerald-950/30"
+                      ? "border-primary bg-primary/10 ring-2 ring-primary/20"
                       : "border-border bg-background hover:border-border/80 hover:bg-muted/20"
                   }`}
                 >
@@ -305,13 +305,13 @@ function RegisterContent() {
                       <Building2 className="h-5 w-5" />
                     </div>
                     {role === "pembeli" && (
-                      <span className="flex size-5 items-center justify-center rounded-full bg-emerald-600 text-white">
+                      <span className="flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
                         <Check className="h-3.5 w-3.5" />
                       </span>
                     )}
                   </div>
                   <div className="space-y-1">
-                    <p className="text-sm font-bold text-foreground">Pembeli / Penggilingan</p>
+                    <p className="text-sm font-bold text-foreground">Produsen / Penggilingan</p>
                     <p className="text-xs leading-relaxed text-muted-foreground">
                       Mencari pasokan gabah berkualitas di katalog dan mengajukan pesanan kesepakatan langsung.
                     </p>
@@ -396,7 +396,7 @@ function RegisterContent() {
             <section className="rounded-2xl border border-border/80 bg-card p-6 sm:p-7 flex flex-col gap-6">
               <div className="border-b border-border/60 pb-3">
                 <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <MapPin className="h-4 w-4 text-primary shrink-0" />
                   3. Alamat Domisili &amp; Persetujuan
                 </h2>
                 <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
@@ -508,15 +508,15 @@ function RegisterContent() {
 
             <div className="flex items-center gap-3 w-full sm:w-auto shrink-0">
               {step === 1 ? (
-                <Button
+                <ButtonLink
                   variant="outline"
                   className="flex-1 sm:flex-none min-h-11 px-4 rounded-xl"
                   title="Batal & gunakan nomor lain"
                   aria-label="Batal & gunakan nomor lain"
-                  render={<Link href="/masuk" />}
+                  href="/masuk"
                 >
                   Batal
-                </Button>
+                </ButtonLink>
               ) : (
                 <Button
                   type="button"

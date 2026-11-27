@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { AlertCircle, RefreshCw, Home } from "lucide-react";
 
 export default function GlobalError({
@@ -40,16 +39,15 @@ export default function GlobalError({
           <span>Coba Muat Ulang</span>
         </Button>
 
-        <Button
+        <ButtonLink
           variant="outline"
           size="default"
           className="gap-2 text-xs font-semibold cursor-pointer"
-          nativeButton={false}
-          render={<Link href="/" />}
+          href="/"
         >
           <Home className="w-4 h-4" />
           <span>Kembali ke Beranda</span>
-        </Button>
+        </ButtonLink>
       </div>
     </div>
   );

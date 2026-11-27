@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
-import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button";
 import { useCurrentUser } from "../hooks/use-auth";
 import { getDashboardRoute } from "../domain/role-routes";
 import type { Role } from "../schemas";
@@ -13,8 +12,8 @@ interface AuthAwareLinkButtonProps {
   authenticatedLabel?: ReactNode;
   authenticatedLabelByRole?: Partial<Record<Role, ReactNode>>;
   trailingIcon?: ReactNode;
-  variant?: ComponentProps<typeof Button>["variant"];
-  size?: ComponentProps<typeof Button>["size"];
+  variant?: ComponentProps<typeof ButtonLink>["variant"];
+  size?: ComponentProps<typeof ButtonLink>["size"];
   className?: string;
 }
 
@@ -38,15 +37,14 @@ export function AuthAwareLinkButton({
   const label = user ? (roleSpecificLabel ?? authenticatedLabel) : guestLabel;
 
   return (
-    <Button
+    <ButtonLink
       variant={variant}
       size={size}
       className={className}
-      nativeButton={false}
-      render={<Link href={targetHref} />}
+      href={targetHref}
     >
       {label}
       {trailingIcon}
-    </Button>
+    </ButtonLink>
   );
 }

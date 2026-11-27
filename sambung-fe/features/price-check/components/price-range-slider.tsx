@@ -128,7 +128,7 @@ export function PriceRangeSlider({
           />
           {/* Zona 3: Hijau (Rentang Wajar Normal) */}
           <span
-            className="price-slider-zone bg-emerald-500 dark:bg-emerald-400"
+            className="price-slider-zone bg-price-within"
             style={{
               left: `${lowerBoundPercent}%`,
               width: `${Math.max(0, upperBoundPercent - lowerBoundPercent)}%`,
@@ -186,7 +186,7 @@ export function PriceRangeSlider({
           <span className="text-xs uppercase font-semibold tracking-wider text-muted-foreground block">
             Acuan Rentang Wajar
           </span>
-          <span className="tabular-nums font-semibold text-emerald-700 dark:text-emerald-400">
+          <span className="tabular-nums font-semibold text-primary">
             Rp{lowerBound.toLocaleString("id-ID")} – Rp{upperBound.toLocaleString("id-ID")}
           </span>
         </div>
@@ -198,7 +198,7 @@ export function PriceRangeSlider({
         className={cn(
           "flex items-start gap-3 rounded-xl p-3.5 text-xs border transition-colors",
           evaluation.status === "HIJAU" &&
-            "bg-emerald-50/80 border-emerald-200 text-emerald-900 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-200",
+            "bg-primary/10 border-primary/25 text-foreground",
           (evaluation.status === "KUNING_BAWAH" || evaluation.status === "KUNING_ATAS") &&
             "bg-amber-50/80 border-amber-200 text-amber-900 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-200",
           evaluation.status === "MERAH" &&
@@ -209,7 +209,7 @@ export function PriceRangeSlider({
       >
         <div className="mt-0.5 shrink-0">
           {evaluation.status === "HIJAU" && (
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <CheckCircle2 className="w-4 h-4 text-primary" />
           )}
           {(evaluation.status === "KUNING_BAWAH" || evaluation.status === "KUNING_ATAS") && (
             <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />

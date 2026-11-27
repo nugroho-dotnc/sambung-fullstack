@@ -52,7 +52,7 @@ export function ConfirmRedLightDialog({
               Rp{redThreshold.toLocaleString("id-ID")}/kg
             </strong>
             ), sedangkan rentang acuan wajar adalah{" "}
-            <span className="tabular-nums text-emerald-700 dark:text-emerald-400 font-semibold">
+            <span className="tabular-nums text-primary font-semibold">
               Rp{lowerBound.toLocaleString("id-ID")} – Rp{upperBound.toLocaleString("id-ID")}/kg
             </span>
             .

@@ -19,7 +19,7 @@ import {
   Send,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageContainer } from "@/components/shared/page-container";
 import { DetailSplitSkeleton } from "@/components/shared/page-skeletons";
@@ -141,14 +141,12 @@ export function OfferDetailView({ offerId }: { offerId: string }) {
           <p className="text-xs text-muted-foreground">
             Tawaran panen dengan ID #{offerId} tidak ditemukan atau bukan milik akun Anda.
           </p>
-          <Button
-            render={
-              <Link href="/petani/tawaran">
-                {isMobile ? "Kembali" : "Kembali ke Daftar Tawaran"}
-              </Link>
-            }
+          <ButtonLink
+            href="/petani/tawaran"
             className="mt-3 min-h-10 text-xs"
-          />
+          >
+            {isMobile ? "Kembali" : "Kembali ke Daftar Tawaran"}
+          </ButtonLink>
         </div>
       </PageContainer>
     );
@@ -175,7 +173,7 @@ export function OfferDetailView({ offerId }: { offerId: string }) {
           <span
             className={`text-xs font-semibold px-3 py-1 rounded-full ${
               offer.status === "published"
-                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300"
+                ? "bg-primary/15 text-primary"
                 : offer.status === "draft"
                 ? "bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300"
                 : "bg-muted text-muted-foreground"
@@ -219,9 +217,9 @@ export function OfferDetailView({ offerId }: { offerId: string }) {
                   <span className="text-xs font-normal text-muted-foreground font-sans">kg</span>
                 </span>
               </div>
-              <div className="p-3.5 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-500/20">
-                <span className="text-xs text-emerald-800 dark:text-emerald-300 block">Volume Tersedia</span>
-                <span className="text-lg font-bold tabular-nums text-emerald-700 dark:text-emerald-400">
+              <div className="p-3.5 rounded-xl bg-primary/10 border border-primary/20">
+                <span className="text-xs text-primary block">Volume Tersedia</span>
+                <span className="text-lg font-bold tabular-nums text-primary">
                   {offer.availableVolumeKg.toLocaleString("id-ID")}{" "}
                   <span className="text-xs font-normal text-muted-foreground font-sans">kg</span>
                 </span>
@@ -279,7 +277,7 @@ export function OfferDetailView({ offerId }: { offerId: string }) {
                   Harga Minta Penjualan
                 </h2>
                 <p className="text-xs text-muted-foreground">
-                  Harga per kilogram yang dilihat pembeli di katalog pasar.
+                  Harga per kilogram yang dilihat produsen di katalog pasar.
                 </p>
               </div>
               {(offer.status === "published" || offer.status === "draft") && !isEditingPrice && (
@@ -308,7 +306,7 @@ export function OfferDetailView({ offerId }: { offerId: string }) {
                 </div>
                 <div className="text-right text-xs">
                   <span className="text-muted-foreground block">Rentang Acuan Pasar</span>
-                  <span className="tabular-nums text-emerald-700 dark:text-emerald-400 font-semibold">
+                  <span className="tabular-nums text-primary font-semibold">
                     {priceRef.lowerBound > 0 && priceRef.upperBound > 0
                       ? `${formatRupiah(priceRef.lowerBound)} – ${formatRupiah(priceRef.upperBound)}`
                       : "Tersedia saat tinjau tawaran"}
@@ -360,29 +358,27 @@ export function OfferDetailView({ offerId }: { offerId: string }) {
               Pesanan Terkait Tawaran Ini
             </h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Jika ada pembeli yang mengajukan pesanan atas gabah ini, lembar kesepakatan akan terhubung langsung di panel Kontrak & Kesepakatan.
+              Jika ada produsen yang mengajukan pesanan atas gabah ini, lembar kesepakatan akan terhubung langsung di panel Kontrak & Kesepakatan.
             </p>
-            <Button
+            <ButtonLink
               variant="outline"
               className="w-full min-h-10 text-xs justify-between"
-              render={
-                <Link href="/kontrak">
-                  {isMobile ? "Menu Kontrak" : "Buka Menu Kontrak & Negosiasi"}
-                  <ChevronRight className="w-4 h-4" />
-                </Link>
-              }
-            />
+              href="/kontrak"
+            >
+              {isMobile ? "Menu Kontrak" : "Buka Menu Kontrak & Negosiasi"}
+              <ChevronRight className="w-4 h-4" />
+            </ButtonLink>
           </Card>
 
           {/* Action Card: Terbitkan Draf ke Pasar */}
           {offer.status === "draft" && !confirmWithdraw && (
-            <Card className="rounded-2xl border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20 p-6 space-y-3">
-              <h3 className="text-sm font-semibold text-emerald-900 dark:text-emerald-200 flex items-center gap-2">
-                <Send className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <Card className="rounded-2xl border-primary/30 bg-primary/5 p-6 space-y-3">
+              <h3 className="text-sm font-semibold text-primary flex items-center gap-2">
+                <Send className="w-4 h-4 text-primary" />
                 Terbitkan Tawaran ke Pasar
               </h3>
-              <p className="text-xs text-emerald-800/80 dark:text-emerald-300/80 leading-relaxed">
-                Tawaran ini masih berupa draf dan belum terlihat oleh pembeli di pasar. Terbitkan sekarang agar pembeli dapat mengajukan pesanan dan kesepakatan harga.
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Tawaran ini masih berupa draf dan belum terlihat oleh produsen di pasar. Terbitkan sekarang agar produsen dapat mengajukan pesanan dan kesepakatan harga.
               </p>
 
               <div className="pt-2 flex flex-wrap items-center gap-2">
@@ -420,7 +416,7 @@ export function OfferDetailView({ offerId }: { offerId: string }) {
                 Tarik Tawaran dari Pasar
               </h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Menarik tawaran akan menghapusnya dari katalog pasar pembeli. Tawaran yang ditarik tidak dapat dipesan lagi.
+                Menarik tawaran akan menghapusnya dari katalog pasar produsen. Tawaran yang ditarik tidak dapat dipesan lagi.
               </p>
 
               <Button
@@ -445,7 +441,7 @@ export function OfferDetailView({ offerId }: { offerId: string }) {
               <p className="text-xs text-muted-foreground leading-relaxed">
                 {offer.status === "draft"
                   ? "Apakah Anda yakin ingin menghapus draf ini? Data tawaran yang belum terbit ini akan dihapus dari sistem."
-                  : "Apakah Anda yakin ingin menarik tawaran ini dari pasar? Pembeli tidak akan dapat menemukan atau memesan gabah ini lagi."}
+                  : "Apakah Anda yakin ingin menarik tawaran ini dari pasar? Produsen tidak akan dapat menemukan atau memesan gabah ini lagi."}
               </p>
 
               <div className="flex items-center gap-2 pt-1">

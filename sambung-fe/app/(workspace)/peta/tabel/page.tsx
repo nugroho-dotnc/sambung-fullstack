@@ -1,14 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { useCurrentUser } from "@/features/auth/hooks/use-auth";
+import { ProUpgradeBanner } from "@/features/subscription/components/pro-upgrade-banner";
 import { useSpatialDisparity } from "@/features/region-map/hooks/use-spatial-disparity";
 import { ProvincialTable } from "@/features/region-map/components/provincial-table";
 import { PageContainer } from "@/components/shared/page-container";
 import { AsyncBoundary } from "@/components/shared/async-boundary";
-import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
 export default function PetaTabelPage() {
+  const { data: user, isLoading: isUserLoading } = useCurrentUser();
+  const isFreeBuyer = user?.role === "pembeli" && !user?.isPro;
   const spatialQuery = useSpatialDisparity();
   const provinces = spatialQuery.data?.provinces ?? [];
 
@@ -41,26 +45,34 @@ export default function PetaTabelPage() {
             </p>
           </div>
 
-          <Button
+          <ButtonLink
             variant="outline"
             size="sm"
             className="gap-2 text-xs font-semibold cursor-pointer shadow-2xs"
-            render={<Link href="/peta" />}
+            href="/peta"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Kembali ke Peta Spasial</span>
-          </Button>
+          </ButtonLink>
         </div>
       </div>
 
       <AsyncBoundary
-        isLoading={spatialQuery.isLoading}
+        isLoading={isUserLoading || spatialQuery.isLoading}
         isError={spatialQuery.isError}
         error={spatialQuery.error}
-        isEmpty={!spatialQuery.isLoading && !spatialQuery.isError && provinces.length === 0}
+        isEmpty={!isUserLoading && !spatialQuery.isLoading && !spatialQuery.isError && provinces.length === 0}
         onRetry={() => void spatialQuery.refetch()}
       >
-        <ProvincialTable data={provinces} />
+        {isFreeBuyer ? (
+          <ProUpgradeBanner
+            title="Tabel Harga 34 Provinsi & Unduh Data Khusus Produsen Pro"
+            description="Paket Gratis dapat melihat peta sebaran harga ringkas. Aktifkan Produsen Pro (Rp99.000/30 hari) untuk membuka tabel perbandingan lengkap serta tombol unduh data (CSV)."
+            fromPath="/peta/tabel"
+          />
+        ) : (
+          <ProvincialTable data={provinces} />
+        )}
       </AsyncBoundary>
     </PageContainer>
   );

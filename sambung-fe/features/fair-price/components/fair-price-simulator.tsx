@@ -19,6 +19,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox";
 import { AsyncBoundary } from "@/components/shared/async-boundary";
 import { sortFairPriceProvinces } from "../domain/calculate-fair-price";
 import { useFairPriceCalculation, useFairPriceParams } from "../hooks/use-fair-price";
@@ -152,7 +160,7 @@ export function FairPriceSimulator() {
               </p>
             </div>
             <div className="flex items-center gap-2 self-start sm:self-auto">
-              <span className="text-xs font-semibold px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+              <span className="text-xs font-semibold px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
                 Rumus Transparan
               </span>
               <Popover>
@@ -212,24 +220,30 @@ export function FairPriceSimulator() {
               <label className="text-xs font-medium text-muted-foreground block">
                 Wilayah Pengamatan (34 Provinsi) <span className="text-destructive">*</span>
               </label>
-              <Select
+              <Combobox
                 items={regionOptions}
-                value={region || null}
-                onValueChange={(val) => {
-                  if (val) handleRegionChange(val);
+                value={regionOptions.find((opt) => opt.value === region) ?? null}
+                isItemEqualToValue={(item, val) => item.value === val.value}
+                itemToStringLabel={(opt) => opt.label}
+                onValueChange={(opt) => {
+                  if (opt) handleRegionChange(opt.value);
                 }}
               >
-                <SelectTrigger className="w-full h-11 rounded-lg border border-input bg-background px-3 text-xs font-semibold text-foreground shadow-2xs">
-                  <SelectValue placeholder="Pilih wilayah provinsi" />
-                </SelectTrigger>
-                <SelectContent>
-                  {regionOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <ComboboxInput
+                  placeholder="Pilih atau cari provinsi..."
+                  className="w-full h-11 rounded-lg bg-background text-xs font-semibold text-foreground shadow-2xs"
+                />
+                <ComboboxContent>
+                  <ComboboxEmpty>Wilayah tidak ditemukan.</ComboboxEmpty>
+                  <ComboboxList>
+                    {(opt: { value: string; label: string }) => (
+                      <ComboboxItem key={opt.value} value={opt}>
+                        {opt.label}
+                      </ComboboxItem>
+                    )}
+                  </ComboboxList>
+                </ComboboxContent>
+              </Combobox>
             </div>
 
             <div className="space-y-1.5">
@@ -282,7 +296,7 @@ export function FairPriceSimulator() {
                 step={0.5}
                 value={moisture}
                 onChange={(e) => setMoisture(Number(e.target.value))}
-                className="w-full cursor-pointer accent-emerald-600 mt-2"
+                className="w-full cursor-pointer accent-primary mt-2"
               />
               <p className="text-[11px] text-muted-foreground">
                 Catatan kondisi panen (non-rafaksi).
@@ -294,7 +308,7 @@ export function FairPriceSimulator() {
         {/* Empty State vs Calculation Loading/Error vs Result Cards Grid */}
         {!isReady ? (
           <Card className="p-8 sm:p-12 text-center rounded-2xl bg-card border-border/80 space-y-4">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400 flex items-center justify-center mx-auto border border-emerald-200 dark:border-emerald-800/40">
+            <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto border border-primary/20">
               <Calculator className="w-7 h-7" />
             </div>
             <div className="max-w-md mx-auto space-y-1.5">
@@ -334,7 +348,7 @@ export function FairPriceSimulator() {
                   key={pill.idleText}
                   className={`inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full border transition-colors ${
                     pill.active
-                      ? "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-700 font-semibold"
+                      ? "bg-primary/10 text-primary border-primary/30 font-semibold"
                       : "bg-muted/50 text-muted-foreground border-border/80"
                   }`}
                 >
@@ -383,7 +397,7 @@ export function FairPriceSimulator() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-400 block">
+                    <span className="text-xs font-semibold text-primary block">
                       Rentang Harga Wajar Rekomendasi
                     </span>
                     {calcQuery.isFetching && (
@@ -391,7 +405,7 @@ export function FairPriceSimulator() {
                     )}
                   </div>
                   <div className="flex items-baseline gap-2 mt-1">
-                    <p className="text-3xl sm:text-4xl font-extrabold font-display tabular-nums text-emerald-700 dark:text-emerald-400">
+                    <p className="text-3xl sm:text-4xl font-extrabold font-display tabular-nums text-primary">
                       Rp{result.lowerBound.toLocaleString("id-ID")} – Rp
                       {result.upperBound.toLocaleString("id-ID")}
                     </p>
@@ -448,7 +462,7 @@ export function FairPriceSimulator() {
                 <span
                   className={`text-xs font-semibold px-2.5 py-1 rounded-full border shrink-0 ${
                     isAboveHpp
-                      ? "text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20"
+                      ? "text-primary bg-primary/10 border-primary/20"
                       : "text-amber-700 dark:text-amber-400 bg-amber-500/10 border-amber-500/20"
                   }`}
                 >
@@ -527,7 +541,7 @@ export function FairPriceSimulator() {
 
                 <div className="flex justify-between items-baseline pt-2">
                   <span className="font-bold text-foreground">Nilai Tengah Harga Wajar</span>
-                  <span className="tabular-nums text-base font-extrabold text-emerald-700 dark:text-emerald-400">
+                  <span className="tabular-nums text-base font-extrabold text-primary">
                     {formatRupiah(result.medianPrice)} / kg
                   </span>
                 </div>

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useMemo, useEffect } from "react";
 import {
   ScrollText,
@@ -14,7 +13,7 @@ import {
   CreditCard,
   AlertTriangle,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -27,6 +26,7 @@ import {
 import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { AsyncBoundary } from "@/components/shared/async-boundary";
+import { ListPagination, paginateItems } from "@/components/shared/list-pagination";
 import { useCurrentUser } from "@/features/auth/hooks/use-auth";
 import { useContracts } from "@/features/contracts/hooks/use-contracts";
 import { formatRupiah } from "@/features/offers/components/offer-summary";
@@ -42,7 +42,7 @@ import { useMobile } from "@/hooks/use-mobile";
 function getPaymentBadgeClasses(tone: "emerald" | "blue" | "amber" | "danger" | "neutral"): string {
   switch (tone) {
     case "emerald":
-      return "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-300/70 dark:border-emerald-800/60";
+      return "bg-primary/15 text-primary border border-primary/30";
     case "blue":
       return "bg-blue-100 text-blue-800 dark:bg-blue-950/70 dark:text-blue-300 border border-blue-300/70 dark:border-blue-800/60";
     case "amber":
@@ -60,6 +60,11 @@ export default function ContractsListPage() {
   const [activeTab, setActiveTab] = useState<string>("all");
   const { data: contracts = [], isLoading, isError, error, refetch } = useContracts();
   const [now, setNow] = useState(() => Date.now());
+  const contractsPageSize = 6;
+  const [pageState, setPageState] = useState<{ key: string; page: number }>({
+    key: activeTab,
+    page: 1,
+  });
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 60_000);
@@ -93,6 +98,12 @@ export default function ContractsListPage() {
     }
     return contracts;
   }, [contracts, activeTab]);
+
+  const pagedContracts = paginateItems(
+    filteredContracts,
+    pageState.key === activeTab ? pageState.page : 1,
+    contractsPageSize
+  );
 
   return (
     <PageContainer>
@@ -134,7 +145,7 @@ export default function ContractsListPage() {
             Menunggu Kesepakatan
           </TabsTrigger>
           <TabsTrigger value="approved" className=" px-3 text-xs rounded-lg cursor-pointer">
-            <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
+            <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-primary" />
             Disetujui
           </TabsTrigger>
           <TabsTrigger value="completed" className=" px-3 text-xs rounded-lg cursor-pointer">
@@ -163,24 +174,22 @@ export default function ContractsListPage() {
               </h3>
               <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
                 {user?.role === "petani"
-                  ? "Saat pembeli mengajukan pesanan atas tawaran panen Anda, lembar kesepakatan akan langsung terbit di sini untuk Anda tinjau atau negosiasikan."
+                  ? "Saat produsen mengajukan pesanan atas tawaran panen Anda, lembar kesepakatan akan langsung terbit di sini untuk Anda tinjau atau negosiasikan."
                   : "Saat Anda mengajukan pesanan pasokan dari katalog panen, lembar kesepakatan akan langsung terbit di sini untuk bernegosiasi dengan petani."}
               </p>
               {user?.role === "pembeli" && (
-                <Button
-                  render={
-                    <Link href="/pembeli/katalog">
-                      {isMobile ? "Buka Katalog" : "Buka Katalog Pasokan"}
-                    </Link>
-                  }
+                <ButtonLink
+                  href="/pembeli/katalog"
                   className="mt-3 min-h-10 text-xs"
-                />
+                >
+                  {isMobile ? "Buka Katalog" : "Buka Katalog Pasokan"}
+                </ButtonLink>
               )}
             </Card>
           }
         >
           <div className="grid gap-4 sm:grid-cols-2">
-            {filteredContracts.map((contract) => {
+            {pagedContracts.items.map((contract) => {
               const partnerName =
                 user?.role === "petani"
                   ? contract.buyerBusiness || contract.buyerName
@@ -200,14 +209,14 @@ export default function ContractsListPage() {
                   <div className="space-y-3">
                     <div className="space-y-2">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 whitespace-nowrap">
+                        <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-primary/15 text-primary whitespace-nowrap">
                           Gabah {contract.grainType}
                         </span>
 
                         <span
                           className={`text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${
                             contract.status === "signed" || contract.status === "completed"
-                              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300"
+                              ? "bg-primary/15 text-primary"
                               : contract.status === "shipping"
                               ? "bg-blue-100 text-blue-800 dark:bg-blue-950/70 dark:text-blue-300"
                               : contract.status === "approved" || contract.status === "pending"
@@ -218,10 +227,6 @@ export default function ContractsListPage() {
                           {statusMeta.label}
                         </span>
                       </div>
-
-                      <p className="text-xs text-muted-foreground break-all">
-                        ID Kontrak: #{contract.id}
-                      </p>
                     </div>
 
                     <div>
@@ -257,7 +262,7 @@ export default function ContractsListPage() {
                       </div>
                       <div className="flex justify-between items-baseline pt-1 border-t border-border/40">
                         <span className="text-xs font-semibold text-foreground">Total Nilai:</span>
-                        <span className="text-sm font-bold tabular-nums text-emerald-700 dark:text-emerald-400">
+                        <span className="text-sm font-bold tabular-nums text-primary">
                           {formatRupiah(totalValue)}
                         </span>
                       </div>
@@ -315,13 +320,13 @@ export default function ContractsListPage() {
                             ? "Batas waktu pembayaran escrow telah terlewati."
                             : user?.role === "pembeli"
                             ? "Menunggu Anda menyelesaikan pembayaran escrow (7 hari)."
-                            : "Menunggu pembeli melunasi pembayaran escrow sebelum kirim."}
+                            : "Menunggu produsen melunasi pembayaran escrow sebelum kirim."}
                         </span>
                       </div>
                     )}
 
                     {contract.status === "signed" && paid && (
-                      <div className="flex items-center gap-1.5 text-xs text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-900/60">
+                      <div className="flex items-center gap-1.5 text-xs text-primary bg-primary/10 px-3 py-1.5 rounded-lg border border-primary/25">
                         <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                         <span>
                           Pembayaran escrow lunas — siap untuk pengiriman gabah.
@@ -340,21 +345,27 @@ export default function ContractsListPage() {
                   </div>
 
                   <div className="pt-3 border-t border-border/60">
-                    <Button
+                    <ButtonLink
                       className="w-full min-h-10 text-xs font-semibold justify-between"
                       variant="outline"
-                      render={
-                        <Link href={`/kontrak/${contract.id}`}>
-                          {isMobile ? "Buka Kesepakatan" : "Buka Ruang Kesepakatan"}
-                          <ChevronRight className="w-4 h-4 ml-1" />
-                        </Link>
-                      }
-                    />
+                      href={`/kontrak/${contract.id}`}
+                    >
+                      {isMobile ? "Buka Kesepakatan" : "Buka Ruang Kesepakatan"}
+                      <ChevronRight className="w-4 h-4 ml-1" />
+                    </ButtonLink>
                   </div>
                 </Card>
               );
             })}
           </div>
+          <ListPagination
+            totalItems={pagedContracts.totalItems}
+            currentPage={pagedContracts.currentPage}
+            pageSize={contractsPageSize}
+            onPageChange={(page) => setPageState({ key: activeTab, page })}
+            itemLabel="kesepakatan"
+            className="pt-4"
+          />
         </AsyncBoundary>
       </Tabs>
     </PageContainer>

@@ -3,9 +3,14 @@
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { KeyRound, ArrowRight, RefreshCw, CheckCircle2, MessageSquare } from "lucide-react";
+import { ArrowRight, RefreshCw, CheckCircle2, MessageSquare } from "lucide-react";
+import { REGEXP_ONLY_DIGITS } from "input-otp";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { useVerifyOtp, useRequestOtp } from "@/features/auth/hooks/use-auth";
 import { useRedirectAuthenticatedUser } from "@/features/auth/hooks/use-redirect-authenticated";
@@ -125,29 +130,33 @@ function VerificationForm({
 
       <form onSubmit={handleVerify} autoComplete="off" className="space-y-5">
         <div className="space-y-3">
-          <div className="space-y-2">
-            <Label htmlFor="otp" className="text-sm font-semibold">
+          <div className="space-y-3">
+            <Label htmlFor="otp" className="text-sm font-semibold block">
               Kode 4-Digit
             </Label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-muted-foreground">
-                <KeyRound className="w-4 h-4" />
-              </div>
-              <Input
-                id="otp"
-                name="otp-code"
-                type="text"
-                inputMode="numeric"
-                autoComplete="off"
-                maxLength={4}
-                placeholder="4 digit"
-                value={otpCode}
-                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
-                className="pl-10 text-center tracking-[0.5em] text-xl font-bold min-h-12 rounded-xl bg-muted/40 border-border/80 tabular-nums"
-                disabled={verifyMutation.isPending}
-                autoFocus
-              />
-            </div>
+            <InputOTP
+              id="otp"
+              name="otp-code"
+              maxLength={4}
+              pattern={REGEXP_ONLY_DIGITS}
+              inputMode="numeric"
+              autoComplete="off"
+              value={otpCode}
+              onChange={(value) => setOtpCode(value.replace(/\D/g, ""))}
+              disabled={verifyMutation.isPending}
+              containerClassName="justify-center"
+              autoFocus
+            >
+              <InputOTPGroup className="gap-3 sm:gap-4">
+                {[0, 1, 2, 3].map((slotIndex) => (
+                  <InputOTPSlot
+                    key={slotIndex}
+                    index={slotIndex}
+                    className="h-14 w-14 sm:h-16 sm:w-16 rounded-xl! border! border-input bg-muted/40 text-2xl sm:text-3xl font-bold tabular-nums shadow-xs"
+                  />
+                ))}
+              </InputOTPGroup>
+            </InputOTP>
           </div>
 
           {errorMsg && (
@@ -195,9 +204,9 @@ function VerificationForm({
       </form>
 
       {isLive ? (
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-3.5 py-4 space-y-1.5 text-xs">
-          <p className="font-semibold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
-            <MessageSquare className="w-4 h-4 text-emerald-600" />
+        <div className="rounded-xl border border-primary/30 bg-primary/5 px-3.5 py-4 space-y-1.5 text-xs">
+          <p className="font-semibold text-primary flex items-center gap-1.5">
+            <MessageSquare className="w-4 h-4 text-primary" />
             Pesan WhatsApp Terkirim
           </p>
           <p className="text-muted-foreground leading-relaxed">

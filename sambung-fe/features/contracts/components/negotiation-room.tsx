@@ -19,7 +19,7 @@ import {
   PenTool,
   Truck,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
   Dialog,
@@ -61,6 +61,17 @@ interface PendingRedAction {
   referenceVersion: string;
 }
 
+function formatContractCreatedDate(iso?: string | null): string {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 export function NegotiationRoom({ contract }: { contract: Contract }) {
   const isMobile = useMobile();
   const { data: user } = useCurrentUser();
@@ -80,11 +91,23 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
   const [copiedPhone, setCopiedPhone] = useState(false);
 
   const isFarmer = user?.role === "petani";
-  const partnerRole = isFarmer ? "Pembeli" : "Petani";
-  const partnerName = isFarmer
-    ? contract.buyerBusiness || contract.buyerName
-    : contract.farmerBusiness || contract.farmerName;
+  const isAdmin = user?.role === "admin";
+  const farmerDisplayName = contract.farmerBusiness || contract.farmerName;
+  const buyerDisplayName = contract.buyerBusiness || contract.buyerName;
+  const partnerRole = isFarmer ? "Produsen" : "Petani";
+  const partnerName = isFarmer ? buyerDisplayName : farmerDisplayName;
   const partnerPhone = isFarmer ? contract.buyerPhone : contract.farmerPhone;
+  const counterpartyTitleLabel = isAdmin
+    ? `${farmerDisplayName} & ${buyerDisplayName}`
+    : partnerName;
+  const createdDateLabel = formatContractCreatedDate(contract.createdAt);
+  const pageTitle = [
+    "Ruang Kesepakatan",
+    counterpartyTitleLabel,
+    createdDateLabel,
+  ]
+    .filter(Boolean)
+    .join(" — ");
 
   const contactRevealed = isContactRevealed(contract.status);
   const isMyTurn = contract.status === "pending" && contract.currentTurnRole === user?.role;
@@ -291,13 +314,13 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
       </Link>
 
       <PageHeader
-        title={`Ruang Kesepakatan — #${contract.id}`}
+        title={pageTitle}
         description={`Negosiasi dan koordinasi komitmen pasokan antara ${contract.farmerName} dan ${contract.buyerName}.`}
         badge={
           <span
             className={`text-xs font-semibold px-3 py-1 rounded-full ${
               contract.status === "approved" || contract.status === "signed"
-                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300"
+                ? "bg-primary/15 text-primary"
                 : contract.status === "pending"
                 ? "bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300"
                 : contract.status === "shipping" || contract.status === "completed"
@@ -343,17 +366,15 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
               <strong>Harga Disepakati:</strong> Lembar kesepakatan telah terbit. Silakan bubuhkan tanda tangan digital Anda agar kontrak ini sah dan mengikat.
             </span>
           </div>
-          <Button
+          <ButtonLink
             size="sm"
             variant="outline"
             className="min-h-8 text-xs border-amber-400 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40"
-            render={
-              <Link href={`/kontrak/${contract.id}/bukti`}>
-                <FileText className="w-3.5 h-3.5 mr-1.5" />
-                {isMobile ? "Draf Kesepakatan" : "Lihat Draf Lembar Kesepakatan"}
-              </Link>
-            }
-          />
+            href={`/kontrak/${contract.id}/bukti`}
+          >
+            <FileText className="w-3.5 h-3.5 mr-1.5" />
+            {isMobile ? "Draf Kesepakatan" : "Lihat Draf Lembar Kesepakatan"}
+          </ButtonLink>
         </div>
       )}
 
@@ -361,13 +382,13 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
         <div
           className={`rounded-2xl p-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs border ${
             isPaid
-              ? "border-emerald-300/80 bg-emerald-50/90 dark:border-emerald-900/60 dark:bg-emerald-950/30 text-emerald-950 dark:text-emerald-200"
+              ? "border-primary/30 bg-primary/10 text-foreground"
               : "border-amber-300/80 bg-amber-50/90 dark:border-amber-900/60 dark:bg-amber-950/30 text-amber-950 dark:text-amber-200"
           }`}
         >
           <div className="flex items-center gap-2.5">
             {isPaid ? (
-              <CheckCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+              <CheckCheck className="w-4 h-4 text-primary shrink-0" />
             ) : (
               <Clock className="w-4 h-4 text-amber-600 shrink-0" />
             )}
@@ -378,26 +399,24 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
                 </>
               ) : (
                 <>
-                  <strong>Kontrak Sah — Menunggu Pembayaran Escrow:</strong> Kedua belah pihak telah menandatangani kesepakatan. Menunggu pembeli melunasi pembayaran escrow sebelum pengiriman gabah.
+                  <strong>Kontrak Sah — Menunggu Pembayaran Escrow:</strong> Kedua belah pihak telah menandatangani kesepakatan. Menunggu produsen melunasi pembayaran escrow sebelum pengiriman gabah.
                 </>
               )}
             </span>
           </div>
-          <Button
+          <ButtonLink
             size="sm"
             variant="outline"
             className={`min-h-8 text-xs ${
               isPaid
-                ? "border-emerald-400 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40"
+                ? "border-primary/40 text-primary hover:bg-primary/10"
                 : "border-amber-400 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40"
             }`}
-            render={
-              <Link href={`/kontrak/${contract.id}/bukti`}>
-                <FileText className="w-3.5 h-3.5 mr-1.5" />
-                {isMobile ? "Surat Kesepakatan" : "Surat Kesepakatan Digital"}
-              </Link>
-            }
-          />
+            href={`/kontrak/${contract.id}/bukti`}
+          >
+            <FileText className="w-3.5 h-3.5 mr-1.5" />
+            {isMobile ? "Surat Kesepakatan" : "Surat Kesepakatan Digital"}
+          </ButtonLink>
         </div>
       )}
 
@@ -406,45 +425,41 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
           <div className="flex items-center gap-2.5">
             <Truck className="w-4 h-4 text-blue-600 shrink-0" />
             <span>
-              <strong>Gabah Sedang Dikirim:</strong> Petani telah memberangkatkan pasokan gabah menuju lokasi penerimaan pembeli.
+              <strong>Gabah Sedang Dikirim:</strong> Petani telah memberangkatkan pasokan gabah menuju lokasi penerimaan produsen.
             </span>
           </div>
-          <Button
+          <ButtonLink
             size="sm"
             variant="outline"
             className="min-h-8 text-xs border-blue-400 text-blue-800 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40"
-            render={
-              <Link href={`/kontrak/${contract.id}/bukti`}>
-                <FileText className="w-3.5 h-3.5 mr-1.5" />
-                {isMobile ? "Surat Kesepakatan" : "Surat Kesepakatan Digital"}
-              </Link>
-            }
-          />
+            href={`/kontrak/${contract.id}/bukti`}
+          >
+            <FileText className="w-3.5 h-3.5 mr-1.5" />
+            {isMobile ? "Surat Kesepakatan" : "Surat Kesepakatan Digital"}
+          </ButtonLink>
         </div>
       )}
 
       {contract.status === "completed" && (
-        <div className="rounded-2xl border border-emerald-300/70 bg-emerald-50/80 dark:border-emerald-900/60 dark:bg-emerald-950/30 p-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs text-emerald-950 dark:text-emerald-200">
+        <div className="rounded-2xl border border-primary/30 bg-primary/10 p-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs text-foreground">
           <div className="flex items-center gap-2.5">
-            <CheckCheck className="w-5 h-5 text-emerald-600 shrink-0" />
+            <CheckCheck className="w-5 h-5 text-primary shrink-0" />
             <span>
-              <strong>Transaksi Selesai:</strong> Pembeli telah mengonfirmasi penerimaan gabah.{" "}
+              <strong>Transaksi Selesai:</strong> Produsen telah mengonfirmasi penerimaan gabah.{" "}
               {contract.payment?.escrowStatus === "released"
                 ? `Dana bersih sebesar ${formatRupiah(contract.payment.contractAmount)} telah dicairkan ke pihak petani.`
                 : "Seluruh komitmen transaksi telah tuntas dilaksanakan."}
             </span>
           </div>
-          <Button
+          <ButtonLink
             size="sm"
             variant="outline"
             className="min-h-8 text-xs"
-            render={
-              <Link href={`/kontrak/${contract.id}/bukti`}>
-                <FileText className="w-3.5 h-3.5 mr-1.5" />
-                Cetak Bukti Kesepakatan
-              </Link>
-            }
-          />
+            href={`/kontrak/${contract.id}/bukti`}
+          >
+            <FileText className="w-3.5 h-3.5 mr-1.5" />
+            Cetak Bukti Kesepakatan
+          </ButtonLink>
         </div>
       )}
 
@@ -485,7 +500,7 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
               <span className="text-xs font-semibold text-foreground">
                 Estimasi Total Transaksi:
               </span>
-              <span className="text-xl font-extrabold tabular-nums text-emerald-700 dark:text-emerald-400">
+              <span className="text-xl font-extrabold tabular-nums text-primary">
                 {formatRupiah(totalValue)}
               </span>
             </div>
@@ -555,7 +570,7 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
 
                 <div className="pt-2">
                   <Button
-                    className="w-full min-h-10 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                    className="w-full min-h-10 text-xs"
                     onClick={() => {
                       const cleanPhone = partnerPhone.replace(/\D/g, "");
                       window.open(`https://wa.me/62${cleanPhone.replace(/^(62|0)/, "")}`, "_blank");
@@ -588,7 +603,7 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
                 {isMyTurn ? (
                   <>
                     <Button
-                      className="w-full min-h-11 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+                      className="w-full min-h-11 text-xs font-semibold"
                       disabled={mutation.isPending || isCheckingPrice}
                       onClick={() => void handleAccept().catch(() => undefined)}
                     >
@@ -665,14 +680,14 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
                   <div className="space-y-1.5 pt-1">
                     {[
                       { label: "Pihak Petani:", signed: Boolean(contract.farmerSignature) },
-                      { label: "Pihak Pembeli:", signed: Boolean(contract.buyerSignature) },
+                      { label: "Pihak Produsen:", signed: Boolean(contract.buyerSignature) },
                     ].map((party) => (
                       <div key={party.label} className="flex items-center justify-between text-xs">
                         <span className="text-muted-foreground">{party.label}</span>
                         <span
                           className={
                             party.signed
-                              ? "inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-medium"
+                              ? "inline-flex items-center gap-1 text-primary font-medium"
                               : "text-amber-700 dark:text-amber-400 font-medium"
                           }
                         >
@@ -692,7 +707,7 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
 
                 {!hasUserSigned ? (
                   <Button
-                    className="w-full min-h-11 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+                    className="w-full min-h-11 text-xs font-semibold"
                     disabled={mutation.isPending}
                     onClick={() => {
                       setModalError(null);
@@ -703,7 +718,7 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
                     {isMobile ? "Tandatangani Kontrak" : "Tandatangani Surat Kesepakatan"}
                   </Button>
                 ) : (
-                  <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 text-xs text-emerald-800 dark:text-emerald-200 font-medium flex items-center justify-center gap-1.5 text-center">
+                  <div className="p-3.5 rounded-xl bg-primary/10 border border-primary/30 text-xs text-primary font-medium flex items-center justify-center gap-1.5 text-center">
                     <CheckCircle2 className="w-4 h-4 shrink-0" aria-hidden="true" />
                     <span>
                       Anda telah membubuhkan tanda tangan. Menunggu tanda tangan dari {partnerRole}.
@@ -711,16 +726,14 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
                   </div>
                 )}
 
-                <Button
+                <ButtonLink
                   variant="outline"
                   className="w-full min-h-10 text-xs"
-                  render={
-                    <Link href={`/kontrak/${contract.id}/bukti`}>
-                      <FileText className="w-3.5 h-3.5 mr-2" />
-                      {isMobile ? "Draf Kesepakatan" : "Lihat Draf Surat Kesepakatan"}
-                    </Link>
-                  }
-                />
+                  href={`/kontrak/${contract.id}/bukti`}
+                >
+                  <FileText className="w-3.5 h-3.5 mr-2" />
+                  {isMobile ? "Draf Kesepakatan" : "Lihat Draf Surat Kesepakatan"}
+                </ButtonLink>
 
                 {/* Cancel allowed ONLY if NOT both signed */}
                 <div className="pt-2 border-t border-border/60">
@@ -747,13 +760,13 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
                 <div
                   className={`p-3.5 rounded-xl text-xs space-y-1.5 border ${
                     isPaid
-                      ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 text-emerald-900 dark:text-emerald-200"
+                      ? "bg-primary/10 border-primary/30 text-foreground"
                       : "bg-amber-50 dark:bg-amber-950/40 border-amber-300 text-amber-950 dark:text-amber-200"
                   }`}
                 >
                   <p className="font-bold flex items-center gap-1.5">
                     {isPaid ? (
-                      <CheckCheck className="w-4 h-4 text-emerald-600" />
+                      <CheckCheck className="w-4 h-4 text-primary" />
                     ) : (
                       <Lock className="w-4 h-4 text-amber-600" />
                     )}
@@ -764,7 +777,7 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
                   <p className="text-xs leading-relaxed opacity-90">
                     {isPaid
                       ? "Dana escrow telah terverifikasi dan ditahan aman oleh sistem. Kesepakatan mengikat dan siap menuju tahap pengiriman."
-                      : "Kedua belah pihak telah melengkapi tanda tangan. Pembeli perlu menyelesaikan pembayaran escrow melalui Midtrans Sandbox sebelum pengiriman gabah dapat dikonfirmasi."}
+                      : "Kedua belah pihak telah melengkapi tanda tangan. Produsen perlu menyelesaikan pembayaran escrow melalui Midtrans Sandbox sebelum pengiriman gabah dapat dikonfirmasi."}
                   </p>
                 </div>
 
@@ -788,7 +801,7 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
                     </Button>
                     {!isPaid && (
                       <p className="text-[11px] text-muted-foreground leading-relaxed text-center">
-                        Tombol pengiriman akan terbuka otomatis setelah pembayaran escrow pembeli terverifikasi lunas.
+                        Tombol pengiriman akan terbuka otomatis setelah pembayaran escrow produsen terverifikasi lunas.
                       </p>
                     )}
                   </div>
@@ -812,16 +825,14 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
                   </div>
                 )}
 
-                <Button
+                <ButtonLink
                   variant="outline"
                   className="w-full min-h-10 text-xs"
-                  render={
-                    <Link href={`/kontrak/${contract.id}/bukti`}>
-                      <FileText className="w-3.5 h-3.5 mr-2" />
-                      {isMobile ? "Surat Kesepakatan" : "Buka Surat Kesepakatan Digital"}
-                    </Link>
-                  }
-                />
+                  href={`/kontrak/${contract.id}/bukti`}
+                >
+                  <FileText className="w-3.5 h-3.5 mr-2" />
+                  {isMobile ? "Surat Kesepakatan" : "Buka Surat Kesepakatan Digital"}
+                </ButtonLink>
               </div>
             )}
 
@@ -840,7 +851,7 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
 
                 {!isFarmer ? (
                   <Button
-                    className="w-full min-h-11 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+                    className="w-full min-h-11 text-xs font-semibold"
                     disabled={mutation.isPending}
                     onClick={() => setReceiveModalOpen(true)}
                   >
@@ -850,45 +861,41 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
                 ) : (
                   <div className="p-3.5 rounded-xl bg-muted/40 border border-border/70 text-xs text-muted-foreground text-center space-y-1">
                     <CheckCircle2 className="w-5 h-5 text-muted-foreground mx-auto mb-1" />
-                    <p className="font-medium text-foreground">Menunggu Penerimaan dari Pembeli</p>
+                    <p className="font-medium text-foreground">Menunggu Penerimaan dari Produsen</p>
                     <p className="text-[11px] leading-relaxed">
-                      Gabah sedang dalam perjalanan. Menunggu pembeli menerima dan memeriksa kondisi barang di lokasi.
+                      Gabah sedang dalam perjalanan. Menunggu produsen menerima dan memeriksa kondisi barang di lokasi.
                     </p>
                   </div>
                 )}
 
-                <Button
+                <ButtonLink
                   variant="outline"
                   className="w-full min-h-10 text-xs"
-                  render={
-                    <Link href={`/kontrak/${contract.id}/bukti`}>
-                      <FileText className="w-3.5 h-3.5 mr-2" />
-                      {isMobile ? "Surat Kesepakatan" : "Buka Surat Kesepakatan Digital"}
-                    </Link>
-                  }
-                />
+                  href={`/kontrak/${contract.id}/bukti`}
+                >
+                  <FileText className="w-3.5 h-3.5 mr-2" />
+                  {isMobile ? "Surat Kesepakatan" : "Buka Surat Kesepakatan Digital"}
+                </ButtonLink>
               </div>
             )}
 
             {/* When Completed */}
             {contract.status === "completed" && (
               <div className="space-y-3">
-                <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 text-xs text-emerald-900 dark:text-emerald-200 text-center space-y-1">
-                  <p className="font-bold">Transaksi Selesai Bersama</p>
+                <div className="p-4 rounded-xl bg-primary/10 border border-primary/30 text-xs text-foreground text-center space-y-1">
+                  <p className="font-bold text-primary">Transaksi Selesai Bersama</p>
                   <p className="text-xs opacity-90">
                     Kedua belah pihak telah menyelesaikan komitmen pasokan ini dengan sukses dan tuntas.
                   </p>
                 </div>
 
-                <Button
-                  className="w-full min-h-10 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
-                  render={
-                    <Link href={`/kontrak/${contract.id}/bukti`}>
-                      <FileText className="w-3.5 h-3.5 mr-2" />
-                      {isMobile ? "Cetak Bukti" : "Cetak Surat Bukti Kesepakatan"}
-                    </Link>
-                  }
-                />
+                <ButtonLink
+                  className="w-full min-h-10 text-xs font-semibold"
+                  href={`/kontrak/${contract.id}/bukti`}
+                >
+                  <FileText className="w-3.5 h-3.5 mr-2" />
+                  {isMobile ? "Cetak Bukti" : "Cetak Surat Bukti Kesepakatan"}
+                </ButtonLink>
               </div>
             )}
 
@@ -1112,7 +1119,7 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
         open={signModalOpen}
         onOpenChange={setSignModalOpen}
         signerName={user?.name || ""}
-        roleTitle={isFarmer ? "Petani" : "Pembeli"}
+        roleTitle={isFarmer ? "Petani" : "Produsen"}
         onConfirm={handleSignContract}
         isSubmitting={mutation.isPending}
       />

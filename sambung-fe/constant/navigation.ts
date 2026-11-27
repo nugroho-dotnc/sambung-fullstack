@@ -16,7 +16,6 @@ import {
   HelpCircle,
   AlertTriangle,
   History,
-  Crown,
 } from "lucide-react";
 import type { ElementType } from "react";
 import { ROLE_ENUM } from "./enum";
@@ -57,10 +56,9 @@ export const BUYER_NAVIGATION_GROUPS: NavGroup[] = [
   {
     groupLabel: "Transaksi Pasokan",
     items: [
-      { id: "buyer-home", label: "Dasbor Pembeli", icon: LayoutGrid, path: "/pembeli" },
+      { id: "buyer-home", label: "Dasbor Produsen", icon: LayoutGrid, path: "/pembeli" },
       { id: "buyer-catalog", label: "Katalog Pasokan", icon: ShoppingBag, path: "/pembeli/katalog" },
       { id: "buyer-contracts", label: "Kontrak & Kesepakatan", icon: ScrollText, path: "/kontrak" },
-      { id: "buyer-subscription", label: "Langganan Pro", icon: Crown, path: "/langganan" },
     ],
   },
   {

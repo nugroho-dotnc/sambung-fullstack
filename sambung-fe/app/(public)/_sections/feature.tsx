@@ -1,7 +1,6 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button";
 import { AuthAwareLinkButton } from "@/features/auth/components/auth-aware-link-button";
 import { Calculator, TrendingUp, Sprout, ArrowRight, type LucideIcon } from "lucide-react";
 
@@ -20,15 +19,15 @@ const FEATURE_CARDS: FeatureCardItem[] = [
       "Lihat batas bawah dan atas harga wajar GKP dan GKG di wilayah Anda, lengkap dengan penjelasan sederhana tentang cara menghitungnya.",
     icon: Calculator,
     action: (
-      <Button
+      <ButtonLink
         variant="outline"
         size="sm"
-        className="gap-2 font-semibold text-xs cursor-pointer hover:bg-emerald-500/10 hover:text-emerald-700 dark:hover:text-emerald-400 hover:border-emerald-500/40 w-fit"
-        render={<Link href="/peta-harga" />}
+        className="gap-2 font-semibold text-xs cursor-pointer hover:bg-primary/10 hover:text-primary hover:border-primary/40 w-fit"
+        href="/peta-harga"
       >
         Cek Harga Wilayah
         <ArrowRight className="w-3.5 h-3.5" />
-      </Button>
+      </ButtonLink>
     ),
   },
   {
@@ -37,21 +36,21 @@ const FEATURE_CARDS: FeatureCardItem[] = [
       "Pantau selisih harga antarprovinsi, rantai harga dari petani ke eceran, dan prakiraan 2 sampai 4 pekan ke depan.",
     icon: TrendingUp,
     action: (
-      <Button
+      <ButtonLink
         variant="outline"
         size="sm"
         className="gap-2 font-semibold text-xs cursor-pointer hover:bg-blue-500/10 hover:text-blue-700 dark:hover:text-blue-400 hover:border-blue-500/40 w-fit"
-        render={<Link href="/peta-harga" />}
+        href="/peta-harga"
       >
         Jelajahi Peta & Prakiraan
         <ArrowRight className="w-3.5 h-3.5" />
-      </Button>
+      </ButtonLink>
     ),
   },
   {
     title: "Tawarkan Panen, Sepakati Harga",
     description:
-      "Pasang tawaran panen, terima pesanan dari pembeli, dan sepakati harga langsung. Semua tercatat dan bebas komisi.",
+      "Pasang tawaran panen, terima pesanan dari produsen, dan sepakati harga langsung. Semua tercatat jelas dan petani menerima 100% tanpa potongan.",
     icon: Sprout,
     action: (
       <AuthAwareLinkButton
@@ -71,7 +70,7 @@ function FeatureCard({
   title,
   description,
   icon: Icon,
-  badgeClassName = "bg-brand-forest text-white dark:text-emerald-950",
+  badgeClassName = "bg-primary text-primary-foreground",
   action,
 }: FeatureCardItem) {
   return (

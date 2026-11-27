@@ -8,7 +8,10 @@ import { createApp } from "../../src/app.ts";
 import { digest } from "../../src/modules/auth/session.ts";
 import { clearAiCache } from "../../src/modules/ai/ai-api.client.ts";
 import { clearPriceHistoryCache } from "../../src/modules/ai/price-history.service.ts";
-import { sendSubscriptionExpiryReminders } from "../../src/modules/subscriptions/subscriptions.service.ts";
+import {
+  sendSubscriptionExpiredNotices,
+  sendSubscriptionExpiryReminders,
+} from "../../src/modules/subscriptions/subscriptions.service.ts";
 
 function signWebhook({ order_id, status_code, gross_amount, secret }) {
   return createHash("sha512")
@@ -123,6 +126,47 @@ test("Buyer Subscription Pembeli Pro: Rp99rb Midtrans Snap, stacking 30d, fee 0.
           derivedConversion: { rGkp: 0.5338, rGkg: 0.6274, p50QGkp: 0.9669, p50QGkg: 0.9662 },
           sourceMode: "live",
           records,
+        })
+      );
+    }
+
+    if (req.method === "GET" && parsed.pathname === "/api/v1/spatial-disparity") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(
+        JSON.stringify({
+          generatedAtUtc: "2026-11-27T06:39:31+00:00",
+          snapshotWeek: "2026-11-16",
+          snapshotLabel: "16 Nov 2026",
+          primaryCommodity: "Beras Medium I",
+          nationalMedianPrice: 13800,
+          nationalMedianPrice30d: 13750,
+          explainerMetrics: { holdout8wR2: 0.91, holdout8wMaeRp: 110, featureCount: 12 },
+          spatialShapMaxAdditivityErrRp: 2,
+          provinces: [
+            {
+              province: "Jawa Timur",
+              price: 13450,
+              price30d: 13400,
+              medianPrice: 13800,
+              medianPrice30d: 13750,
+              percentageDiff: -2.54,
+              percentageDiff30d: -2.55,
+              grainType: "Beras Medium I",
+              isAvailable: true,
+              sampleCount: 411,
+              status: "below",
+              surplusRatio: 1.45,
+              spatialFactors: [
+                {
+                  category: "cuaca",
+                  variable: "Curah Hujan",
+                  condition: "Normal",
+                  impactRp: -120,
+                  direction: "Meredam",
+                },
+              ],
+            },
+          ],
         })
       );
     }
@@ -328,7 +372,28 @@ test("Buyer Subscription Pembeli Pro: Rp99rb Midtrans Snap, stacking 30d, fee 0.
     return { status: res.status, data: await res.json() };
   }
 
-  // 1. Petani: eligible=false, checkout forbidden 403, full access to /price-history & /forecasts
+  // 0. Anonymous requests: /price-history & /forecasts -> 401; /spatial-disparity -> stripped preview
+  const anonHist = await api("/price-history?region=Jawa%20Timur&range=all");
+  assert.equal(anonHist.status, 401);
+  assert.equal(anonHist.data.code, "UNAUTHENTICATED");
+
+  const anonHist12w = await api("/price-history?region=Jawa%20Timur&range=12w");
+  assert.equal(anonHist12w.status, 401);
+  assert.equal(anonHist12w.data.code, "UNAUTHENTICATED");
+
+  const anonForecast = await api("/forecasts?province=Jawa%20Timur");
+  assert.equal(anonForecast.status, 401);
+  assert.equal(anonForecast.data.code, "UNAUTHENTICATED");
+
+  const anonSpatial = await api("/spatial-disparity");
+  assert.equal(anonSpatial.status, 200);
+  assert.equal(anonSpatial.data.restrictedPreview, true);
+  assert.equal("explainerMetrics" in anonSpatial.data, false);
+  assert.equal("spatialShapMaxAdditivityErrRp" in anonSpatial.data, false);
+  assert.equal("surplusRatio" in anonSpatial.data.provinces[0], false);
+  assert.deepEqual(anonSpatial.data.provinces[0].spatialFactors, []);
+
+  // 1. Petani: eligible=false, checkout forbidden 403, full access to /price-history, /forecasts & /spatial-disparity
   const farmerSub = await api("/subscription/me", { cookie: farmerCookie });
   assert.equal(farmerSub.status, 200);
   assert.equal(farmerSub.data.data.eligible, false);
@@ -353,7 +418,14 @@ test("Buyer Subscription Pembeli Pro: Rp99rb Midtrans Snap, stacking 30d, fee 0.
   assert.equal(farmerForecastJabar.status, 200);
   assert.ok(farmerForecastJabar.data.records[0].shapContributions.length > 0);
 
-  // 2. Pembeli Gratis: 403 on range=all & cross-province forecasts; 200 on 12w & local forecast without SHAP
+  const farmerSpatial = await api("/spatial-disparity", { cookie: farmerCookie });
+  assert.equal(farmerSpatial.status, 200);
+  assert.equal(farmerSpatial.data.restrictedPreview, undefined);
+  assert.equal(farmerSpatial.data.explainerMetrics.holdout8wR2, 0.91);
+  assert.equal(farmerSpatial.data.provinces[0].surplusRatio, 1.45);
+  assert.equal(farmerSpatial.data.provinces[0].spatialFactors.length, 1);
+
+  // 2. Pembeli Gratis: 403 on range=all & cross-province forecasts; 200 on 12w, local forecast without SHAP & stripped /spatial-disparity
   const buyerMeFree = await api("/auth/me", { cookie: buyerCookie });
   assert.equal(buyerMeFree.status, 200);
   assert.equal(buyerMeFree.data.user.isPro, false);
@@ -383,6 +455,13 @@ test("Buyer Subscription Pembeli Pro: Rp99rb Midtrans Snap, stacking 30d, fee 0.
   assert.equal(buyerForecastJatimFree.data.meta.restrictedPreview, true);
   assert.equal(buyerForecastJatimFree.data.meta.allowedProvince, "Jawa Timur");
   assert.deepEqual(buyerForecastJatimFree.data.records[0].shapContributions, []);
+
+  const buyerSpatialFree = await api("/spatial-disparity", { cookie: buyerCookie });
+  assert.equal(buyerSpatialFree.status, 200);
+  assert.equal(buyerSpatialFree.data.restrictedPreview, true);
+  assert.equal("explainerMetrics" in buyerSpatialFree.data, false);
+  assert.equal("surplusRatio" in buyerSpatialFree.data.provinces[0], false);
+  assert.deepEqual(buyerSpatialFree.data.provinces[0].spatialFactors, []);
 
   // 3. Checkout Snap + reuse + recreate + 404 sync awaitingMethodSelection
   const checkout1 = await api("/subscription/checkout", {
@@ -526,6 +605,12 @@ test("Buyer Subscription Pembeli Pro: Rp99rb Midtrans Snap, stacking 30d, fee 0.
   assert.equal(buyerForecastJabarPro.data.meta.restrictedPreview, undefined);
   assert.ok(buyerForecastJabarPro.data.records[0].shapContributions.length > 0);
 
+  const buyerSpatialPro = await api("/spatial-disparity", { cookie: buyerCookie });
+  assert.equal(buyerSpatialPro.status, 200);
+  assert.equal(buyerSpatialPro.data.restrictedPreview, undefined);
+  assert.equal(buyerSpatialPro.data.provinces[0].surplusRatio, 1.45);
+  assert.equal(buyerSpatialPro.data.provinces[0].spatialFactors.length, 1);
+
   // Create & sign contract to verify 0.25% buyerFeeRate and 100% farmer contractAmount
   const offer = await db.offer.create({
     data: {
@@ -660,4 +745,121 @@ test("Buyer Subscription Pembeli Pro: Rp99rb Midtrans Snap, stacking 30d, fee 0.
     where: { accountId: buyer.id, title: "Masa Aktif Pembeli Pro Segera Berakhir" },
   });
   assert.ok(reminderNotif);
+
+  // 7. Refund revocation: refunding stacked payment rolls back to first periodEnd; refunding both clears proExpiresAt
+  const refundStackSig = signWebhook({
+    order_id: stackOrderId,
+    status_code: "200",
+    gross_amount: "99000.00",
+    secret: process.env.MIDTRANS_SIGNATURE_SECRET_KEY,
+  });
+  const refundStack = await api("/payments/midtrans/webhook", {
+    method: "POST",
+    body: {
+      order_id: stackOrderId,
+      status_code: "200",
+      gross_amount: "99000.00",
+      transaction_status: "refund",
+      signature_key: refundStackSig,
+    },
+  });
+  assert.equal(refundStack.status, 200);
+  assert.equal(refundStack.data.status, "refunded");
+  assert.equal(refundStack.data.proExpiresAt, firstProExpiry);
+
+  const refundFirstSig = signWebhook({
+    order_id: activeOrderId,
+    status_code: "200",
+    gross_amount: "99000.00",
+    secret: process.env.MIDTRANS_SIGNATURE_SECRET_KEY,
+  });
+  const refundFirst = await api("/payments/midtrans/webhook", {
+    method: "POST",
+    body: {
+      order_id: activeOrderId,
+      status_code: "200",
+      gross_amount: "99000.00",
+      transaction_status: "refund",
+      signature_key: refundFirstSig,
+    },
+  });
+  assert.equal(refundFirst.status, 200);
+  assert.equal(refundFirst.data.status, "refunded");
+  assert.equal(refundFirst.data.proExpiresAt, null);
+
+  const subAfterFullRefund = await api("/subscription/me", { cookie: buyerCookie });
+  assert.equal(subAfterFullRefund.status, 200);
+  assert.equal(subAfterFullRefund.data.data.isPro, false);
+  assert.equal(subAfterFullRefund.data.data.status, "free");
+
+  // 8. Expired notice idempotency
+  await db.account.update({
+    where: { id: buyer.id },
+    data: { proExpiresAt: new Date(Date.now() - 3_600_000) },
+  });
+  const expiredCount1 = await sendSubscriptionExpiredNotices(db);
+  const expiredCount2 = await sendSubscriptionExpiredNotices(db);
+  assert.equal(expiredCount1, 1);
+  assert.equal(expiredCount2, 0);
+  const expiredNotif = await db.notification.findFirst({
+    where: { accountId: buyer.id, title: "Masa Aktif Pembeli Pro Berakhir" },
+  });
+  assert.ok(expiredNotif);
+
+  // 9. Cancel pending checkout + race when already settled at Midtrans
+  const checkoutCancel = await api("/subscription/checkout", {
+    method: "POST",
+    cookie: buyerCookie,
+    body: {},
+  });
+  assert.equal(checkoutCancel.status, 200);
+  const cancelOrderId = checkoutCancel.data.data.payment.orderId;
+
+  const cancelRes = await api("/subscription/cancel", {
+    method: "POST",
+    cookie: buyerCookie,
+    body: { orderId: cancelOrderId },
+  });
+  assert.equal(cancelRes.status, 200);
+  assert.equal(cancelRes.data.data.payment.status, "cancelled");
+  assert.equal(cancelRes.data.data.subscription.latestPayment.status, "cancelled");
+  assert.ok(midtransState.cancelCalls.includes(cancelOrderId));
+
+  const cancelMissing = await api("/subscription/cancel", {
+    method: "POST",
+    cookie: buyerCookie,
+    body: {},
+  });
+  assert.equal(cancelMissing.status, 404);
+  assert.equal(cancelMissing.data.code, "PAYMENT_NOT_FOUND");
+
+  const checkoutRace = await api("/subscription/checkout", {
+    method: "POST",
+    cookie: buyerCookie,
+    body: {},
+  });
+  assert.equal(checkoutRace.status, 200);
+  const raceOrderId = checkoutRace.data.data.payment.orderId;
+  midtransState.nextStatusMode.set(raceOrderId, {
+    httpStatus: 200,
+    body: {
+      order_id: raceOrderId,
+      status_code: "200",
+      gross_amount: "99000.00",
+      transaction_status: "settlement",
+      payment_type: "qris",
+      transaction_id: "mid-sub-race-1",
+    },
+  });
+  const cancelSettled = await api("/subscription/cancel", {
+    method: "POST",
+    cookie: buyerCookie,
+    body: {},
+  });
+  assert.equal(cancelSettled.status, 409);
+  assert.equal(cancelSettled.data.code, "ALREADY_SETTLED");
+
+  const subAfterRace = await api("/subscription/me", { cookie: buyerCookie });
+  assert.equal(subAfterRace.status, 200);
+  assert.equal(subAfterRace.data.data.isPro, true);
 });

@@ -44,5 +44,6 @@ export interface SpatialDisparityResponse {
     featureCount: number;
   };
   spatialShapMaxAdditivityErrRp?: number;
+  restrictedPreview?: boolean;
   provinces: ProvincialPriceComparison[];
 }

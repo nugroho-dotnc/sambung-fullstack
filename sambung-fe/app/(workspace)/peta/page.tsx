@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { ProvincialPriceComparison } from "@/features/region-map/domain/map-types";
+import { useCurrentUser } from "@/features/auth/hooks/use-auth";
+import { ProUpgradeBanner } from "@/features/subscription/components/pro-upgrade-banner";
 import { useSpatialDisparity } from "@/features/region-map/hooks/use-spatial-disparity";
 import { IndonesiaSvgMap } from "@/features/region-map/components/indonesia-svg-map";
 import { ProvincialTable } from "@/features/region-map/components/provincial-table";
@@ -11,7 +13,7 @@ import { useMobile } from "@/hooks/use-mobile";
 import { PageContainer } from "@/components/shared/page-container";
 import { AsyncBoundary } from "@/components/shared/async-boundary";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Popover,
@@ -59,6 +61,8 @@ function computeMedian(values: number[]): number {
 
 export default function PetaDisparitasPage() {
   const isMobile = useMobile();
+  const { data: user, isLoading: isUserLoading } = useCurrentUser();
+  const isFreeBuyer = user?.role === "pembeli" && !user?.isPro;
   const [viewMode, setViewMode] = useState<"map" | "table">("map");
   const [selectedCommodity, setSelectedCommodity] = useState("Beras Medium I");
   const [selectedCoverage, setSelectedCoverage] = useState("Seluruh Indonesia");
@@ -279,10 +283,10 @@ export default function PetaDisparitasPage() {
       </Card>
 
       <AsyncBoundary
-        isLoading={spatialQuery.isLoading}
+        isLoading={isUserLoading || spatialQuery.isLoading}
         isError={spatialQuery.isError}
         error={spatialQuery.error}
-        isEmpty={!spatialQuery.isLoading && !spatialQuery.isError && displayData.length === 0}
+        isEmpty={!isUserLoading && !spatialQuery.isLoading && !spatialQuery.isError && displayData.length === 0}
         onRetry={() => void spatialQuery.refetch()}
       >
         {activeProvinceItem && (
@@ -332,6 +336,12 @@ export default function PetaDisparitasPage() {
                     onSelectProvince={(prov) => setSelectedProvince(prov)}
                   />
                 </div>
+              ) : isFreeBuyer ? (
+                <ProUpgradeBanner
+                  title="Tabel Peringkat 34 Provinsi & Unduh Data Khusus Produsen Pro"
+                  description="Paket Gratis dapat melihat peta sebaran harga ringkas. Aktifkan Produsen Pro (Rp99.000/30 hari) untuk membuka tabel perbandingan seluruh provinsi serta tombol unduh data (CSV)."
+                  fromPath="/peta"
+                />
               ) : (
                 <ProvincialTable
                   data={displayData}
@@ -343,13 +353,13 @@ export default function PetaDisparitasPage() {
               {/* 3 Summary Metrics */}
               <div className="pt-4 border-t border-border/80 grid grid-cols-1 sm:grid-cols-3 gap-5">
                 <div className="p-4 rounded-lg bg-muted/40 border border-border/80 space-y-1">
-                  <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400">
+                  <div className="flex items-center gap-1.5 text-primary">
                     <p className="text-xs font-bold tracking-wider">
                       Harga Terendah ({minPriceItem?.grainType})
                     </p>
                   </div>
                   <p className="text-sm font-bold text-foreground">{minPriceItem?.province}</p>
-                  <p className="text-2xl font-black text-emerald-700 dark:text-emerald-400 font-display tabular-nums">
+                  <p className="text-2xl font-black text-primary font-display tabular-nums">
                     {formatRupiah(minPriceItem?.price || 0)}
                     <span className="text-xs font-normal text-muted-foreground">/kg</span>
                   </p>
@@ -438,62 +448,71 @@ export default function PetaDisparitasPage() {
                 <div className="lg:col-span-8 space-y-4">
                   <div>
                     <h4 className="font-bold text-sm text-foreground flex items-center gap-2 font-display">
-                      <span>Faktor Penjelas Perbedaan Harga Regional</span>
+                      <span>Penyebab Perbedaan Harga Antarwilayah</span>
                     </h4>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Kontribusi neraca pasokan daerah, pasar grosir, kondisi cuaca, dan sentra produsen terhadap selisih harga di {activeProvinceItem.province} dibanding harga tengah nasional.
+                      Pengaruh stok panen daerah, pasar grosir, cuaca, dan sentra produsen terhadap selisih harga di {activeProvinceItem.province} dibanding harga tengah nasional.
                     </p>
                   </div>
 
-                  <div className="overflow-x-auto border border-border/80 rounded-lg bg-background">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-muted/60">
-                        <tr className="border-b border-border/80 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                          <th className="p-3">Faktor Pengaruh</th>
-                          <th className="p-3">Kondisi Data Terkini</th>
-                          <th className="p-3 text-right">Pengaruh Terhadap Harga</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border/60">
-                        {activeFactors.length === 0 ? (
-                          <tr>
-                            <td colSpan={3} className="p-4 text-center text-muted-foreground">
-                              Rincian faktor penjelas belum tersedia untuk wilayah ini.
-                            </td>
+                  {isFreeBuyer ? (
+                    <ProUpgradeBanner
+                      compact
+                      title="Penyebab Perbedaan Harga & Neraca Pasokan Khusus Produsen Pro"
+                      description="Aktifkan Produsen Pro untuk melihat rincian penyebab selisih harga dan angka surplus/defisit pasokan di 34 provinsi."
+                      fromPath="/peta"
+                    />
+                  ) : (
+                    <div className="overflow-x-auto border border-border/80 rounded-lg bg-background">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-muted/60">
+                          <tr className="border-b border-border/80 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            <th className="p-3">Faktor Pengaruh</th>
+                            <th className="p-3">Kondisi Data Terkini</th>
+                            <th className="p-3 text-right">Pengaruh Terhadap Harga</th>
                           </tr>
-                        ) : (
-                          activeFactors.map((sf, idx) => {
-                            const isUp = sf.impactRp > 0;
-                            const isDown = sf.impactRp < 0;
-                            return (
-                              <tr key={idx}>
-                                <td className="p-3 font-semibold text-foreground">{sf.variable}</td>
-                                <td className="p-3 text-muted-foreground tabular-nums text-xs">
-                                  {sf.condition}
-                                </td>
-                                <td
-                                  className={`p-3 text-right font-bold tabular-nums ${
-                                    isUp
-                                      ? "text-amber-700 dark:text-amber-400"
+                        </thead>
+                        <tbody className="divide-y divide-border/60">
+                          {activeFactors.length === 0 ? (
+                            <tr>
+                              <td colSpan={3} className="p-4 text-center text-muted-foreground">
+                                Rincian faktor penjelas belum tersedia untuk wilayah ini.
+                              </td>
+                            </tr>
+                          ) : (
+                            activeFactors.map((sf, idx) => {
+                              const isUp = sf.impactRp > 0;
+                              const isDown = sf.impactRp < 0;
+                              return (
+                                <tr key={idx}>
+                                  <td className="p-3 font-semibold text-foreground">{sf.variable}</td>
+                                  <td className="p-3 text-muted-foreground tabular-nums text-xs">
+                                    {sf.condition}
+                                  </td>
+                                  <td
+                                    className={`p-3 text-right font-bold tabular-nums ${
+                                      isUp
+                                        ? "text-amber-700 dark:text-amber-400"
+                                        : isDown
+                                          ? "text-primary"
+                                          : "text-muted-foreground"
+                                    }`}
+                                  >
+                                    {isUp
+                                      ? `+Rp${sf.impactRp}`
                                       : isDown
-                                        ? "text-emerald-700 dark:text-emerald-400"
-                                        : "text-muted-foreground"
-                                  }`}
-                                >
-                                  {isUp
-                                    ? `+Rp${sf.impactRp}`
-                                    : isDown
-                                      ? `-Rp${Math.abs(sf.impactRp)}`
-                                      : "Rp0"}
-                                  /kg ({sf.direction})
-                                </td>
-                              </tr>
-                            );
-                          })
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                                        ? `-Rp${Math.abs(sf.impactRp)}`
+                                        : "Rp0"}
+                                    /kg ({sf.direction})
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
 
                 {/* Sidebar Summary Card */}
@@ -527,7 +546,7 @@ export default function PetaDisparitasPage() {
                       <span
                         className={`font-black text-sm tabular-nums ${
                           activeProvinceItem.percentageDiff < 0
-                            ? "text-emerald-700 dark:text-emerald-400"
+                            ? "text-primary"
                             : "text-amber-700 dark:text-amber-400"
                         }`}
                       >
@@ -536,7 +555,7 @@ export default function PetaDisparitasPage() {
                           : `${activeProvinceItem.percentageDiff.toFixed(2)}%`}
                       </span>
                     </div>
-                    {activeProvinceItem.surplusRatio !== undefined && (
+                    {!isFreeBuyer && activeProvinceItem.surplusRatio !== undefined && (
                       <div className="flex justify-between items-center py-1.5 border-b border-border/40">
                         <span className="text-muted-foreground">Neraca Surplus/Defisit BPS:</span>
                         <span className="font-semibold text-foreground text-xs tabular-nums">
@@ -553,10 +572,10 @@ export default function PetaDisparitasPage() {
                   </div>
 
                   <div className="pt-2 space-y-2">
-                    <Button
+                    <ButtonLink
                       size="sm"
                       className="w-full text-xs font-bold justify-between cursor-pointer rounded-lg"
-                      render={<Link href="/pembeli/katalog" />}
+                      href="/pembeli/katalog"
                     >
                       <span>
                         {isMobile
@@ -564,16 +583,16 @@ export default function PetaDisparitasPage() {
                           : `Cari Pasokan di ${activeProvinceItem.province}`}
                       </span>
                       <ArrowRight className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button
+                    </ButtonLink>
+                    <ButtonLink
                       variant="outline"
                       size="sm"
                       className="w-full text-xs font-semibold justify-between cursor-pointer rounded-lg"
-                      render={<Link href="/petani/jual" />}
+                      href="/petani/jual"
                     >
                       <span>{isMobile ? "Jual Gabah" : "Jual Gabah di Wilayah Ini"}</span>
                       <ArrowRight className="w-3.5 h-3.5" />
-                    </Button>
+                    </ButtonLink>
                   </div>
                 </div>
               </div>

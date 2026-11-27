@@ -77,8 +77,8 @@ function LoginContent() {
         </h1>
         <p className="text-sm text-muted-foreground leading-relaxed">
           {isLiveOtp
-            ? "Masuk sebagai Petani atau Pembeli tanpa kata sandi. Kode verifikasi akan dikirimkan langsung ke WhatsApp Anda."
-            : "Masuk sebagai Petani atau Pembeli tanpa kata sandi menggunakan nomor ponsel Anda."}
+            ? "Masuk sebagai Petani atau Produsen tanpa kata sandi. Kode verifikasi akan dikirimkan langsung ke WhatsApp Anda."
+            : "Masuk sebagai Petani atau Produsen tanpa kata sandi menggunakan nomor ponsel Anda."}
         </p>
       </div>
 
@@ -155,8 +155,8 @@ function LoginContent() {
               onClick={() => handleQuickFill("081398765432")}
               className="text-left px-2 py-3 flex flex-col gap-0.5 rounded-lg bg-background border border-border/70 hover:border-primary transition-colors cursor-pointer"
             >
-              <p className="font-semibold text-foreground">Akun pembeli</p>
-              <p className="text-xs text-muted-foreground">Untuk mencoba ruang pembeli</p>
+              <p className="font-semibold text-foreground">Akun produsen</p>
+              <p className="text-xs text-muted-foreground">Untuk mencoba ruang produsen</p>
               <span className="text-xs tabular-nums text-primary">081398765432</span>
             </button>
           </div>

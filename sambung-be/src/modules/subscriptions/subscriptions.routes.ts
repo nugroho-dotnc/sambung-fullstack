@@ -3,17 +3,19 @@ import type { PrismaClient } from "@prisma/client";
 import { ApiError } from "../../shared/api-error.ts";
 import { sessionHash } from "../auth/session.ts";
 import {
+  subscriptionCancelSchema,
   subscriptionCheckoutSchema,
   subscriptionSyncSchema,
 } from "./subscriptions.schemas.ts";
 import {
+  cancelPendingSubscription,
   checkoutSubscription,
   getSubscriptionMe,
   syncSubscriptionPayment,
 } from "./subscriptions.service.ts";
 
 /**
- * Express router exposing Pembeli Pro subscription status, checkout, and manual payment sync.
+ * Express router exposing Produsen Pro subscription status, checkout, and manual payment sync.
  */
 export function subscriptionsRouter(db: PrismaClient) {
   const router = Router();
@@ -58,6 +60,13 @@ export function subscriptionsRouter(db: PrismaClient) {
     const actor = await requireActiveActor(req);
     const body = subscriptionSyncSchema.parse(req.body);
     res.json({ data: await syncSubscriptionPayment(db, actor, body) });
+  });
+
+  router.post("/subscription/cancel", async (req, res) => {
+    res.set("Cache-Control", "no-store");
+    const actor = await requireActiveActor(req);
+    const body = subscriptionCancelSchema.parse(req.body);
+    res.json({ data: await cancelPendingSubscription(db, actor, body) });
   });
 
   return router;

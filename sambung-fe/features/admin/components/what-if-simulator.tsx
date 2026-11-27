@@ -7,12 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox";
 import { useForecastMeta } from "@/features/forecast/hooks/use-forecast";
 import { useAdminLivePredict } from "@/features/admin/hooks/use-admin";
 import type { AdminLivePredictOverrides } from "@/features/admin/domain/admin-types";
@@ -220,27 +221,31 @@ export function WhatIfSimulator() {
               >
                 Provinsi Produsen
               </label>
-              <Select
+              <Combobox
                 items={provinceOptions}
-                value={province}
-                onValueChange={(val) => {
-                  if (val) setSelectedProvince(val);
+                value={provinceOptions.find((opt) => opt.value === province) ?? null}
+                isItemEqualToValue={(item, val) => item.value === val.value}
+                itemToStringLabel={(opt) => opt.label}
+                onValueChange={(opt) => {
+                  if (opt) setSelectedProvince(opt.value);
                 }}
               >
-                <SelectTrigger
+                <ComboboxInput
                   id="whatif-province"
-                  className="w-full min-h-10 rounded-lg border-input bg-background text-xs font-semibold"
-                >
-                  <SelectValue placeholder="Pilih provinsi" />
-                </SelectTrigger>
-                <SelectContent>
-                  {provinceOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                  placeholder="Pilih atau cari provinsi..."
+                  className="w-full h-10 rounded-lg border-input bg-background text-xs font-semibold"
+                />
+                <ComboboxContent>
+                  <ComboboxEmpty>Provinsi tidak ditemukan.</ComboboxEmpty>
+                  <ComboboxList>
+                    {(opt: { value: string; label: string }) => (
+                      <ComboboxItem key={opt.value} value={opt}>
+                        {opt.label}
+                      </ComboboxItem>
+                    )}
+                  </ComboboxList>
+                </ComboboxContent>
+              </Combobox>
             </div>
 
             <div className="space-y-1.5">

@@ -1,7 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { randomBytes, randomUUID } from "node:crypto";
 import { createApp } from "../../src/app.ts";
 import { prisma } from "../../src/db/prisma.ts";
+import { digest } from "../../src/modules/auth/session.ts";
 
 test("integrasi prakiraan AI - pemanggilan endpoint, parameter, dan metadata", async () => {
   const origin = "http://localhost:3000";
@@ -10,8 +12,30 @@ test("integrasi prakiraan AI - pemanggilan endpoint, parameter, dan metadata", a
   const port = server.address().port;
   const base = `http://127.0.0.1:${port}`;
 
+  const suffix = randomUUID().slice(0, 8);
+  const farmer = await prisma.account.create({
+    data: {
+      role: "petani",
+      name: `Petani Forecast ${suffix}`,
+      phone: `62855${randomUUID().replace(/\D/g, "").slice(0, 8)}`,
+      province: "Jawa Timur",
+      regency: "Jember",
+      district: "Sumbersari",
+    },
+  });
+  const token = randomBytes(32).toString("hex");
+  await prisma.authSession.create({
+    data: {
+      phone: farmer.phone,
+      accountId: farmer.id,
+      tokenHash: digest(token),
+      expiresAt: new Date(Date.now() + 120_000),
+    },
+  });
+  const cookie = `sambung_session=${token}`;
+
   try {
-    // 1. Ambil metadata prakiraan
+    // 1. Ambil metadata prakiraan (tetap terbuka)
     const resMeta = await fetch(`${base}/forecasts/meta`, {
       headers: { Origin: origin },
     });
@@ -23,9 +47,17 @@ test("integrasi prakiraan AI - pemanggilan endpoint, parameter, dan metadata", a
     assert.ok(meta.activeProvinces.includes("Jawa Timur"));
     assert.equal(meta.sourceMode, "live");
 
-    // 2. Ambil prakiraan Jawa Timur 2 pekan
-    const resJatim2w = await fetch(`${base}/forecasts?province=Jawa%20Timur&horizonWeeks=2`, {
+    // 1b. Tanpa sesi login -> 401 UNAUTHENTICATED
+    const resAnon = await fetch(`${base}/forecasts?province=Jawa%20Timur&horizonWeeks=2`, {
       headers: { Origin: origin },
+    });
+    assert.equal(resAnon.status, 401);
+    const anonBody = await resAnon.json();
+    assert.equal(anonBody.code, "UNAUTHENTICATED");
+
+    // 2. Ambil prakiraan Jawa Timur 2 pekan dengan sesi aktif
+    const resJatim2w = await fetch(`${base}/forecasts?province=Jawa%20Timur&horizonWeeks=2`, {
+      headers: { Origin: origin, Cookie: cookie },
     });
     assert.equal(resJatim2w.status, 200);
     const jatim2w = await resJatim2w.json();
@@ -42,16 +74,19 @@ test("integrasi prakiraan AI - pemanggilan endpoint, parameter, dan metadata", a
 
     // 3. Validasi horizon tidak valid (misal: 3 pekan) harus ditolak 422
     const resInvalid = await fetch(`${base}/forecasts?horizonWeeks=3`, {
-      headers: { Origin: origin },
+      headers: { Origin: origin, Cookie: cookie },
     });
     assert.equal(resInvalid.status, 422);
 
     // 4. Wilayah yang tidak ada dalam basis data harus mengembalikan 404
     const resNotFound = await fetch(`${base}/forecasts?province=Atlantis&horizonWeeks=2`, {
-      headers: { Origin: origin },
+      headers: { Origin: origin, Cookie: cookie },
     });
     assert.equal(resNotFound.status, 404);
   } finally {
     server.close();
+    await prisma.authSession.deleteMany({ where: { accountId: farmer.id } }).catch(() => {});
+    await prisma.account.deleteMany({ where: { id: farmer.id } }).catch(() => {});
+    await prisma.$disconnect();
   }
 });

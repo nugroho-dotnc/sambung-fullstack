@@ -25,7 +25,7 @@ export const BUYER_FEE_RATE = 0.005;
 export { PRO_BUYER_FEE_RATE };
 export const PAYMENT_DUE_MS = 7 * 86_400_000;
 export const PAYMENT_GRACE_MS = 3 * 86_400_000;
-export const AUTO_CANCEL_REASON = "Pembeli tidak membayar dalam tenggat waktu.";
+export const AUTO_CANCEL_REASON = "Produsen tidak membayar dalam tenggat waktu.";
 
 const MIN_SNAP_EXPIRY_MINUTES = 15;
 const MAX_SNAP_EXPIRY_MINUTES = 10 * 24 * 60;
@@ -97,7 +97,7 @@ export function presentPayment(row: PaymentRecord): PresentedPayment {
 }
 
 /**
- * Computes farmer net payout (contractAmount), buyer service fee (0.5% standard or 0.25% Pembeli Pro), and total Midtrans gross amount in integer IDR.
+ * Computes farmer net payout (contractAmount), buyer service fee (0.5% standard or 0.25% Produsen Pro), and total Midtrans gross amount in integer IDR.
  */
 export function computePaymentAmounts(
   volumeKg: Prisma.Decimal | number | string,
@@ -394,7 +394,7 @@ export async function applyMidtransStatusTransition(
             accountId: current.contract.offer.ownerId,
             type: "kontrak",
             title: "Pembayaran Escrow Masuk — Siap Kirim Gabah",
-            description: `Pembeli telah melunasi tagihan escrow. Dana bersih ${formatIdr(current.contractAmount)} ditahan aman dan Anda sudah dapat mengonfirmasi pengiriman gabah.`,
+            description: `Produsen telah melunasi tagihan escrow. Dana bersih ${formatIdr(current.contractAmount)} ditahan aman dan Anda sudah dapat mengonfirmasi pengiriman gabah.`,
             linkHref: `/kontrak/${current.contract.id}`,
             contractId: current.contract.id,
           },
@@ -491,7 +491,7 @@ export async function initiateContractPayment(
           throw new ApiError(
             403,
             "FORBIDDEN",
-            "Hanya pihak pembeli pada kontrak ini yang dapat melakukan pembayaran."
+            "Hanya pihak produsen pada kontrak ini yang dapat melakukan pembayaran."
           );
         }
         if (contract.status !== "signed") {
@@ -933,9 +933,9 @@ export async function sendPaymentOverdueReminders(
           {
             accountId: contract.offer.ownerId,
             type: "kontrak",
-            title: "Pembayaran Pembeli Memasuki Masa Tenggang 3 Hari",
+            title: "Pembayaran Produsen Memasuki Masa Tenggang 3 Hari",
             description:
-              "Pembeli belum menyelesaikan pembayaran dalam 7 hari. Sistem memberi masa tenggang 3 hari sebelum kontrak dibatalkan otomatis.",
+              "Produsen belum menyelesaikan pembayaran dalam 7 hari. Sistem memberi masa tenggang 3 hari sebelum kontrak dibatalkan otomatis.",
             linkHref: `/kontrak/${contract.id}`,
             contractId: contract.id,
           },
@@ -1156,7 +1156,7 @@ export async function resolveContractDisputeEscrow(
           throw new ApiError(
             409,
             "INSUFFICIENT_STOCK",
-            "Stok tawaran sudah dialokasikan ke pesanan lain karena kontrak sempat dibatalkan. Gunakan pengembalian dana ke pembeli."
+            "Stok tawaran sudah dialokasikan ke pesanan lain karena kontrak sempat dibatalkan. Gunakan pengembalian dana ke produsen."
           );
         }
       }
@@ -1247,15 +1247,15 @@ export async function resolveContractDisputeEscrow(
             accountId: contract.buyerId,
             type: "kontrak",
             title: "Pengembalian Dana Escrow Disetujui",
-            description: `Pengawas sistem memproses pengembalian dana escrow (${formatIdr(heldPayment.grossAmount)}) kepada pembeli. Catatan: ${cleanNote}`,
+            description: `Pengawas sistem memproses pengembalian dana escrow (${formatIdr(heldPayment.grossAmount)}) kepada produsen. Catatan: ${cleanNote}`,
             linkHref: `/kontrak/${contract.id}`,
             contractId: contract.id,
           },
           {
             accountId: contract.offer.ownerId,
             type: "kontrak",
-            title: "Kontrak Ditutup — Dana Escrow Dikembalikan ke Pembeli",
-            description: `Pengawas sistem menutup sengketa dengan pengembalian dana kepada pembeli dan memulihkan stok tawaran Anda. Catatan: ${cleanNote}`,
+            title: "Kontrak Ditutup — Dana Escrow Dikembalikan ke Produsen",
+            description: `Pengawas sistem menutup sengketa dengan pengembalian dana kepada produsen dan memulihkan stok tawaran Anda. Catatan: ${cleanNote}`,
             linkHref: `/kontrak/${contract.id}`,
             contractId: contract.id,
           },
@@ -1269,7 +1269,7 @@ export async function resolveContractDisputeEscrow(
           action: "ADMIN_ESCROW_REFUNDED",
           targetType: "contract",
           targetId: contract.id,
-          details: `Pengawas mengembalikan escrow ${heldPayment.orderId} (${formatIdr(heldPayment.grossAmount)}) kepada pembeli. Catatan: ${cleanNote}`,
+          details: `Pengawas mengembalikan escrow ${heldPayment.orderId} (${formatIdr(heldPayment.grossAmount)}) kepada produsen. Catatan: ${cleanNote}`,
         },
       });
     }

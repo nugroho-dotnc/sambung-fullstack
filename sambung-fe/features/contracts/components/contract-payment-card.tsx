@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import {
   AlertCircle,
   AlertTriangle,
+  ArrowRight,
   CheckCheck,
   Clock,
   Copy,
@@ -18,6 +19,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatRupiah } from "@/features/offers/components/offer-summary";
+import { buildSubscriptionUpgradeHref } from "@/features/subscription/domain/return-path";
 import {
   computeContractPaymentBreakdown,
   formatFeeRatePercent,
@@ -36,7 +38,7 @@ const MIDTRANS_SIMULATOR_URL = "https://simulator.sandbox.midtrans.com";
 function getToneClasses(tone: "emerald" | "blue" | "amber" | "danger" | "neutral"): string {
   switch (tone) {
     case "emerald":
-      return "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-300/80 dark:border-emerald-800/60";
+      return "bg-primary/15 text-primary border border-primary/30";
     case "blue":
       return "bg-blue-100 text-blue-800 dark:bg-blue-950/70 dark:text-blue-300 border border-blue-300/80 dark:border-blue-800/60";
     case "amber":
@@ -125,12 +127,12 @@ export function ContractPaymentCard({
       setLocalError(null);
       if (synced.payment.status === "paid") {
         toast.success(
-          "Pembayaran berhasil terverifikasi. Dana ditahan aman di escrow SAMBUNG."
+          "Pembayaran terverifikasi. Dana ditahan aman di rekening bersama SAMBUNG sampai gabah Anda terima."
         );
       } else if (synced.awaitingMethodSelection) {
         if (trigger === "close") {
           toast.info(
-            "Sesi pembayaran masih aktif dan menunggu Anda memilih metode pembayaran."
+            "Tagihan masih aktif. Silakan pilih metode pembayaran yang Anda inginkan."
           );
         } else {
           toast.info(
@@ -139,7 +141,7 @@ export function ContractPaymentCard({
         }
       } else if (synced.payment.status === "pending") {
         toast.info(
-          "Tagihan masih menunggu penyelesaian pembayaran di Midtrans Sandbox."
+          "Tagihan masih menunggu pembayaran diselesaikan."
         );
       } else if (
         synced.payment.status === "failed" ||
@@ -147,7 +149,7 @@ export function ContractPaymentCard({
         synced.payment.status === "cancelled"
       ) {
         toast.warning(
-          "Sesi pembayaran belum selesai. Anda dapat membuat sesi pembayaran baru."
+          "Tagihan pembayaran belum selesai. Anda dapat membuat tagihan baru."
         );
       }
     } catch (err) {
@@ -188,14 +190,14 @@ export function ContractPaymentCard({
       });
       if (result.mode === "redirect") {
         toast.info(
-          "Halaman Midtrans Sandbox dibuka pada tab baru. Tekan Cek Status Pembayaran setelah selesai membayar."
+          "Halaman pembayaran dibuka di tab baru. Setelah selesai membayar, tekan Cek Status Pembayaran."
         );
       }
     } catch (err) {
       const message =
         err instanceof Error
           ? err.message
-          : "Gagal menyiapkan sesi pembayaran Midtrans Sandbox.";
+          : "Gagal menyiapkan halaman pembayaran. Silakan coba lagi.";
       setLocalError(message);
       toast.error(message);
     } finally {
@@ -208,10 +210,10 @@ export function ContractPaymentCard({
     try {
       const synced = await syncPayment.mutateAsync();
       if (synced.payment.status === "paid") {
-        toast.success("Pembayaran sudah terkonfirmasi lunas di escrow.");
+        toast.success("Pembayaran sudah lunas dan dana aman di rekening bersama.");
       } else if (synced.awaitingMethodSelection) {
         toast.info(
-          "Pembeli belum memilih kanal pembayaran di jendela Snap. Status tetap menunggu."
+          "Produsen belum memilih metode pembayaran. Status tagihan masih menunggu."
         );
       } else if (synced.payment.status === "pending") {
         toast.info("Pembayaran masih berstatus menunggu penyelesaian.");
@@ -244,17 +246,17 @@ export function ContractPaymentCard({
     payment?.status === "pending" && !isPendingExpired
       ? "Lanjutkan Pembayaran"
       : payment && ["expired", "failed", "cancelled"].includes(payment.status)
-      ? "Buat Sesi Pembayaran Baru"
-      : "Bayar Sekarang (Midtrans Sandbox)";
+      ? "Buat Tagihan Pembayaran Baru"
+      : "Bayar Sekarang";
 
   return (
     <Card className="rounded-2xl border-border/80 bg-card p-6 space-y-4">
       {/* Header & Status Pill */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3">
         <div className="flex items-center gap-2">
-          <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+          <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
           <h3 className="text-sm font-semibold text-foreground">
-            Pembayaran Escrow (Midtrans Sandbox)
+            Pembayaran Aman (Rekening Bersama)
           </h3>
         </div>
         <span
@@ -279,12 +281,12 @@ export function ContractPaymentCard({
         <div className="flex items-baseline justify-between gap-2">
           <span className="text-muted-foreground flex flex-wrap items-center gap-1.5">
             <span>
-              Biaya Layanan Pembayaran ({formatFeeRatePercent(breakdown.feeRate)} · Pembeli)
+              Biaya Layanan Transaksi ({formatFeeRatePercent(breakdown.feeRate)} · Produsen)
             </span>
             {breakdown.isProDiscount && (
               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-300/70">
                 <Crown className="w-2.5 h-2.5 shrink-0" />
-                Diskon Pembeli Pro · Hemat 50%
+                Diskon Produsen Pro · Hemat 50%
               </span>
             )}
           </span>
@@ -295,19 +297,20 @@ export function ContractPaymentCard({
         {isBuyer && !isPaid && !breakdown.isProDiscount && (
           <div className="text-[11px] text-amber-800 dark:text-amber-300">
             <Link
-              href="/langganan"
+              href={buildSubscriptionUpgradeHref(`/kontrak/${contract.id}`)}
               className="inline-flex items-center gap-1 hover:underline underline-offset-2 font-medium"
             >
               <Crown className="w-3 h-3 shrink-0" />
-              Hemat 50% biaya layanan menjadi 0,25% dengan Pembeli Pro →
+              <span>Hemat 50% biaya layanan (jadi 0,25%) dengan Produsen Pro</span>
+              <ArrowRight className="w-3 h-3 shrink-0" />
             </Link>
           </div>
         )}
         <div className="flex items-baseline justify-between gap-2 border-t border-border/60 pt-2">
           <span className="font-semibold text-foreground">
-            Total Tagihan Midtrans
+            Total yang Harus Dibayar
           </span>
-          <span className="text-sm font-extrabold text-emerald-700 dark:text-emerald-400 tabular-nums">
+          <span className="text-sm font-extrabold text-primary tabular-nums">
             {formatRupiah(breakdown.grossAmount)}
           </span>
         </div>
@@ -422,8 +425,8 @@ export function ContractPaymentCard({
           )}
           {payment.releasedAt && (
             <div className="flex items-center justify-between gap-2">
-              <span className="text-muted-foreground">Escrow Dicairkan</span>
-              <span className="font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums">
+              <span className="text-muted-foreground">Dana Dicairkan</span>
+              <span className="font-semibold text-primary tabular-nums">
                 {formatPaymentDateTime(payment.releasedAt)}
               </span>
             </div>
@@ -433,24 +436,24 @@ export function ContractPaymentCard({
 
       {/* Paid Escrow Status Explanation */}
       {isPaid && payment?.escrowStatus === "held" && (
-        <div className="rounded-xl border border-emerald-300/80 bg-emerald-50/85 dark:border-emerald-900/60 dark:bg-emerald-950/35 p-3.5 text-xs text-emerald-950 dark:text-emerald-200 flex items-start gap-2.5">
-          <CheckCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+        <div className="rounded-xl border border-primary/30 bg-primary/10 p-3.5 text-xs text-foreground flex items-start gap-2.5">
+          <CheckCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" />
           <p className="leading-relaxed">
-            Pembayaran telah diverifikasi. Dana bersih sebesar{" "}
+            Pembayaran sudah diterima. Dana bersih sebesar{" "}
             <strong>{formatRupiah(breakdown.contractAmount)}</strong> ditahan
-            aman di rekening escrow dan akan otomatis dicairkan kepada petani
-            setelah pembeli mengonfirmasi gabah diterima.
+            aman di rekening bersama dan akan langsung diteruskan ke petani
+            setelah produsen mengonfirmasi gabah diterima.
           </p>
         </div>
       )}
 
       {isPaid && payment?.escrowStatus === "released" && (
-        <div className="rounded-xl border border-emerald-300/80 bg-emerald-50/85 dark:border-emerald-900/60 dark:bg-emerald-950/35 p-3.5 text-xs text-emerald-950 dark:text-emerald-200 flex items-start gap-2.5">
-          <CheckCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+        <div className="rounded-xl border border-primary/30 bg-primary/10 p-3.5 text-xs text-foreground flex items-start gap-2.5">
+          <CheckCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" />
           <p className="leading-relaxed">
-            Dana escrow bersih sebesar{" "}
-            <strong>{formatRupiah(breakdown.contractAmount)}</strong> telah
-            dicairkan kepada petani pada{" "}
+            Dana bersih sebesar{" "}
+            <strong>{formatRupiah(breakdown.contractAmount)}</strong> sudah
+            diteruskan ke petani pada{" "}
             <strong>{formatPaymentDateTime(payment.releasedAt)}</strong>.
           </p>
         </div>
@@ -472,13 +475,13 @@ export function ContractPaymentCard({
         <div className="space-y-2.5 pt-1">
           <Button
             type="button"
-            className="w-full min-h-11 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+            className="w-full min-h-11 text-xs font-semibold"
             disabled={isBusy || deadline.phase === "overdue"}
             onClick={() => void handlePay(false)}
           >
             <CreditCard className="w-4 h-4 mr-2" />
             {initiatePayment.isPending || isOpeningCheckout
-              ? "Menyiapkan Sesi Pembayaran…"
+              ? "Menyiapkan Pembayaran…"
               : primaryPayLabel}
           </Button>
 
@@ -546,10 +549,10 @@ export function ContractPaymentCard({
       {isFarmer && contract.status === "signed" && !isPaid && (
         <div className="space-y-3 pt-1">
           <div className="rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/60 p-3 text-xs text-amber-950 dark:text-amber-200 leading-relaxed">
-            Pembeli perlu melunasi tagihan escrow terlebih dahulu agar tombol{" "}
+            Produsen perlu melunasi tagihan terlebih dahulu agar tombol{" "}
             <strong>Konfirmasi Pengiriman Gabah</strong> aktif dan hak bersih{" "}
-            <strong>{formatRupiah(breakdown.contractAmount)}</strong> dijamin
-            sistem.
+            <strong>{formatRupiah(breakdown.contractAmount)}</strong> aman di
+            rekening bersama.
           </div>
 
           {payment && (

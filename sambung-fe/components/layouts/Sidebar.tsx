@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Sprout, HelpCircle } from "lucide-react";
+import { HelpCircle } from "lucide-react";
+import { BrandLogo } from "@/components/shared/brand-logo";
 import {
   Sidebar,
   SidebarContent,
@@ -40,21 +41,16 @@ export default function AppSidebar({ role }: { role: string }) {
     <Sidebar className="border-r border-border bg-card select-none print:hidden">
       <SidebarHeader className="py-4 px-4 border-b border-border">
         <Link href="/" className="flex items-center gap-2.5 group">
-          <div
-            className={`w-9 h-9 flex items-center justify-center transition-all ${
-              isAdmin
-                ? "rounded-lg bg-[#0D5907] text-white group-hover:bg-[#2F8208] group-hover:scale-105"
-                : "rounded-xl bg-primary text-primary-foreground shadow-xs group-hover:scale-105"
-            }`}
-          >
-            <Sprout className="w-5 h-5" aria-hidden="true" />
-          </div>
+          <BrandLogo
+            size={36}
+            className="w-9 h-9 rounded-lg transition-transform group-hover:scale-105"
+          />
           <div className="flex flex-col">
             <span className="font-display font-extrabold text-base text-foreground tracking-tight leading-tight">
               SAMBUNG
             </span>
             <span className="text-xs text-muted-foreground uppercase font-semibold tracking-wider">
-              {role === "petani" ? "Ruang Petani" : role === "pembeli" ? "Ruang Pembeli" : "Pengawas Sistem"}
+              {role === "petani" ? "Ruang Petani" : role === "pembeli" ? "Ruang Produsen" : "Pengawas Sistem"}
             </span>
           </div>
         </Link>
@@ -82,7 +78,7 @@ export default function AppSidebar({ role }: { role: string }) {
                         isActive
                           ? isAdmin
                             ? "!bg-[#0D5907] !text-white font-semibold hover:!bg-[#2F8208] hover:!text-white active:!bg-[#0D5907] active:!text-white data-active:!bg-[#0D5907] data-active:!text-white"
-                            : "!bg-emerald-600 !text-white font-semibold shadow-xs hover:!bg-emerald-700 hover:!text-white data-active:!bg-emerald-600 data-active:!text-white"
+                            : "!bg-primary !text-primary-foreground font-semibold shadow-xs hover:!bg-primary/90 hover:!text-primary-foreground active:!bg-primary active:!text-primary-foreground data-active:!bg-primary data-active:!text-primary-foreground"
                           : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                       }`}
                       render={
@@ -96,7 +92,9 @@ export default function AppSidebar({ role }: { role: string }) {
                         aria-hidden="true"
                         className={`w-4 h-4 mr-2.5 shrink-0 ${
                           isActive
-                            ? "!text-white"
+                            ? isAdmin
+                              ? "!text-white"
+                              : "!text-primary-foreground"
                             : "text-muted-foreground"
                         }`}
                       />

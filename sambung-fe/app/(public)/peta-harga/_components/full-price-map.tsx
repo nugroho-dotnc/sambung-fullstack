@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState, useRef, useCallback } from "react";
-import Link from "next/link";
 import {
   geoMercator,
   geoPath,
@@ -15,7 +14,7 @@ import { useCurrentUser } from "@/features/auth/hooks/use-auth";
 import { AsyncBoundary } from "@/components/shared/async-boundary";
 import { formatRupiah } from "@/features/offers/components/offer-summary";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -228,8 +227,8 @@ export default function FullPriceMap() {
       if (diff > 5.0) return "#ea580c";
       if (diff > 1.5) return "#f59e0b";
       if (diff >= -1.0) return "#64748b";
-      if (diff >= -3.5) return "#10b981";
-      return "#059669";
+      if (diff >= -3.5) return "#2f8208";
+      return "#0d5907";
     },
     [provincialData],
   );
@@ -497,7 +496,7 @@ export default function FullPriceMap() {
               <span className="text-[10px] text-muted-foreground block">
                 Terendah ({stats.minItem.province}):
               </span>
-              <span className="font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">
+              <span className="font-extrabold text-primary tabular-nums">
                 {formatRupiah(stats.minItem.price)}/kg
               </span>
             </div>
@@ -538,10 +537,10 @@ export default function FullPriceMap() {
             <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               Terendah ({stats.minItem.province})
             </div>
-            <div className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400 font-display tabular-nums">
+            <div className="text-sm font-extrabold text-primary font-display tabular-nums">
               {formatRupiah(stats.minItem.price)}
               <span className="text-[10px] font-normal text-muted-foreground">/kg</span>
-              <span className="text-[10px] font-medium text-emerald-600/80 dark:text-emerald-400/80 ml-1">
+              <span className="text-[10px] font-medium text-primary/80 ml-1">
                 ({stats.minItem.percentageDiff.toFixed(1)}%)
               </span>
             </div>
@@ -593,10 +592,10 @@ export default function FullPriceMap() {
             <span className="w-12 sm:w-14 text-center text-slate-600 dark:text-slate-400">
               Normal
             </span>
-            <span className="w-14 sm:w-16 text-center text-emerald-600 dark:text-emerald-400">
+            <span className="w-14 sm:w-16 text-center text-prime-2 dark:text-prime-1">
               -1% s/d -3.5%
             </span>
-            <span className="w-14 sm:w-16 text-center text-emerald-700 dark:text-emerald-500">
+            <span className="w-14 sm:w-16 text-center text-primary">
               &lt; -3.5%
             </span>
           </div>
@@ -615,11 +614,11 @@ export default function FullPriceMap() {
               title="Normal / Berimbang (±1.5%)"
             />
             <div
-              className="w-14 sm:w-16 bg-[#10b981] transition-opacity hover:opacity-90"
+              className="w-14 sm:w-16 bg-[#2f8208] transition-opacity hover:opacity-90"
               title="Surplus (-1.0% s/d -3.5%)"
             />
             <div
-              className="w-14 sm:w-16 bg-[#059669] transition-opacity hover:opacity-90"
+              className="w-14 sm:w-16 bg-[#0d5907] transition-opacity hover:opacity-90"
               title="Surplus Kuat (< -3.5%)"
             />
           </div>
@@ -751,7 +750,7 @@ export default function FullPriceMap() {
                   className={
                     hoveredItem.percentageDiff > 0
                       ? "text-amber-600 font-semibold"
-                      : "text-emerald-600 font-semibold"
+                      : "text-primary font-semibold"
                   }
                 >
                   {hoveredItem.percentageDiff > 0 ? "+" : ""}
@@ -908,7 +907,7 @@ export default function FullPriceMap() {
                   className={
                     provincePriceData.percentageDiff > 0
                       ? "text-amber-600 dark:text-amber-400 font-bold"
-                      : "text-emerald-600 dark:text-emerald-400 font-bold"
+                      : "text-primary font-bold"
                   }
                 >
                   {provincePriceData.percentageDiff > 0 ? "+" : ""}
@@ -965,7 +964,7 @@ export default function FullPriceMap() {
                   {/* Tingkat Petani */}
                   <div className="p-3 rounded-xl border border-border/80 bg-card flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
                         <Wheat className="w-4 h-4" />
                       </div>
                       <div>
@@ -1075,9 +1074,9 @@ export default function FullPriceMap() {
                 ? fairPriceHref
                 : `/masuk?redirect=${encodeURIComponent(fairPriceHref)}`;
               return (
-                <Button
+                <ButtonLink
                   className="w-full gap-2 font-semibold text-xs h-10 cursor-pointer"
-                  render={<Link href={targetHref} />}
+                  href={targetHref}
                 >
                   <span>
                     {currentUser
@@ -1085,7 +1084,7 @@ export default function FullPriceMap() {
                       : "Masuk untuk Simulasi Harga Wajar"}
                   </span>
                   <ArrowRight className="w-3.5 h-3.5" />
-                </Button>
+                </ButtonLink>
               );
             })()}
           </div>

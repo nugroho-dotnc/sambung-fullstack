@@ -11,3 +11,9 @@ export const subscriptionSyncSchema = z
     orderId: z.string().trim().min(1).max(64).optional(),
   })
   .default({});
+
+export const subscriptionCancelSchema = z
+  .strictObject({
+    orderId: z.string().trim().min(1).max(64).optional(),
+  })
+  .default({});

@@ -14,7 +14,7 @@ import {
 import type { MidtransWebhookPayload } from "../payments/payments.schemas.ts";
 
 export const SUBSCRIPTION_PLAN_CODE = "pembeli_pro_30d";
-export const SUBSCRIPTION_PLAN_NAME = "Pembeli Pro";
+export const SUBSCRIPTION_PLAN_NAME = "Produsen Pro";
 export const SUBSCRIPTION_PRICE_IDR = 99_000;
 export const SUBSCRIPTION_DURATION_DAYS = 30;
 export const SUBSCRIPTION_DURATION_MS = SUBSCRIPTION_DURATION_DAYS * 86_400_000;
@@ -250,6 +250,35 @@ export async function applySubscriptionStatusTransition(
             lastSyncedAt: now,
           },
         });
+        const otherPaid = await tx.subscriptionPayment.findFirst({
+          where: {
+            accountId: current.accountId,
+            id: { not: current.id },
+            status: "paid",
+            periodEnd: { not: null },
+          },
+          orderBy: { periodEnd: "desc" },
+          select: { periodEnd: true },
+        });
+        const nextProExpiresAt = otherPaid?.periodEnd ?? null;
+        await tx.account.update({
+          where: { id: current.accountId },
+          data: {
+            proExpiresAt: nextProExpiresAt,
+            proReminderSentAt: null,
+          },
+        });
+        await tx.notification.create({
+          data: {
+            accountId: current.accountId,
+            type: "sistem",
+            title: "Pengembalian Dana Langganan Diproses",
+            description: nextProExpiresAt
+              ? `Pengembalian dana transaksi ${current.orderId} telah diproses. Masa aktif Produsen Pro Anda disesuaikan kembali hingga ${formatDateIndonesian(nextProExpiresAt)}.`
+              : `Pengembalian dana transaksi ${current.orderId} telah diproses dan status akun Anda kembali ke Paket Gratis.`,
+            linkHref: "/langganan",
+          },
+        });
         await tx.auditLog.create({
           data: {
             actorRole: "sistem",
@@ -263,7 +292,7 @@ export async function applySubscriptionStatusTransition(
         return {
           row: refunded,
           transitionedToPaid: false,
-          proExpiresAt: current.account.proExpiresAt,
+          proExpiresAt: nextProExpiresAt,
         };
       }
 
@@ -317,8 +346,8 @@ export async function applySubscriptionStatusTransition(
         data: {
           accountId: current.accountId,
           type: "sistem",
-          title: "Langganan Pembeli Pro Aktif",
-          description: `Paket Pembeli Pro aktif hingga ${formatDateIndonesian(periodEnd)}. Nikmati diskon biaya layanan escrow 0,25%, riwayat harga lengkap 2019–sekarang + CSV, dan Prakiraan AI penuh.`,
+          title: "Produsen Pro Anda Sudah Aktif",
+          description: `Paket Produsen Pro aktif hingga ${formatDateIndonesian(periodEnd)}. Sekarang Anda mendapat diskon biaya layanan transaksi 0,25%, riwayat harga sejak 2019 + unduh CSV, dan perkiraan harga semua provinsi.`,
           linkHref: "/langganan",
         },
       });
@@ -372,7 +401,7 @@ export async function applySubscriptionStatusTransition(
 }
 
 /**
- * Initiates or reuses a Midtrans Sandbox Snap checkout session for the 30-day Pembeli Pro package.
+ * Initiates or reuses a Midtrans Sandbox Snap checkout session for the 30-day Produsen Pro package.
  */
 export async function checkoutSubscription(
   db: PrismaClient,
@@ -383,7 +412,7 @@ export async function checkoutSubscription(
     throw new ApiError(
       403,
       "FORBIDDEN",
-      "Paket Pembeli Pro hanya tersedia untuk akun Pembeli / Penggilingan."
+      "Paket Produsen Pro hanya tersedia untuk akun Produsen / Penggilingan."
     );
   }
 
@@ -421,7 +450,7 @@ export async function checkoutSubscription(
               throw new ApiError(
                 409,
                 "PAYMENT_IN_PROGRESS",
-                "Permintaan sesi pembayaran langganan sedang diproses. Silakan tunggu sebentar lalu muat ulang."
+                "Tagihan pembayaran Anda sedang disiapkan. Tunggu beberapa detik lalu muat ulang halaman."
               );
             }
             await tx.subscriptionPayment.update({
@@ -478,7 +507,7 @@ export async function checkoutSubscription(
         throw new ApiError(
           409,
           "PAYMENT_IN_PROGRESS",
-          "Sesi pembayaran langganan sedang diproses. Silakan coba beberapa saat lagi."
+          "Tagihan pembayaran Anda sedang disiapkan. Tunggu beberapa detik lalu muat ulang halaman."
         );
       }
       throw error;
@@ -511,7 +540,7 @@ export async function checkoutSubscription(
         throw new ApiError(
           409,
           "ALREADY_SETTLED",
-          "Pembayaran langganan sebelumnya baru saja terkonfirmasi lunas di Midtrans Sandbox."
+          "Pembayaran langganan sebelumnya baru saja tercatat lunas."
         );
       }
       if (mapped.status === "pending" && (recreate || step.isExpired)) {
@@ -560,7 +589,7 @@ export async function checkoutSubscription(
           id: SUBSCRIPTION_PLAN_CODE,
           price: reserved.amount,
           quantity: 1,
-          name: "Langganan SAMBUNG Pembeli Pro (30 Hari)",
+          name: "Langganan SAMBUNG Produsen Pro (30 Hari)",
         },
       ],
       customer: {
@@ -591,7 +620,7 @@ export async function checkoutSubscription(
           action: "SUBSCRIPTION_CHECKOUT_INITIATED",
           targetType: "subscription",
           targetId: updated.id,
-          details: `Membuat sesi pembayaran langganan Pembeli Pro ${reserved.orderId} (Rp${reserved.amount.toLocaleString("id-ID")}).`,
+          details: `Membuat sesi pembayaran langganan Produsen Pro ${reserved.orderId} (Rp${reserved.amount.toLocaleString("id-ID")}).`,
         },
       });
       return updated;
@@ -628,7 +657,7 @@ export async function syncSubscriptionPayment(
     throw new ApiError(
       403,
       "FORBIDDEN",
-      "Paket Pembeli Pro hanya tersedia untuk akun Pembeli / Penggilingan."
+      "Paket Produsen Pro hanya tersedia untuk akun Produsen / Penggilingan."
     );
   }
 
@@ -646,7 +675,7 @@ export async function syncSubscriptionPayment(
     throw new ApiError(
       404,
       "PAYMENT_NOT_FOUND",
-      "Belum ada riwayat tagihan langganan Pembeli Pro yang dibuat."
+      "Belum ada tagihan langganan Produsen Pro yang dibuat."
     );
   }
 
@@ -699,6 +728,110 @@ export async function syncSubscriptionPayment(
 }
 
 /**
+ * Explicitly cancels a buyer's pending Produsen Pro checkout session after reconciling remote Midtrans status.
+ */
+export async function cancelPendingSubscription(
+  db: PrismaClient,
+  actor: SubscriptionActor,
+  options: { orderId?: string } = {}
+) {
+  if (actor.role !== "pembeli") {
+    throw new ApiError(
+      403,
+      "FORBIDDEN",
+      "Paket Produsen Pro hanya tersedia untuk akun Produsen / Penggilingan."
+    );
+  }
+
+  const config = readMidtransConfig();
+  const targetRow = await db.subscriptionPayment.findFirst({
+    where: {
+      accountId: actor.id,
+      status: "pending",
+      ...(options.orderId ? { orderId: options.orderId } : {}),
+    },
+    orderBy: { attempt: "desc" },
+  });
+
+  if (!targetRow) {
+    throw new ApiError(
+      404,
+      "PAYMENT_NOT_FOUND",
+      "Tidak ada tagihan langganan menunggu bayar yang dapat dibatalkan."
+    );
+  }
+
+  const remote = await fetchTransactionStatus(config, targetRow.orderId);
+  if (remote.found) {
+    const mapped = mapMidtransStatus(
+      String(remote.data.transaction_status ?? "pending"),
+      typeof remote.data.fraud_status === "string" ? remote.data.fraud_status : null
+    );
+    if (mapped.status === "paid") {
+      await applySubscriptionStatusTransition(db, targetRow.orderId, remote.data, "sync");
+      throw new ApiError(
+        409,
+        "ALREADY_SETTLED",
+        "Pembayaran langganan baru saja tercatat lunas."
+      );
+    }
+    if (mapped.status === "pending" && targetRow.snapToken) {
+      await cancelTransaction(config, targetRow.orderId);
+    }
+  } else if (targetRow.snapToken) {
+    await cancelTransaction(config, targetRow.orderId);
+  }
+
+  const now = new Date();
+  const updatedRow = await db.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "subscription_payment" WHERE id = ${targetRow.id}::uuid FOR UPDATE`;
+    const fresh = await tx.subscriptionPayment.findUnique({
+      where: { id: targetRow.id },
+      include: { account: { select: { name: true } } },
+    });
+    if (!fresh) {
+      throw new ApiError(404, "PAYMENT_NOT_FOUND", "Data tagihan langganan tidak ditemukan.");
+    }
+    if (fresh.status === "paid") {
+      throw new ApiError(
+        409,
+        "ALREADY_SETTLED",
+        "Pembayaran langganan baru saja tercatat lunas."
+      );
+    }
+    if (fresh.status !== "pending") {
+      return fresh;
+    }
+
+    const cancelled = await tx.subscriptionPayment.update({
+      where: { id: fresh.id },
+      data: {
+        status: "cancelled",
+        lastSyncedAt: now,
+      },
+    });
+    await tx.auditLog.create({
+      data: {
+        actorRole: actor.role,
+        actorName: fresh.account.name,
+        action: "SUBSCRIPTION_CANCELLED",
+        targetType: "subscription",
+        targetId: cancelled.id,
+        details: `Produsen membatalkan tagihan langganan Produsen Pro ${cancelled.orderId}.`,
+      },
+    });
+    return cancelled;
+  });
+
+  return {
+    subscription: await getSubscriptionMe(db, actor.id),
+    payment: presentSubscriptionPayment(updatedRow),
+    synced: true,
+    awaitingMethodSelection: false,
+  };
+}
+
+/**
  * Processes verified Midtrans Sandbox webhook payloads for subscription order IDs (SUBS-*).
  */
 export async function handleSubscriptionMidtransWebhook(
@@ -727,7 +860,7 @@ export async function handleSubscriptionMidtransWebhook(
 }
 
 /**
- * Sends a one-time notification when an active Pembeli Pro subscription has fewer than 7 days left.
+ * Sends a one-time notification when an active Produsen Pro subscription has fewer than 7 days left.
  */
 export async function sendSubscriptionExpiryReminders(
   db: PrismaClient,
@@ -771,8 +904,8 @@ export async function sendSubscriptionExpiryReminders(
         data: {
           accountId: buyer.id,
           type: "sistem",
-          title: "Masa Aktif Pembeli Pro Segera Berakhir",
-          description: `Langganan Pembeli Pro Anda tersisa ${remainingDays} hari (berakhir ${formatDateIndonesian(proExpiresAt)}). Perpanjang sekarang agar sisa hari tetap disambung +30 hari.`,
+          title: "Masa Aktif Produsen Pro Segera Berakhir",
+          description: `Langganan Produsen Pro Anda tersisa ${remainingDays} hari (berakhir ${formatDateIndonesian(proExpiresAt)}). Perpanjang sekarang agar sisa hari tetap utuh dan langsung ditambah 30 hari.`,
           linkHref: "/langganan",
         },
       });
@@ -781,6 +914,85 @@ export async function sendSubscriptionExpiryReminders(
     });
 
     if (claimed) sentCount += 1;
+  }
+
+  return sentCount;
+}
+
+/**
+ * Sends a one-time notice when a buyer's Produsen Pro period has expired within the last 30 days.
+ */
+export async function sendSubscriptionExpiredNotices(
+  db: PrismaClient,
+  now: Date = new Date()
+): Promise<number> {
+  const windowStart = new Date(now.getTime() - 30 * 86_400_000);
+  const expiredBuyers = await db.account.findMany({
+    where: {
+      role: "pembeli",
+      proExpiresAt: { lte: now, gte: windowStart },
+    },
+    select: {
+      id: true,
+      name: true,
+      proExpiresAt: true,
+    },
+  });
+
+  let sentCount = 0;
+  for (const buyer of expiredBuyers) {
+    if (!buyer.proExpiresAt) continue;
+    const sent = await db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "account" WHERE id = ${buyer.id}::uuid FOR UPDATE`;
+      const fresh = await tx.account.findUnique({
+        where: { id: buyer.id },
+        select: { id: true, name: true, role: true, proExpiresAt: true },
+      });
+      if (
+        !fresh ||
+        fresh.role !== "pembeli" ||
+        !fresh.proExpiresAt ||
+        fresh.proExpiresAt.getTime() > now.getTime()
+      ) {
+        return false;
+      }
+
+      const existingNotice = await tx.notification.findFirst({
+        where: {
+          accountId: fresh.id,
+          type: "sistem",
+          title: "Masa Aktif Produsen Pro Berakhir",
+          createdAt: { gte: fresh.proExpiresAt },
+        },
+        select: { id: true },
+      });
+      if (existingNotice) return false;
+
+      await tx.notification.create({
+        data: {
+          accountId: fresh.id,
+          type: "sistem",
+          title: "Masa Aktif Produsen Pro Berakhir",
+          description: `Masa aktif Produsen Pro Anda berakhir pada ${formatDateIndonesian(fresh.proExpiresAt)}. Akun kembali ke Paket Gratis dengan biaya layanan transaksi standar 0,5%.`,
+          linkHref: "/langganan",
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorRole: "sistem",
+          actorName: "Sistem Langganan",
+          action: "SUBSCRIPTION_EXPIRED",
+          targetType: "account",
+          targetId: fresh.id,
+          details: `Masa aktif Produsen Pro akun ${fresh.name} telah berakhir pada ${fresh.proExpiresAt.toISOString()}.`,
+        },
+      });
+
+      return true;
+    });
+
+    if (sent) sentCount += 1;
   }
 
   return sentCount;

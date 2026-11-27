@@ -1,12 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { User, Phone, MapPin, Building2, LogOut, Info, Crown } from "lucide-react";
 import { useCurrentUser, useLogout } from "@/features/auth/hooks/use-auth";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
@@ -103,8 +102,10 @@ export default function ProfilePage() {
                   <CardTitle className="text-sm font-bold">Status Langganan</CardTitle>
                   <CardDescription className="text-xs">
                     {isBuyerPro
-                      ? "Pembeli Pro aktif (biaya escrow 0,25%)."
-                      : "Paket Gratis (biaya escrow standar 0,5%)."}
+                      ? "Produsen Pro aktif (biaya layanan transaksi 0,25%)."
+                      : subQuery.data?.status === "expired"
+                      ? "Masa aktif Produsen Pro berakhir (biaya layanan kembali 0,5%)."
+                      : "Paket Gratis (biaya layanan transaksi 0,5%)."}
                   </CardDescription>
                 </div>
                 {isBuyerPro ? (
@@ -125,37 +126,34 @@ export default function ProfilePage() {
                       : ""}
                     .
                   </p>
+                ) : subQuery.data?.status === "expired" && proExpiresAt ? (
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Berakhir pada{" "}
+                    <strong className="text-foreground">
+                      {formatPaymentDateTime(proExpiresAt)}
+                    </strong>
+                    . Aktifkan lagi untuk membuka data harga penuh dan hemat 50% biaya layanan (Rp99.000/30 hari).
+                  </p>
                 ) : (
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Buka riwayat harga lengkap 2019–sekarang, CSV, Prakiraan AI penuh, dan diskon fee escrow 50% (Rp99.000/30 hari).
+                    Buka riwayat harga lengkap sejak 2019, unduh data tabel, perkiraan harga penuh, dan diskon biaya layanan 50% (Rp99.000/30 hari).
                   </p>
                 )}
-                <Button
-                  nativeButton={false}
-                  render={<Link href="/langganan" />}
+                <ButtonLink
+                  href="/langganan"
                   variant={isBuyerPro ? "outline" : "default"}
                   className="w-full min-h-10 text-xs font-semibold cursor-pointer"
                 >
                   <Crown className="w-3.5 h-3.5 mr-1.5" />
-                  {isBuyerPro ? "Kelola / Perpanjang Pro" : "Upgrade ke Pembeli Pro"}
-                </Button>
+                  {isBuyerPro
+                    ? "Kelola / Perpanjang Pro"
+                    : subQuery.data?.status === "expired"
+                    ? "Aktifkan Lagi Produsen Pro"
+                    : "Aktifkan Produsen Pro"}
+                </ButtonLink>
               </CardContent>
             </Card>
           )}
-
-          {/* Pengaturan Tampilan */}
-          <Card className="rounded-2xl border-border/80 shadow-xs">
-            <CardHeader className="p-5 pb-3">
-              <CardTitle className="text-sm font-bold">Preferensi Tampilan</CardTitle>
-              <CardDescription className="text-xs">
-                Sesuaikan mode tampilan layar agar nyaman digunakan saat di lapangan.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-5 pt-0 flex items-center justify-between">
-              <span className="text-xs font-medium text-foreground">Tema Aplikasi (Terang / Gelap)</span>
-              <ThemeToggle />
-            </CardContent>
-          </Card>
 
           {/* Sesi & Penutupan Akun */}
           <Card className="rounded-2xl border-border/80 shadow-xs">

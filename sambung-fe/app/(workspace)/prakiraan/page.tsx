@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Calendar, Info, ShieldCheck, AlertTriangle, Lock, Crown, ArrowUpRight, ArrowDownRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -14,12 +13,13 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox";
 import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { AsyncBoundary } from "@/components/shared/async-boundary";
@@ -152,20 +152,19 @@ export default function ForecastPage() {
             <div className="flex items-center gap-2 text-xs text-amber-950 dark:text-amber-200">
               <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
               <span>
-                Wilayah Domisili Anda:{" "}
+                Wilayah Asal Anda:{" "}
                 <strong className="font-bold">{province || "Indonesia"}</strong> ·
-                Pratinjau Paket Gratis (terbatas 1 provinsi).
+                Paket Gratis hanya menampilkan 1 wilayah.
               </span>
             </div>
-            <Button
-              nativeButton={false}
-              render={<Link href="/langganan" />}
+            <ButtonLink
+              href="/langganan?from=%2Fprakiraan"
               size="sm"
               className="min-h-8 text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white shrink-0 cursor-pointer"
             >
               <Crown className="w-3.5 h-3.5 mr-1.5" />
-              Buka Semua Provinsi (Pro)
-            </Button>
+              Lihat Semua Provinsi (Pro)
+            </ButtonLink>
           </div>
         ) : (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 mb-6">
@@ -174,24 +173,30 @@ export default function ForecastPage() {
             </span>
 
             <div className="w-full sm:w-80 shrink-0">
-              <Select
+              <Combobox
                 items={provinceOptions}
-                value={province || null}
-                onValueChange={(val) => {
-                  if (val) setSelectedProvince(val);
+                value={provinceOptions.find((opt) => opt.value === province) ?? null}
+                isItemEqualToValue={(item, val) => item.value === val.value}
+                itemToStringLabel={(opt) => opt.label}
+                onValueChange={(opt) => {
+                  if (opt) setSelectedProvince(opt.value);
                 }}
               >
-                <SelectTrigger className="w-full h-9 rounded-lg border border-input bg-background px-3 text-xs font-semibold text-foreground shadow-2xs">
-                  <SelectValue placeholder={`Pilih dari ${allProvinces.length} Provinsi`} />
-                </SelectTrigger>
-                <SelectContent>
-                  {provinceOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <ComboboxInput
+                  placeholder={`Pilih dari ${allProvinces.length} Provinsi`}
+                  className="w-full h-9 rounded-lg bg-background text-xs font-semibold text-foreground shadow-2xs"
+                />
+                <ComboboxContent>
+                  <ComboboxEmpty>Provinsi tidak ditemukan.</ComboboxEmpty>
+                  <ComboboxList>
+                    {(opt: { value: string; label: string }) => (
+                      <ComboboxItem key={opt.value} value={opt}>
+                        {opt.label}
+                      </ComboboxItem>
+                    )}
+                  </ComboboxList>
+                </ComboboxContent>
+              </Combobox>
             </div>
           </div>
         ))}
@@ -260,9 +265,9 @@ export default function ForecastPage() {
                 {/* ADAPTIVE HERO DISPLAY */}
                 {isFarmer ? (
                   <div className="space-y-3.5">
-                    <div className="p-5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 space-y-3">
+                    <div className="p-5 rounded-xl bg-primary/10 border border-primary/20 space-y-3">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-emerald-800 dark:text-emerald-300 font-bold uppercase tracking-wider">
+                        <span className="text-primary font-bold uppercase tracking-wider">
                           Estimasi Gabah Kering Panen (GKP) Utama
                         </span>
                         <span className="text-[11px] bg-background px-2.5 py-0.5 rounded-md border border-border/60 font-semibold tabular-nums text-foreground">
@@ -271,7 +276,7 @@ export default function ForecastPage() {
                       </div>
 
                       <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
-                        <p className="text-3xl sm:text-4xl font-extrabold font-display tabular-nums text-emerald-700 dark:text-emerald-400">
+                        <p className="text-3xl sm:text-4xl font-extrabold font-display tabular-nums text-primary">
                           {formatRupiah(activeForecast.gkpEstimate)}
                           <span className="text-xs font-normal text-muted-foreground font-sans ml-1.5">
                             / kg gabah
@@ -299,7 +304,7 @@ export default function ForecastPage() {
                         <span className="text-muted-foreground block text-[11px]">
                           Rentang Wajar Pasar (80%)
                         </span>
-                        <span className="font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums">
+                        <span className="font-semibold text-primary tabular-nums">
                           {formatRupiah(activeForecast.confidenceInterval80[0])} –{" "}
                           {formatRupiah(activeForecast.confidenceInterval80[1])}
                         </span>
@@ -315,7 +320,7 @@ export default function ForecastPage() {
                             ? "Acuan Harga Pekan Terakhir"
                             : "Perkiraan Harga Utama Beras"}
                         </span>
-                        <span className="text-emerald-700 dark:text-emerald-400 font-semibold">
+                        <span className="text-primary font-semibold">
                           Rentang Wajar Pasar (80%)
                         </span>
                       </div>
@@ -370,7 +375,7 @@ export default function ForecastPage() {
 
                 <div className="flex items-center justify-between pt-1 text-[11px] text-muted-foreground border-t border-border/50">
                   <div className="flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <ShieldCheck className="w-3.5 h-3.5 text-primary shrink-0" />
                     <span>
                       {isFarmer
                         ? "Taksiran resmi BPS & Bapanas tanpa potongan rafaksi (HPP Aktif 2026)."
@@ -432,20 +437,19 @@ export default function ForecastPage() {
                   <div className="p-5 rounded-xl border border-amber-300/70 bg-amber-50/70 dark:bg-amber-950/30 dark:border-amber-800 space-y-3">
                     <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-bold text-xs">
                       <Lock className="w-4 h-4 shrink-0" />
-                      <span>Rincian Faktor Penggerak Tersedia di Pembeli Pro</span>
+                      <span>Penyebab Naik-Turunnya Harga Tersedia di Produsen Pro</span>
                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      Paket Pembeli Gratis hanya menampilkan ringkasan proyeksi harga di provinsi domisili. Aktifkan Pembeli Pro untuk melihat bobot faktor cuaca, musim panen, sentra lain, dan HPP di seluruh provinsi.
+                      Paket Gratis hanya menampilkan perkiraan angka harga di wilayah asal Anda. Aktifkan Produsen Pro untuk melihat penyebab pergerakan harga (cuaca, musim panen, wilayah sentra lain, dan HPP) di seluruh Indonesia.
                     </p>
-                    <Button
-                      nativeButton={false}
-                      render={<Link href="/langganan" />}
+                    <ButtonLink
+                      href="/langganan?from=%2Fprakiraan"
                       size="sm"
                       className="w-full min-h-9 text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white cursor-pointer"
                     >
                       <Crown className="w-3.5 h-3.5 mr-1.5" />
-                      Upgrade Pembeli Pro — Rp99.000/30 hari
-                    </Button>
+                      Aktifkan Produsen Pro — Rp99.000/30 hari
+                    </ButtonLink>
                   </div>
                 ) : activeForecast.isFallback ? (
                   <div className="p-5 rounded-xl border border-amber-300/70 bg-amber-50/70 dark:bg-amber-950/30 dark:border-amber-800 space-y-2.5">
@@ -466,14 +470,14 @@ export default function ForecastPage() {
                   <>
                     <p className="text-xs text-muted-foreground leading-relaxed">
                       Faktor penentu tren: tanda (
-                      <ArrowUpRight className="inline w-3.5 h-3.5 text-emerald-600 align-text-bottom" aria-hidden="true" />
+                      <ArrowUpRight className="inline w-3.5 h-3.5 text-primary align-text-bottom" aria-hidden="true" />
                       <span className="sr-only">naik</span>) mendorong penguatan harga, sedangkan (
                       <ArrowDownRight className="inline w-3.5 h-3.5 text-amber-600 align-text-bottom" aria-hidden="true" />
                       <span className="sr-only">turun</span>) menahan kenaikan harga pasar.
                     </p>
                     <ShapWaterfall factors={activeForecast.shapContributions} userRole={user?.role} />
                     <div className="pt-2 border-t border-border/50 flex items-center gap-2 text-[11px] text-muted-foreground">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <ShieldCheck className="w-3.5 h-3.5 text-primary shrink-0" />
                       <span>Sumber: PIHPS BI, BPS, Bapanas, dan BMKG/ERA5.</span>
                     </div>
                   </>

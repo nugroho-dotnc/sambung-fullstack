@@ -5,7 +5,7 @@ import { Bell, Crown, LogOut, User } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,9 +27,9 @@ export default function TopBar() {
   const getRoleBadge = (role?: string) => {
     switch (role) {
       case "petani":
-        return <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-xs">Petani</Badge>;
+        return <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 text-xs">Petani</Badge>;
       case "pembeli":
-        return <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30 text-xs">Pembeli</Badge>;
+        return <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30 text-xs">Produsen</Badge>;
       case "admin":
         return (
           <Badge
@@ -78,21 +78,21 @@ export default function TopBar() {
           <ThemeToggle />
 
           {/* Notifikasi In-App */}
-          <Button
+          <ButtonLink
             variant="ghost"
             size="icon"
             className="w-10 h-10 rounded-full relative cursor-pointer hover:bg-muted active:scale-95 transition-all"
-            nativeButton={false}
-            render={<Link href="/notifikasi" aria-label="Notifikasi transaksi" />}
+            href="/notifikasi"
+            aria-label="Notifikasi transaksi"
           >
             <Bell className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" aria-hidden="true" />
             <span
               aria-hidden="true"
               className={`absolute top-2 right-2 w-2 h-2 rounded-full ${
-                isAdmin ? "admin-live-dot bg-[#78B000]" : "bg-emerald-600 animate-pulse"
+                isAdmin ? "admin-live-dot bg-[#78B000]" : "bg-primary animate-pulse"
               }`}
             />
-          </Button>
+          </ButtonLink>
 
           {/* User Profile Dropdown Menu (Tanpa Role Switcher!) */}
           <DropdownMenu>
@@ -150,7 +150,7 @@ export default function TopBar() {
                   render={<Link href="/langganan" />}
                 >
                   <Crown className="w-4 h-4 text-amber-500" />
-                  <span>{isBuyerPro ? "Kelola Pembeli Pro" : "Langganan Pembeli Pro"}</span>
+                  <span>{isBuyerPro ? "Kelola Paket Pro" : "Aktifkan Produsen Pro"}</span>
                 </DropdownMenuItem>
               )}
 

@@ -1,8 +1,7 @@
-import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button";
 import { AuthAwareLinkButton } from "@/features/auth/components/auth-aware-link-button";
 import { ArrowRight } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 
 export default function HeroSection() {
     return (
@@ -36,7 +35,7 @@ export default function HeroSection() {
 
                 <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto sm:mx-0 leading-relaxed">
                     Platform transaksi digital yang mempertemukan Kelompok Tani dengan Pabrik Penggilingan melalui
-                    acuan rentang harga wajar dan komitmen pasokan digital bebas komisi.
+                    acuan rentang harga wajar dan komitmen pasokan yang aman tanpa potongan hasil panen bagi petani.
                 </p>
 
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 pt-2">
@@ -49,14 +48,14 @@ export default function HeroSection() {
                         trailingIcon={<ArrowRight className="w-4 h-4 ml-2" />}
                     />
 
-                    <Button
+                    <ButtonLink
                         variant="outline"
                         size="lg"
                         className="min-h-12 px-6 text-base font-medium cursor-pointer bg-brand-cream text-black backdrop-blur-xs "
-                        render={<Link href="/peta-harga" />}
+                        href="/peta-harga"
                     >
                         Jelajahi Peta & Papan Harga
-                    </Button>
+                    </ButtonLink>
                 </div>
             </div>
         </section>

@@ -16,7 +16,7 @@ export const verifySchema = requestSchema.extend({
 });
 
 export const registerSchema = requestSchema.extend({
-  role: z.enum(["petani", "pembeli"], { message: "Pilih peran akun sebagai Petani atau Pembeli." }),
+  role: z.enum(["petani", "pembeli"], { message: "Pilih peran akun sebagai Petani atau Produsen." }),
   agreedToTerms: z.literal(true, { message: "Anda harus menyetujui ketentuan layanan terlebih dahulu." }),
   name: z.string().trim().min(2, "Nama lengkap minimal 2 karakter.").max(200, "Nama lengkap maksimal 200 karakter."),
   province: location,

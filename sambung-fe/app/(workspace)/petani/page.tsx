@@ -1,11 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo } from "react";
 import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PlusCircle, ArrowRight, Info } from "lucide-react";
 import { useCurrentUser } from "@/features/auth/hooks/use-auth";
@@ -45,10 +44,10 @@ export default function FarmerDashboardPage() {
         title="Beranda Petani"
         description={`Selamat datang kembali, ${user?.name || "Bapak/Ibu Petani"}. Pantau acuan harga wajar gabah di wilayah Anda dan kelola penawaran hasil panen dengan mudah.`}
         actions={
-          <Button className="min-h-11 font-semibold cursor-pointer" render={<Link href="/petani/jual" />}>
+          <ButtonLink className="min-h-11 font-semibold cursor-pointer" href="/petani/jual">
             <PlusCircle className="w-4 h-4 mr-2" />
             Jual Hasil Panen Baru
-          </Button>
+          </ButtonLink>
         }
       />
 
@@ -58,7 +57,7 @@ export default function FarmerDashboardPage() {
           <CardHeader className="p-5 pb-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-muted-foreground">Tawaran Panen Aktif</span>
-              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-xs">
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 text-xs">
                 {offers.filter((o) => o.status === "published").length} Terbit di Pasar
               </Badge>
             </div>
@@ -88,7 +87,7 @@ export default function FarmerDashboardPage() {
               </div>
             ) : priceRef ? (
               <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
-                <span className="text-xl sm:text-2xl font-extrabold font-display text-emerald-700 dark:text-emerald-400 tabular-nums tracking-tight">
+                <span className="text-xl sm:text-2xl font-extrabold font-display text-primary tabular-nums tracking-tight">
                   Rp{priceRef.lowerBound.toLocaleString("id-ID")} – Rp{priceRef.upperBound.toLocaleString("id-ID")}
                 </span>
                 <span className="text-xs font-normal text-muted-foreground font-sans">/kg</span>
@@ -134,13 +133,13 @@ export default function FarmerDashboardPage() {
             </p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
-            <Button variant="outline" className="min-h-11 cursor-pointer" render={<Link href="/petani/tawaran" />}>
+            <ButtonLink variant="outline" className="min-h-11 cursor-pointer" href="/petani/tawaran">
               Lihat Tawaran Saya
-            </Button>
-            <Button className="min-h-11 font-semibold cursor-pointer" render={<Link href="/petani/jual" />}>
+            </ButtonLink>
+            <ButtonLink className="min-h-11 font-semibold cursor-pointer" href="/petani/jual">
               Mulai Jual Panen
               <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+            </ButtonLink>
           </div>
         </div>
       </Card>

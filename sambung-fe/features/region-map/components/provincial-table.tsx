@@ -183,7 +183,7 @@ export function ProvincialTable({
                     onClick={() => onSelectProvince?.(item.province)}
                     className={`hover:bg-muted/40 cursor-pointer transition-colors ${
                       isSelected
-                        ? "bg-emerald-50 dark:bg-emerald-950/40"
+                        ? "bg-primary/10"
                         : ""
                     }`}
                   >
@@ -193,7 +193,7 @@ export function ProvincialTable({
                     <td className="p-3.5 font-bold text-foreground">
                       <div className="flex items-center gap-2">
                         {isSelected && (
-                          <span className="w-2 h-2 rounded-full bg-emerald-600 shrink-0" />
+                          <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
                         )}
                         <span>{item.province}</span>
                       </div>
@@ -208,7 +208,7 @@ export function ProvincialTable({
                       <span
                         className={
                           item.percentageDiff < 0
-                            ? "text-emerald-700 dark:text-emerald-400"
+                            ? "text-primary"
                             : item.percentageDiff > 0
                             ? "text-amber-700 dark:text-amber-400"
                             : "text-muted-foreground"
@@ -223,7 +223,7 @@ export function ProvincialTable({
                       <span
                         className={`inline-block px-2.5 py-0.5 rounded-md text-xs font-bold ${
                           item.percentageDiff < -3.5
-                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                            ? "bg-primary/15 text-primary"
                             : item.percentageDiff > 5.0
                             ? "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300"
                             : item.percentageDiff > 1.5

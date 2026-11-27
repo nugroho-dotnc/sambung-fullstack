@@ -17,7 +17,14 @@ export function forecastRouter(db?: PrismaClient) {
     const query = forecastQuerySchema.parse(req.query);
     if (db) {
       const actor = await resolveOptionalActor(db, req);
-      if (actor?.role === "pembeli" && !isBuyerPro(actor)) {
+      if (!actor) {
+        throw new ApiError(
+          401,
+          "UNAUTHENTICATED",
+          "Masuk terlebih dahulu untuk melihat prakiraan harga AI."
+        );
+      }
+      if (actor.role === "pembeli" && !isBuyerPro(actor)) {
         const forecastMeta = await getForecastMeta();
         const actorProvNorm = actor.province.trim().toLowerCase();
         const matchedProvince = forecastMeta.allProvinces.find(
@@ -34,7 +41,7 @@ export function forecastRouter(db?: PrismaClient) {
           throw new ApiError(
             403,
             "SUBSCRIPTION_REQUIRED",
-            "Prakiraan tren lintas provinsi hanya tersedia untuk paket Pembeli Pro."
+            "Perkiraan harga untuk provinsi lain hanya tersedia untuk anggota Produsen Pro."
           );
         }
 

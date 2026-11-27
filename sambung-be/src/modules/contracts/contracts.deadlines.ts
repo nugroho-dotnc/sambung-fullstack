@@ -223,7 +223,7 @@ export async function cancelUnshippedPaidContracts(
             accountId: row.offer.ownerId,
             type: "kontrak",
             title: "Kontrak Dibatalkan — Tenggat Pengiriman 7 Hari Lewat",
-            description: `${SHIPPING_OVERDUE_CANCEL_REASON} Dana escrow pembeli ditandai untuk pengembalian oleh pengawas.`,
+            description: `${SHIPPING_OVERDUE_CANCEL_REASON} Dana escrow produsen ditandai untuk pengembalian oleh pengawas.`,
             linkHref: `/kontrak/${row.id}`,
             contractId: row.id,
           },
@@ -335,7 +335,7 @@ export async function autoCompleteAndReleaseShippedContracts(
             type: "kontrak",
             title: "Transaksi Selesai & Dana Escrow Dicairkan Otomatis",
             description:
-              "Batas konfirmasi 5 hari pengiriman telah berakhir tanpa keberatan pembeli. Transaksi dinyatakan selesai dan dana escrow dicairkan.",
+              "Batas konfirmasi 5 hari pengiriman telah berakhir tanpa keberatan produsen. Transaksi dinyatakan selesai dan dana escrow dicairkan.",
             linkHref: `/kontrak/${row.id}/bukti`,
             contractId: row.id,
           },
