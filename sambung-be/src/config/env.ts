@@ -25,7 +25,8 @@ const configuration = z.object({
       return origins.length > 0 && origins.every(isValidOriginUrl);
     }),
   PORT: z.coerce.number().int().min(0).max(65535).default(4000),
-  OTP_MODE: z.literal("demo"),
+  OTP_MODE: z.enum(["demo", "live"]).default("demo"),
+  FONNTE_TOKEN: z.string().optional(),
   NODE_ENV: z.string().optional().refine((value) => value !== "production"),
   CONSENT_VERSION: z.string().min(1).default("demo-v1"),
 });
