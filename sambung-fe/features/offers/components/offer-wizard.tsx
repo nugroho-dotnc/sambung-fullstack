@@ -6,7 +6,7 @@ import { useOffer } from "../hooks/use-offers";
 import { offerRequestId } from "../services/request-id";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { CheckCircle2, ChevronRight, ArrowLeft, ShieldCheck, Info, Loader2, InfoIcon } from "lucide-react";
+import { Check, CheckCircle2, ChevronRight, ArrowLeft, ShieldCheck, Info, Loader2, InfoIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -512,7 +512,7 @@ function WizardForm({
                   : "bg-muted text-foreground border border-border/80"
               }`}
             >
-              {step > item.num ? "✓" : item.num}
+              {step > item.num ? <Check className="size-3.5 stroke-[2.5]" aria-hidden="true" /> : item.num}
             </span>
             <span className="truncate font-semibold">{item.label}</span>
           </div>

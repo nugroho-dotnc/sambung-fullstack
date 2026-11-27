@@ -5,6 +5,7 @@ import { authService } from "./auth.service.ts";
 import { sessionHash } from "./session.ts";
 import { ApiError } from "../../shared/api-error.ts";
 import { getOtpSender } from "./otp/otp-factory.ts";
+import { enforceOtpIpRateLimit } from "./otp/otp-rate-limit.ts";
 
 export function authRouter(db: PrismaClient, secure: boolean, consentVersion: string) {
   const router = Router();
@@ -32,6 +33,7 @@ export function authRouter(db: PrismaClient, secure: boolean, consentVersion: st
     res.json({ otpMode: sender.mode });
   });
   router.post("/otp/request", async (req, res) => {
+    enforceOtpIpRateLimit(req);
     const input = requestSchema.safeParse(req.body);
     if (!input.success) throw new ApiError(422, "INVALID_PHONE", "Masukkan nomor ponsel Indonesia yang valid.");
     

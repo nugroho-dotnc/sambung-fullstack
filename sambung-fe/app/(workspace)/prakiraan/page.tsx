@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Calendar, Info, ShieldCheck, AlertTriangle } from "lucide-react";
+import { Calendar, Info, ShieldCheck, AlertTriangle, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -153,7 +153,7 @@ export default function ForecastPage() {
           <div className="w-full sm:w-80 shrink-0">
             <Select
               items={provinceOptions}
-              value={province || undefined}
+              value={province || null}
               onValueChange={(val) => {
                 if (val) setSelectedProvince(val);
               }}
@@ -423,7 +423,11 @@ export default function ForecastPage() {
                 ) : (
                   <>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      Faktor penentu tren: tanda (↑) mendorong penguatan harga, sedangkan (↓) menahan kenaikan harga pasar.
+                      Faktor penentu tren: tanda (
+                      <ArrowUpRight className="inline w-3.5 h-3.5 text-emerald-600 align-text-bottom" aria-hidden="true" />
+                      <span className="sr-only">naik</span>) mendorong penguatan harga, sedangkan (
+                      <ArrowDownRight className="inline w-3.5 h-3.5 text-amber-600 align-text-bottom" aria-hidden="true" />
+                      <span className="sr-only">turun</span>) menahan kenaikan harga pasar.
                     </p>
                     <ShapWaterfall factors={activeForecast.shapContributions} userRole={user?.role} />
                     <div className="pt-2 border-t border-border/50 flex items-center gap-2 text-[11px] text-muted-foreground">

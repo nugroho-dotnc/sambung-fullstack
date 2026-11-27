@@ -4,6 +4,44 @@ import { handleOfferRequest } from "./offers";
 import { handleContractRequest } from "./contracts.handler";
 import { handleCatalogRequest } from "./catalog.handler";
 import { handleAdminRequest } from "./admin.handler";
+import { INDONESIA_REGIONS } from "@/features/regions/regions-catalog";
+
+function queryRegions(path: string) {
+  const url = new URL(`http://localhost${path}`);
+  const level = url.searchParams.get("level");
+  const parentId = url.searchParams.get("parentId");
+  const all = new Map<
+    string,
+    { id: string; name: string; level: string; parentId: string | null; province: string; regency: string }
+  >();
+  for (const row of INDONESIA_REGIONS) {
+    all.set(`provinsi:${row.province}`, {
+      ...row,
+      id: row.province,
+      name: row.province,
+      level: "provinsi",
+      parentId: null,
+    });
+    all.set(`kabupaten:${row.province}:${row.regency}`, {
+      ...row,
+      id: row.regency,
+      name: row.regency,
+      level: "kabupaten",
+      parentId: row.province,
+    });
+    all.set(`kecamatan:${row.id}`, {
+      ...row,
+      name: row.id,
+      level: "kecamatan",
+      parentId: row.regency,
+    });
+  }
+  return {
+    data: Array.from(all.values()).filter(
+      (r) => (!level || r.level === level) && (!parentId || r.parentId === parentId)
+    ),
+  };
+}
 
 /**
  * Central mock router for the SAMBUNG frontend transport layer.
@@ -36,6 +74,10 @@ export async function mockRouter(
 
   if (path.startsWith("/catalog")) {
     return handleCatalogRequest(path, method);
+  }
+
+  if (path.startsWith("/regions") && method === "GET") {
+    return queryRegions(path);
   }
 
   throw new ApiError(`Rute mock '${path}' [${method}] belum diimplementasikan.`, 404, "NOT_FOUND");

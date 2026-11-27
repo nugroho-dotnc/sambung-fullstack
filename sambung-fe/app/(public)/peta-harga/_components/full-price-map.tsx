@@ -928,7 +928,9 @@ export default function FullPriceMap() {
                     <span>Transmisi Rantai Pasok</span>
                   </div>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
-                    Transmisi 1 kg setara Beras Medium I (petani → eceran)
+                    Transmisi 1 kg setara Beras Medium I (petani{" "}
+                    <ArrowRight className="inline w-3 h-3 mx-0.5 align-text-bottom" aria-hidden="true" />
+                    <span className="sr-only">ke</span> eceran)
                   </p>
                 </div>
                 {provincePriceData.hasBoard && (

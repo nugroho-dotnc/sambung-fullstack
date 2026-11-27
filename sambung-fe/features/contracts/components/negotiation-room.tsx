@@ -6,6 +6,7 @@ import { IS_MOCK_DATA } from "@/lib/config/fe-mode";
 import {
   ArrowLeft,
   Clock,
+  Check,
   CheckCircle2,
   Lock,
   Phone,
@@ -654,18 +655,30 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
                     </span>
                   </div>
                   <div className="space-y-1.5 pt-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">Pihak Petani:</span>
-                      <span className={contract.farmerSignature ? "text-emerald-700 dark:text-emerald-400 font-medium" : "text-amber-700 dark:text-amber-400 font-medium"}>
-                        {contract.farmerSignature ? "✓ Sudah Tanda Tangan" : "Belum Tanda Tangan"}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">Pihak Pembeli:</span>
-                      <span className={contract.buyerSignature ? "text-emerald-700 dark:text-emerald-400 font-medium" : "text-amber-700 dark:text-amber-400 font-medium"}>
-                        {contract.buyerSignature ? "✓ Sudah Tanda Tangan" : "Belum Tanda Tangan"}
-                      </span>
-                    </div>
+                    {[
+                      { label: "Pihak Petani:", signed: Boolean(contract.farmerSignature) },
+                      { label: "Pihak Pembeli:", signed: Boolean(contract.buyerSignature) },
+                    ].map((party) => (
+                      <div key={party.label} className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">{party.label}</span>
+                        <span
+                          className={
+                            party.signed
+                              ? "inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-medium"
+                              : "text-amber-700 dark:text-amber-400 font-medium"
+                          }
+                        >
+                          {party.signed ? (
+                            <>
+                              <Check className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                              <span>Sudah Tanda Tangan</span>
+                            </>
+                          ) : (
+                            "Belum Tanda Tangan"
+                          )}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
@@ -682,8 +695,11 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
                     {isMobile ? "Tandatangani Kontrak" : "Tandatangani Surat Kesepakatan"}
                   </Button>
                 ) : (
-                  <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 text-xs text-emerald-800 dark:text-emerald-200 text-center font-medium">
-                    ✓ Anda telah membubuhkan tanda tangan. Menunggu tanda tangan dari {partnerRole}.
+                  <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 text-xs text-emerald-800 dark:text-emerald-200 font-medium flex items-center justify-center gap-1.5 text-center">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" aria-hidden="true" />
+                    <span>
+                      Anda telah membubuhkan tanda tangan. Menunggu tanda tangan dari {partnerRole}.
+                    </span>
                   </div>
                 )}
 

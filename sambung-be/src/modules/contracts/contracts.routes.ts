@@ -18,6 +18,9 @@ export function contractRouter(db:PrismaClient) {
   router.get("/:id",async(req,res)=>res.json({data:await detail(db,res.locals.actor,z.uuid().parse(req.params.id))}));
   router.post("/",async(req,res)=>res.status(201).json({data:await command(db,res.locals.actor,"order",undefined,req.body,req.get("Idempotency-Key")??"")}));
   router.post("/:id/:action",async(req,res)=>{
+    if(req.params.action==="confirm") {
+      throw new ApiError(410,"LEGACY_ACTION_DISABLED","Konfirmasi langsung telah dinonaktifkan. Lanjutkan melalui tanda tangan kontrak, pembayaran escrow, pengiriman, dan penerimaan barang.");
+    }
     const action=actionSchema.exclude(["order"]).parse(req.params.action);
     res.json({data:await command(db,res.locals.actor,action,z.uuid().parse(req.params.id),req.body,req.get("Idempotency-Key")??"")});
   });

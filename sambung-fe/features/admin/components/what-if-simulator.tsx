@@ -21,6 +21,7 @@ import { formatRupiah } from "@/features/offers/components/offer-summary";
 import { ApiError } from "@/lib/api/errors";
 import {
   AlertCircle,
+  ArrowRight,
   FlaskConical,
   Loader2,
   RotateCcw,
@@ -448,8 +449,9 @@ export function WhatIfSimulator() {
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Patokan: {result.referenceDate || result.referenceDateIso || "-"} → Target:{" "}
-                  {result.targetDate}
+                  Patokan: {result.referenceDate || result.referenceDateIso || "-"}{" "}
+                  <ArrowRight className="inline w-3 h-3 mx-0.5 align-text-bottom" aria-hidden="true" />
+                  <span className="sr-only">ke</span> Target: {result.targetDate}
                 </p>
               </div>
               <Badge variant={result.isFallback ? "secondary" : "default"} className="text-[11px]">

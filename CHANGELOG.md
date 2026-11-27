@@ -9,6 +9,12 @@ Semua perubahan penting pada proyek **SAMBUNG** (`sambung-be` dan `sambung-fe`) 
 ## [Unreleased]
 
 ### Added
+- **Backend (`sambung-be`) — Tata Kelola Kontrak, Sengketa Escrow, Tenggat Otomatis, & Cakupan Wilayah 34 Provinsi (`2026-11-28`)**:
+  - Menambahkan migrasi `sambung-be/prisma/migrations/007_business_governance_and_deadlines/migration.sql` dan pembaruan `sambung-be/prisma/schema.prisma`: kolom status penutupan akun (`status_reason`, `closed_at`), tenggat tanda tangan 48 jam (`sign_deadline_at`), tenggat pengiriman 7 hari (`shipping_deadline_at`, `shipping_reminder_sent_at`), tenggat penerimaan 5 hari (`receipt_deadline_at`), metrik serah terima aktual (`actual_volume_kg`, `actual_moisture_percent`, `handover_notes`), kolom sengketa (`dispute_*`), serta seed awal 34 provinsi di tabel `Region`.
+  - Menambahkan `sambung-be/src/modules/contracts/contracts.constants.ts` dan `contracts.deadlines.ts` (`expireApprovedUnsignedContracts`, `sendShippingOverdueReminders`, `cancelUnshippedPaidContracts`, `autoCompleteAndReleaseShippedContracts`), serta aksi `dispute` dan `resolveContractDisputeEscrow` di `sambung-be/src/modules/payments/payments.service.ts`.
+  - Menambahkan helper `sambung-be/src/shared/rate-limit.ts` (`createSlidingWindowRateLimiter`) dan pembatasan request OTP per IP di `sambung-be/src/modules/auth/otp/otp-rate-limit.ts`.
+- **Frontend (`sambung-fe`) — Katalog Wilayah 34 Provinsi & Rute Mock `/regions` (`2026-11-28`)**:
+  - Menambahkan daftar wilayah `INDONESIA_REGIONS` pada `sambung-fe/features/regions/regions-catalog.ts` dan penanganan `GET /regions` pada `sambung-fe/mock/server/router.ts`.
 - **Frontend (`sambung-fe`) — Panel Skeleton Terpadu untuk Transisi Auth & Keadaan Memuat Data**:
   - (2026-11-27) Mengganti teks `"Sesi Anda masih aktif..."` saat `isRedirecting` di keempat halaman autentikasi (`masuk`, `masuk/verifikasi`, `daftar`, `admin/masuk`) dengan panel skeleton masing-masing (`LoginPageSkeleton`, `VerificationPageSkeleton`, `RegisterPageSkeleton`, `AdminLoginPageSkeleton`) berlabel `sr-only`.
   - Menambahkan komponen skeleton bersama di `sambung-fe/components/shared/page-skeletons.tsx` (`DetailSplitSkeleton`, `DocumentSheetSkeleton`, `TableRowsSkeleton`, `ListCardsSkeleton`, `SettingsFormSkeleton`, `ActivityRowsSkeleton`) dan menerapkannya pada seluruh keadaan `isLoading` / `isPending` di `kontrak/[id]`, `kontrak/[id]/bukti`, `pembeli/katalog/[id]`, `offer-detail-view.tsx`, `offer-wizard.tsx`, `demo-role-panel.tsx`, serta seluruh halaman `admin/(panel)/*` (`page.tsx`, `data-harga`, `katalog`, `kontrak`, `log`, `moderasi`, `parameter`, `pengguna`).
@@ -48,6 +54,24 @@ Semua perubahan penting pada proyek **SAMBUNG** (`sambung-be` dan `sambung-fe`) 
   - Menampilkan alur sekuensial lengkap: Pesanan Diajukan $\rightarrow$ Histori Tawar Balik $\rightarrow$ Harga Disepakati $\rightarrow$ Tanda Tangan Petani & Pembeli $\rightarrow$ Pengiriman $\rightarrow$ Penerimaan Selesai (atau status Pembatalan) dengan icon Lucide murni tanpa emotikon sesuai referensi visual.
 
 ### Changed
+- **Backend (`sambung-be`) — Pengetatan Alur Kontrak, Validasi Wilayah, & Fallback Harga Nasional (`2026-11-28`)**:
+  - Memperbarui `contracts.routes.ts`, `contracts.schemas.ts`, `contracts.service.ts`, dan `contracts.expiry.ts`: menonaktifkan aksi warisan `confirm` (`410 LEGACY_ACTION_DISABLED`), membuka kontak mitra setelah pembayaran lunas/`shipping`/`completed`, dan mendukung pencatatan timbang/kadar air aktual saat konfirmasi penerimaan.
+  - Memperbarui `auth.routes.ts`, `auth.service.ts`, `offers.routes.ts`, `offers.schemas.ts`, `offers.service.ts`, `ai-rate-limit.ts`, dan `pricing/ai-price.client.ts`: penolakan akun tertutup (`ACCOUNT_CLOSED`), validasi wilayah resmi saat pendaftaran, perbaikan kunci peta `/regions` per tingkat wilayah, validasi tanggal `availableOn` agar tidak di masa lalu, notifikasi & audit log pembatalan pesanan saat penarikan tawaran, serta fallback otomatis ke acuan `"Nasional"` saat perhitungan harga wajar regional mengembalikan `404`/`422`.
+- **Frontend (`sambung-fe`) — Penyederhanaan Layout Autentikasi Terpusat (`2026-11-28`)**:
+  - Memperbarui `sambung-fe/app/(auth)/layout.tsx` dan `sambung-fe/app/admin/(auth)/masuk/layout.tsx` menjadi wadah kartu terpusat satu kolom dengan tautan kembali ke beranda.
+- **Frontend (`sambung-fe`) — Penempatan Tombol Batal di Footer Pendaftaran (`/daftar`)**:
+  - (2026-11-28) Memindahkan aksi batal pendaftaran ke `/masuk` dari header atas ke footer aksi tahap 1 di sebelah kiri tombol **Lanjut ke Identitas** pada `sambung-fe/app/(auth)/daftar/page.tsx`.
+  - Menyesuaikan `RegisterPageSkeleton` di `sambung-fe/features/auth/components/auth-page-skeletons.tsx` agar selaras dengan tata letak header dan dua tombol footer baru.
+- **Frontend (`sambung-fe`) — Penggantian Seluruh Simbol/Emoticon Teks dengan Lucide Icons**:
+  - (2026-11-28) Menghapus seluruh karakter simbol/ikon teks (`✓`, `↑`, `↓`, `→`) di antarmuka dan menggantinya dengan ikon `lucide-react` (`Check`, `CheckCircle2`, `ArrowUpRight`, `ArrowDownRight`, `ArrowRight`) beserta fallback `sr-only`:
+    - `sambung-fe/app/(auth)/daftar/page.tsx` dan `sambung-fe/features/offers/components/offer-wizard.tsx` (indikator tahap selesai stepper).
+    - `sambung-fe/features/contracts/components/negotiation-room.tsx` (status tanda tangan digital pihak petani/pembeli dan banner selesai tanda tangan).
+    - `sambung-fe/features/fair-price/components/fair-price-simulator.tsx` (pill status pilihan komoditas dan wilayah).
+    - `sambung-fe/app/(workspace)/prakiraan/page.tsx` (keterangan ikon arah faktor penggerak harga agar selaras dengan `ShapWaterfall`).
+    - `sambung-fe/app/(public)/peta-harga/_components/full-price-map.tsx`, `sambung-fe/app/(workspace)/harga/page.tsx`, dan `sambung-fe/features/admin/components/what-if-simulator.tsx` (ikon arah transmisi rantai pasok dan rentang tanggal simulasi).
+- **Frontend (`sambung-fe`) — Stepper 3 Tahap Pendaftaran Profil (`/daftar`)**:
+  - (2026-11-27) Mengubah formulir pendaftaran di `sambung-fe/app/(auth)/daftar/page.tsx` menjadi alur stepper 3 tahap (*1. Pilih Peran*, *2. Identitas*, *3. Alamat*) yang mengadopsi tata letak header pill tahap, bilah stepper emerald 3 kolom, kartu konten `rounded-2xl`, serta footer aksi dari `OfferWizard` (`/petani/jual`), sekaligus memperbaiki perataan label persetujuan ketentuan layanan agar tautan mengalir inline.
+  - Memperbarui `RegisterPageSkeleton` di `sambung-fe/features/auth/components/auth-page-skeletons.tsx` agar proporsional terhadap tampilan stepper pendaftaran baru.
 - **Frontend (`sambung-fe`) — Pemisahan State Data Mock (`NEXT_PUBLIC_USE_MOCK`) dan Mode Demo FE (`NEXT_PUBLIC_FE_MODE`)**:
   - (2026-11-27) Memisahkan `IS_MOCK_DATA` (`NEXT_PUBLIC_USE_MOCK=true|false`, default `false`) dari `FE_MODE` / `IS_DEMO_FE` / `IS_LIVE_FE` (`NEXT_PUBLIC_FE_MODE=demo|live`, default `live`) di `sambung-fe/lib/config/fe-mode.ts`, serta memperbarui `sambung-fe/.env.local`, `sambung-fe/README.md`, dan `AGENTS.md`.
   - Memastikan saat `NEXT_PUBLIC_FE_MODE=demo` dan `NEXT_PUBLIC_USE_MOCK=false`, seluruh panggilan data (`lib/api/client.ts`, `notifikasi/page.tsx`, `partial-order-form.tsx`, `negotiation-room.tsx`, `contract.service.ts`, `offer-detail-view.tsx`, `offer-wizard.tsx`, `offers-workspace.tsx`, `use-session.ts`, `mock/session.ts`) tetap mengambil data riil dari backend Express (`NEXT_PUBLIC_API_BASE_URL`), sementara elemen bantu demo & alur OTP demo/live pada `auth.service.ts`, `/masuk`, `/masuk/verifikasi`, dan `/admin/masuk` dikontrol independen oleh `NEXT_PUBLIC_FE_MODE` (tanpa hardcode OTP `"1234"` saat menggunakan backend nyata).
@@ -107,6 +131,10 @@ Semua perubahan penting pada proyek **SAMBUNG** (`sambung-be` dan `sambung-fe`) 
   - Kontak nomor telepon dan WhatsApp mitra kini baru dibuka ketika kedua belah pihak telah menyelesaikan tanda tangan digital (status `signed`, `shipping`, `completed`), bukan lagi pada saat harga disepakati (`approved`).
 
 ### Fixed
+- **Frontend (`sambung-fe`) — Perbaikan State Controlled/Uncontrolled Komponen Base UI `<Select>` (`2026-11-28`)**:
+  - Mengubah operan `value` pada komponen `<Select>` dari `... || undefined` menjadi `... || null` agar Base UI `Select` selalu berjalan dalam mode *controlled* sejak render pertama (menghindari galat `changing the uncontrolled value state of Select to be controlled` saat nilai awal kosong berubah menjadi nilai terpilih):
+    - `sambung-fe/features/fair-price/components/fair-price-simulator.tsx` (pilihan komoditas gabah `grainType` dan wilayah provinsi `region`).
+    - `sambung-fe/app/(workspace)/prakiraan/page.tsx` (pilihan wilayah provinsi `province`).
 - **Frontend (`sambung-fe`) — Perbaikan QA Manual Rute Publik, Ruang Kerja, Tanda Tangan, & OTP (2026-11-27)**:
   - Menyeragamkan tipografi rentang harga `Acuan Wajar ... (GKP)` dan memperjelas atribusi sumber di `app/(workspace)/petani/page.tsx` serta `app/(workspace)/pembeli/page.tsx`.
   - Menyesuaikan tinggi viewport peta publik agar tombol aksi panel samping terlihat tanpa scroll, membuat CTA simulasi pada panel samping `app/(public)/peta-harga/_components/full-price-map.tsx` sadar status login (`useCurrentUser`), serta memperjelas keterangan kartu tingkat petani (`±1,87 kg GKP` setara 1 kg beras).

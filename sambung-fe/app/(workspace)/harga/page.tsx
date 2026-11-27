@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Download, Sprout, Building2, Truck, Store, Info } from "lucide-react";
+import { Download, Sprout, Building2, Truck, Store, Info, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -295,7 +295,9 @@ export default function PriceBoardPage() {
                 {/* Total Margin Spread */}
                 <div className="space-y-1.5 p-4 rounded-lg bg-muted/30 border border-border/50">
                   <p className="text-xs font-medium text-muted-foreground">
-                    Total Selisih (Petani → Konsumen)
+                    Total Selisih (Petani{" "}
+                    <ArrowRight className="inline w-3 h-3 mx-0.5 align-text-bottom" aria-hidden="true" />
+                    <span className="sr-only">ke</span> Konsumen)
                   </p>
                   <p className="text-2xl sm:text-3xl font-extrabold font-display tabular-nums text-foreground">
                     {formatRupiah(comparison.marginAmount)}{" "}

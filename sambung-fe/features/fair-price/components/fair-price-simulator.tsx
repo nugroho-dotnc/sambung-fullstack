@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Info, Calculator, Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { Info, Calculator, Loader2, AlertCircle, RefreshCw, Check } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -187,7 +187,7 @@ export function FairPriceSimulator() {
               </label>
               <Select
                 items={GRAIN_TYPE_OPTIONS}
-                value={grainType || undefined}
+                value={grainType || null}
                 onValueChange={(val) => {
                   if (val === "GKP" || val === "GKG") {
                     setGrainType(val);
@@ -214,7 +214,7 @@ export function FairPriceSimulator() {
               </label>
               <Select
                 items={regionOptions}
-                value={region || undefined}
+                value={region || null}
                 onValueChange={(val) => {
                   if (val) handleRegionChange(val);
                 }}
@@ -318,24 +318,36 @@ export function FairPriceSimulator() {
               </p>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-              <span
-                className={`text-xs px-3 py-1 rounded-full border transition-colors ${
-                  grainType
-                    ? "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-700 font-semibold"
-                    : "bg-muted/50 text-muted-foreground border-border/80"
-                }`}
-              >
-                {grainType ? `✓ Komoditas: ${grainType}` : "1. Pilih Komoditas"}
-              </span>
-              <span
-                className={`text-xs px-3 py-1 rounded-full border transition-colors ${
-                  region
-                    ? "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-700 font-semibold"
-                    : "bg-muted/50 text-muted-foreground border-border/80"
-                }`}
-              >
-                {region ? `✓ Wilayah: ${region}` : "2. Pilih Wilayah"}
-              </span>
+              {[
+                {
+                  active: Boolean(grainType),
+                  activeText: `Komoditas: ${grainType}`,
+                  idleText: "1. Pilih Komoditas",
+                },
+                {
+                  active: Boolean(region),
+                  activeText: `Wilayah: ${region}`,
+                  idleText: "2. Pilih Wilayah",
+                },
+              ].map((pill) => (
+                <span
+                  key={pill.idleText}
+                  className={`inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full border transition-colors ${
+                    pill.active
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-700 font-semibold"
+                      : "bg-muted/50 text-muted-foreground border-border/80"
+                  }`}
+                >
+                  {pill.active ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                      <span>{pill.activeText}</span>
+                    </>
+                  ) : (
+                    pill.idleText
+                  )}
+                </span>
+              ))}
             </div>
           </Card>
         ) : calcQuery.isError ? (
