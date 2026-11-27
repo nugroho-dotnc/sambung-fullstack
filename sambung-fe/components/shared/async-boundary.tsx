@@ -43,23 +43,29 @@ export function AsyncBoundary({
   if (isError) {
     if (error instanceof ApiError && error.code === "AI_SERVICE_STARTING") {
       return (
-        <div className="rounded-2xl border border-amber-300/70 bg-amber-50/70 dark:border-amber-800/70 dark:bg-amber-950/30 p-6 sm:p-8 text-center space-y-4 my-4">
-          <div className="w-12 h-12 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 flex items-center justify-center mx-auto">
-            <Loader2 className="w-6 h-6 animate-spin" />
+        <div
+          role="status"
+          aria-live="polite"
+          className="rounded-lg status-warning p-6 sm:p-8 text-center space-y-4 my-4"
+        >
+          <div className="w-11 h-11 rounded-lg bg-white/10 text-[#FFE4D2] flex items-center justify-center mx-auto">
+            <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
           </div>
           <div className="space-y-1.5">
-            <h3 className="text-base font-bold text-foreground">Layanan AI Sedang Menyiapkan Model</h3>
-            <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
-              Server kecerdasan buatan sedang menyala setelah tidak aktif (*cold start*, biasanya membutuhkan waktu sekitar 1–3 menit). Silakan tunggu sebentar lalu muat ulang.
+            <h3 className="text-base font-bold text-[#FFE4D2]">
+              Layanan AI Sedang Menyiapkan Model
+            </h3>
+            <p className="text-xs sm:text-sm text-[#FFE4D2]/90 max-w-md mx-auto leading-relaxed">
+              Server kecerdasan buatan sedang menyala setelah tidak aktif (<em>cold start</em>, biasanya membutuhkan waktu sekitar 1–3 menit). Silakan tunggu sebentar lalu muat ulang.
             </p>
           </div>
           {onRetry && (
             <Button
-              variant="outline"
+              type="button"
               onClick={onRetry}
-              className="min-h-10 px-5 border-amber-400/60 text-amber-900 dark:text-amber-200 hover:bg-amber-500/10 cursor-pointer"
+              className="min-h-10 px-5 rounded-lg bg-[#FFE4D2] text-[#3D1C11] hover:bg-white font-semibold border-transparent cursor-pointer"
             >
-              <RefreshCw className="w-4 h-4 mr-2" />
+              <RefreshCw className="w-4 h-4 mr-2" aria-hidden="true" />
               Coba Muat Ulang
             </Button>
           )}
@@ -74,23 +80,28 @@ export function AsyncBoundary({
         error.code === "AI_AUTH_ERROR")
     ) {
       return (
-        <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6 sm:p-8 text-center space-y-4 my-4">
-          <div className="w-12 h-12 rounded-full bg-destructive/10 text-destructive flex items-center justify-center mx-auto">
-            <ServerOff className="w-6 h-6" />
+        <div
+          role="alert"
+          className="rounded-lg status-error p-6 sm:p-8 text-center space-y-4 my-4"
+        >
+          <div className="w-11 h-11 rounded-lg bg-white/10 text-[#F5E5E5] flex items-center justify-center mx-auto">
+            <ServerOff className="w-5 h-5" aria-hidden="true" />
           </div>
           <div className="space-y-1.5">
-            <h3 className="text-base font-bold text-foreground">Layanan AI Belum Tersedia</h3>
-            <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+            <h3 className="text-base font-bold text-[#F5E5E5]">
+              Layanan AI Belum Tersedia
+            </h3>
+            <p className="text-xs sm:text-sm text-[#F5E5E5]/90 max-w-md mx-auto leading-relaxed">
               {error.message || "Layanan analitik AI sementara tidak dapat dijangkau. Silakan coba kembali beberapa saat lagi."}
             </p>
           </div>
           {onRetry && (
             <Button
-              variant="outline"
+              type="button"
               onClick={onRetry}
-              className="min-h-10 px-5 border-destructive/40 text-destructive hover:bg-destructive/10 cursor-pointer"
+              className="min-h-10 px-5 rounded-lg bg-[#F5E5E5] text-[#4A1010] hover:bg-white font-semibold border-transparent cursor-pointer"
             >
-              <RefreshCw className="w-4 h-4 mr-2" />
+              <RefreshCw className="w-4 h-4 mr-2" aria-hidden="true" />
               Coba Muat Ulang
             </Button>
           )}
@@ -99,23 +110,26 @@ export function AsyncBoundary({
     }
 
     return (
-      <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-center space-y-4 my-4">
-        <div className="w-12 h-12 rounded-full bg-destructive/10 text-destructive flex items-center justify-center mx-auto">
-          <AlertCircle className="w-6 h-6" />
+      <div
+        role="alert"
+        className="rounded-lg status-error p-6 text-center space-y-4 my-4"
+      >
+        <div className="w-11 h-11 rounded-lg bg-white/10 text-[#F5E5E5] flex items-center justify-center mx-auto">
+          <AlertCircle className="w-5 h-5" aria-hidden="true" />
         </div>
         <div className="space-y-1">
-          <h3 className="text-base font-bold text-foreground">Gagal Memuat Informasi</h3>
-          <p className="text-sm text-muted-foreground max-w-md mx-auto">
+          <h3 className="text-base font-bold text-[#F5E5E5]">Gagal Memuat Informasi</h3>
+          <p className="text-sm text-[#F5E5E5]/90 max-w-md mx-auto">
             {error?.message || "Terjadi kendala saat menghubungkan ke layanan. Silakan coba lagi."}
           </p>
         </div>
         {onRetry && (
           <Button
-            variant="outline"
+            type="button"
             onClick={onRetry}
-            className="min-h-11 px-5 border-destructive/40 text-destructive hover:bg-destructive/10"
+            className="min-h-10 px-5 rounded-lg bg-[#F5E5E5] text-[#4A1010] hover:bg-white font-semibold border-transparent cursor-pointer"
           >
-            <RefreshCw className="w-4 h-4 mr-2" />
+            <RefreshCw className="w-4 h-4 mr-2" aria-hidden="true" />
             Coba Muat Ulang
           </Button>
         )}
@@ -127,9 +141,9 @@ export function AsyncBoundary({
   if (isEmpty) {
     if (emptyFallback) return <>{emptyFallback}</>;
     return (
-      <div className="rounded-2xl border border-border/80 bg-card p-8 text-center space-y-3 my-4">
-        <div className="w-12 h-12 rounded-full bg-muted text-muted-foreground flex items-center justify-center mx-auto">
-          <Inbox className="w-6 h-6" />
+      <div className="rounded-lg border border-border bg-card p-8 text-center space-y-3 my-4">
+        <div className="w-11 h-11 rounded-lg bg-muted text-muted-foreground flex items-center justify-center mx-auto">
+          <Inbox className="w-5 h-5" aria-hidden="true" />
         </div>
         <h3 className="text-base font-semibold text-foreground">Belum Ada Data</h3>
         <p className="text-sm text-muted-foreground max-w-md mx-auto">

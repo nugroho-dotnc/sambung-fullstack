@@ -234,39 +234,42 @@ export function WeeklyIngestPanel() {
 
   return (
     <div className="space-y-6">
-      <Card className="p-6 rounded-2xl border border-border/80 bg-card shadow-xs space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/70 pb-4">
+      <Card className="admin-surface p-6 sm:p-7 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-primary">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-[var(--admin-gold-text)]">
                 Pembaruan State Pasar AI
               </span>
-              <Badge variant="outline" className="text-[11px] font-semibold">
+              <Badge
+                variant="outline"
+                className="rounded-md bg-muted text-foreground border-transparent px-2 py-0.5 text-xs font-semibold"
+              >
                 Jejak Audit Otomatis
               </Badge>
             </div>
-            <h2 className="font-display text-lg font-bold text-foreground mt-1">
+            <h2 className="font-display text-lg font-bold text-foreground mt-1.5">
               Ingest Data Harga Mingguan ke Mesin Prakiraan
             </h2>
-            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+            <p className="text-xs sm:text-[13px] text-muted-foreground mt-1 leading-relaxed">
               Masukkan data harga mingguan baru per provinsi melalui formulir atau impor CSV. Gunakan <strong>Uji Kering</strong> sebelum menyimpan permanen.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
             <Button
               type="button"
               size="sm"
               variant="outline"
               onClick={() => setShowCsvBox(!showCsvBox)}
-              className="gap-1.5 text-xs cursor-pointer"
+              className="min-h-9 rounded-lg px-3.5 gap-1.5 text-xs font-semibold hover:border-[#C08809] hover:bg-muted active:scale-[0.985] transition-all cursor-pointer"
             >
-              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <FileSpreadsheet className="w-3.5 h-3.5" aria-hidden="true" />
               <span>{showCsvBox ? "Tutup Paste CSV" : "Tempel CSV"}</span>
             </Button>
 
-            <label className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-input bg-background hover:bg-muted/50 text-xs font-medium cursor-pointer">
-              <Upload className="w-3.5 h-3.5 text-primary" />
+            <label className="inline-flex items-center gap-1.5 min-h-9 px-3.5 rounded-lg border border-input bg-background hover:border-[#C08809] hover:bg-muted active:scale-[0.985] text-xs font-semibold text-foreground cursor-pointer transition-all">
+              <Upload className="w-3.5 h-3.5 text-[var(--admin-positive-text)]" aria-hidden="true" />
               <span>Unggah File CSV</span>
               <input
                 type="file"
@@ -279,16 +282,17 @@ export function WeeklyIngestPanel() {
         </div>
 
         {showCsvBox && (
-          <div className="p-4 rounded-xl border border-border/80 bg-muted/30 space-y-3">
-            <p className="text-xs font-semibold text-foreground">
-              Format CSV: <code>province,producerPrice,wholesalePrice,retailPrice,precip28d</code>
-            </p>
+          <div className="p-5 rounded-lg bg-muted/60 space-y-3 animate-in fade-in-0 slide-in-from-top-1 duration-200">
+            <label htmlFor="ingest-csv-textarea" className="block text-xs font-semibold text-foreground">
+              Format CSV: <code className="font-mono">province,producerPrice,wholesalePrice,retailPrice,precip28d</code>
+            </label>
             <Textarea
+              id="ingest-csv-textarea"
               rows={4}
               value={csvText}
               onChange={(e) => setCsvText(e.target.value)}
               placeholder={"province,producerPrice,wholesalePrice,retailPrice,precip28d\nJawa Timur,13500,14950,15250,180"}
-              className="text-xs font-mono"
+              className="text-xs font-mono rounded-lg"
             />
             <div className="flex justify-end gap-2">
               <Button
@@ -296,7 +300,7 @@ export function WeeklyIngestPanel() {
                 size="sm"
                 variant="outline"
                 onClick={() => parseCsvString(csvText)}
-                className="text-xs cursor-pointer"
+                className="min-h-9 rounded-lg px-4 text-xs font-semibold hover:border-[#C08809] active:scale-[0.985] transition-all cursor-pointer"
               >
                 Terapkan Baris CSV
               </Button>
@@ -305,7 +309,7 @@ export function WeeklyIngestPanel() {
         )}
 
         <div className="max-w-xs space-y-1.5">
-          <label htmlFor="ingest-week-start" className="text-xs font-bold text-foreground block">
+          <label htmlFor="ingest-week-start" className="text-xs font-semibold text-foreground block">
             Tanggal Awal Pekan (weekStart)
           </label>
           <Input
@@ -313,13 +317,13 @@ export function WeeklyIngestPanel() {
             type="date"
             value={weekStart}
             onChange={(e) => setWeekStart(e.target.value)}
-            className="text-xs tabular-nums"
+            className="min-h-10 rounded-lg text-xs tabular-nums"
           />
         </div>
 
-        {/* Dynamic Province Rows */}
+        {/* Dynamic Province Rows Ledger */}
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Daftar Pembaruan Provinsi ({rows.length} / 50)
             </span>
@@ -328,101 +332,128 @@ export function WeeklyIngestPanel() {
               size="sm"
               variant="outline"
               onClick={addRow}
-              className="h-7 gap-1 text-xs cursor-pointer"
+              className="min-h-9 rounded-lg px-3.5 gap-1.5 text-xs font-semibold hover:border-[#C08809] hover:bg-muted active:scale-[0.985] transition-all cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5" />
+              <Plus className="w-3.5 h-3.5" aria-hidden="true" />
               <span>Tambah Provinsi</span>
             </Button>
           </div>
 
-          <div className="space-y-2.5">
+          <div className="rounded-lg overflow-hidden divide-y divide-border">
+            <div className="hidden lg:grid lg:grid-cols-12 gap-3 px-5 py-3 bg-muted/50 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <div className="lg:col-span-4">Provinsi</div>
+              <div className="lg:col-span-2">Produsen (Wajib)</div>
+              <div className="lg:col-span-2">Grosir (Opsional)</div>
+              <div className="lg:col-span-3">Eceran &amp; Hujan (mm)</div>
+              <div className="lg:col-span-1 text-right">Aksi</div>
+            </div>
+
             {rows.map((row, idx) => (
               <div
                 key={row.key}
-                className="p-3 rounded-xl border border-border/70 bg-muted/20 grid grid-cols-1 sm:grid-cols-6 gap-2.5 items-end"
+                className="admin-field-row p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end bg-card"
               >
-                <div className="space-y-1 sm:col-span-2">
-                  <label className="text-[11px] font-semibold text-muted-foreground block">
-                    #{idx + 1} Provinsi <span className="text-destructive">*</span>
+                <div className="space-y-1.5 sm:col-span-2 lg:col-span-4">
+                  <label
+                    htmlFor={`ingest-province-${row.key}`}
+                    className="text-xs font-semibold text-foreground block lg:sr-only"
+                  >
+                    Baris {idx + 1} Provinsi
                   </label>
-                  <Input
-                    type="text"
-                    value={row.province}
-                    onChange={(e) => updateRow(row.key, "province", e.target.value)}
-                    placeholder="Contoh: Jawa Timur"
-                    className="h-9 text-xs"
-                  />
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold tabular-nums text-[var(--admin-gold-text)] w-6 shrink-0">
+                      #{idx + 1}
+                    </span>
+                    <Input
+                      id={`ingest-province-${row.key}`}
+                      type="text"
+                      value={row.province}
+                      onChange={(e) => updateRow(row.key, "province", e.target.value)}
+                      placeholder="Contoh: Jawa Timur"
+                      className="min-h-9 rounded-lg text-xs"
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-muted-foreground block">
-                    Harga Produsen <span className="text-destructive">*</span>
+                <div className="space-y-1.5 lg:col-span-2">
+                  <label
+                    htmlFor={`ingest-producer-${row.key}`}
+                    className="text-xs font-semibold text-foreground block lg:sr-only"
+                  >
+                    Harga Produsen baris {idx + 1}
                   </label>
                   <Input
+                    id={`ingest-producer-${row.key}`}
                     type="number"
                     min={7000}
                     max={35000}
                     value={row.producerPrice}
                     onChange={(e) => updateRow(row.key, "producerPrice", e.target.value)}
                     placeholder="7000–35000"
-                    className="h-9 text-xs tabular-nums"
+                    className="min-h-9 rounded-lg text-xs tabular-nums"
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-muted-foreground block">
-                    Grosir (Opsional)
+                <div className="space-y-1.5 lg:col-span-2">
+                  <label
+                    htmlFor={`ingest-wholesale-${row.key}`}
+                    className="text-xs font-semibold text-foreground block lg:sr-only"
+                  >
+                    Harga Grosir opsional baris {idx + 1}
                   </label>
                   <Input
+                    id={`ingest-wholesale-${row.key}`}
                     type="number"
                     min={7000}
                     max={40000}
                     value={row.wholesalePrice}
                     onChange={(e) => updateRow(row.key, "wholesalePrice", e.target.value)}
                     placeholder="Rp/kg"
-                    className="h-9 text-xs tabular-nums"
+                    className="min-h-9 rounded-lg text-xs tabular-nums"
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-muted-foreground block">
-                    Eceran / Hujan
-                  </label>
-                  <div className="grid grid-cols-2 gap-1.5">
+                <div className="space-y-1.5 lg:col-span-3">
+                  <span className="text-xs font-semibold text-foreground block lg:sr-only">
+                    Harga Eceran &amp; Curah Hujan baris {idx + 1}
+                  </span>
+                  <div className="grid grid-cols-2 gap-2">
                     <Input
+                      id={`ingest-retail-${row.key}`}
                       type="number"
                       min={7000}
                       max={45000}
                       value={row.retailPrice}
                       onChange={(e) => updateRow(row.key, "retailPrice", e.target.value)}
                       placeholder="Eceran"
-                      aria-label="Harga eceran"
-                      className="h-9 text-xs tabular-nums px-2"
+                      aria-label={`Harga eceran baris ${idx + 1}`}
+                      className="min-h-9 rounded-lg text-xs tabular-nums px-2.5"
                     />
                     <Input
+                      id={`ingest-precip-${row.key}`}
                       type="number"
                       min={0}
                       max={1500}
                       value={row.precip28d}
                       onChange={(e) => updateRow(row.key, "precip28d", e.target.value)}
                       placeholder="mm"
-                      aria-label="Curah hujan 28 hari"
-                      className="h-9 text-xs tabular-nums px-2"
+                      aria-label={`Curah hujan 28 hari baris ${idx + 1}`}
+                      className="min-h-9 rounded-lg text-xs tabular-nums px-2.5"
                     />
                   </div>
                 </div>
 
-                <div className="flex justify-end">
+                <div className="flex justify-end lg:col-span-1">
                   <Button
                     type="button"
                     size="icon"
                     variant="ghost"
                     disabled={rows.length <= 1}
                     onClick={() => removeRow(row.key)}
-                    aria-label="Hapus baris"
-                    className="h-9 w-9 text-muted-foreground hover:text-destructive cursor-pointer"
+                    aria-label={`Hapus baris ${idx + 1}`}
+                    className="size-9 rounded-lg text-muted-foreground hover:text-[var(--admin-error-text)] hover:bg-muted active:scale-95 transition-all cursor-pointer"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-4 h-4" aria-hidden="true" />
                   </Button>
                 </div>
               </div>
@@ -433,28 +464,32 @@ export function WeeklyIngestPanel() {
         {(formError || mutationErrorMessage) && (
           <div
             role="alert"
-            className="rounded-xl border border-destructive/40 bg-destructive/10 p-3.5 text-xs text-destructive flex items-start gap-2"
+            className="rounded-lg status-error px-4 py-3.5 text-xs font-medium flex items-start gap-2.5"
           >
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
             <span>{formError || mutationErrorMessage}</span>
           </div>
         )}
 
         {confirmPersist && (
-          <div className="rounded-xl border border-amber-400/70 bg-amber-50/80 dark:bg-amber-950/30 p-4 space-y-3 text-xs">
-            <p className="font-bold text-amber-900 dark:text-amber-200">
+          <div
+            role="status"
+            aria-live="polite"
+            className="rounded-lg status-warning p-5 space-y-3 text-xs animate-in fade-in-0 slide-in-from-top-1 duration-200"
+          >
+            <p className="font-bold text-[#FFE4D2]">
               Konfirmasi Penyimpanan Permanen Data Pasar AI
             </p>
-            <p className="text-muted-foreground leading-relaxed">
+            <p className="text-[#FFE4D2]/90 leading-relaxed">
               Tindakan ini akan memperbarui state pasar di layanan AI, menghitung ulang prakiraan seluruh provinsi, dan membersihkan cache harga aktif. Lanjutkan?
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2.5">
               <Button
                 type="button"
                 size="sm"
                 onClick={() => void submitIngest(true)}
                 disabled={ingestMutation.isPending}
-                className="text-xs font-bold cursor-pointer"
+                className="min-h-9 px-4 rounded-lg bg-[#FFE4D2] text-[#3D1C11] hover:bg-white active:scale-95 font-semibold border-transparent text-xs cursor-pointer"
               >
                 Ya, Simpan Permanen
               </Button>
@@ -463,7 +498,7 @@ export function WeeklyIngestPanel() {
                 size="sm"
                 variant="outline"
                 onClick={() => setConfirmPersist(false)}
-                className="text-xs cursor-pointer"
+                className="min-h-9 px-4 rounded-lg border-[#FFE4D2]/60 text-[#FFE4D2] bg-transparent hover:bg-white/10 hover:text-[#FFE4D2] active:scale-95 text-xs font-semibold cursor-pointer"
               >
                 Batal
               </Button>
@@ -471,15 +506,15 @@ export function WeeklyIngestPanel() {
           </div>
         )}
 
-        <div className="flex flex-wrap items-center justify-end gap-3 pt-2 border-t border-border/60">
+        <div className="flex flex-wrap items-center justify-end gap-3 pt-5 border-t border-border">
           <Button
             type="button"
             variant="outline"
             disabled={ingestMutation.isPending}
             onClick={() => void submitIngest(false)}
-            className="gap-1.5 text-xs font-semibold cursor-pointer"
+            className="min-h-10 rounded-lg px-4 gap-1.5 text-xs font-semibold hover:border-[#C08809] hover:bg-muted active:scale-[0.985] transition-all cursor-pointer"
           >
-            {ingestMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            {ingestMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />}
             <span>Uji Kering (Dry-Run)</span>
           </Button>
           <Button
@@ -488,48 +523,52 @@ export function WeeklyIngestPanel() {
             onClick={() => {
               if (buildValidatedPayload()) setConfirmPersist(true);
             }}
-            className="gap-1.5 text-xs font-bold cursor-pointer"
+            className="admin-cta min-h-10 rounded-lg px-5 gap-2 text-xs font-semibold cursor-pointer"
           >
-            <DatabaseBackup className="w-4 h-4" />
+            <DatabaseBackup className="w-4 h-4" aria-hidden="true" />
             <span>Simpan &amp; Hitung Ulang AI</span>
           </Button>
         </div>
       </Card>
 
       {result && (
-        <Card className="p-5 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 space-y-2 text-xs">
-          <div className="flex items-center gap-2 font-bold text-emerald-800 dark:text-emerald-300">
-            <CheckCircle2 className="w-4 h-4 shrink-0" />
+        <div
+          role="status"
+          aria-live="polite"
+          className="p-6 rounded-lg status-success space-y-3 text-xs animate-in fade-in-0 slide-in-from-bottom-1 duration-200"
+        >
+          <div className="flex items-center gap-2 font-bold text-[#F8FFF5]">
+            <CheckCircle2 className="w-4 h-4 shrink-0" aria-hidden="true" />
             <span>
               {result.persistedToDisk
                 ? `Berhasil menyimpan ingest pekan ${result.weekStart} & menghitung ulang prakiraan AI.`
                 : `Uji kering (dry-run) berhasil divalidasi untuk pekan ${result.weekStart} tanpa menyimpan ke disk.`}
             </span>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1 text-foreground">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-1 text-[#F8FFF5]">
             <div>
-              <span className="text-muted-foreground block">Provinsi Diperbarui</span>
+              <span className="text-[#F8FFF5]/80 block">Provinsi Diperbarui</span>
               <strong className="tabular-nums">{result.updatedProvincesCount} provinsi</strong>
             </div>
             <div>
-              <span className="text-muted-foreground block">Unit Dihitung Ulang</span>
+              <span className="text-[#F8FFF5]/80 block">Unit Dihitung Ulang</span>
               <strong className="tabular-nums">{result.recomputedForecastRecords} unit</strong>
             </div>
             <div>
-              <span className="text-muted-foreground block">Pekan Terbaru</span>
+              <span className="text-[#F8FFF5]/80 block">Pekan Terbaru</span>
               <strong className="tabular-nums">{result.latestObservationWeek}</strong>
             </div>
             <div>
-              <span className="text-muted-foreground block">Status Penyimpanan</span>
+              <span className="text-[#F8FFF5]/80 block">Status Penyimpanan</span>
               <strong>{result.persistedToDisk ? "Permanen" : "Simulasi (Dry-Run)"}</strong>
             </div>
           </div>
           {result.skippedProvinces.length > 0 && (
-            <p className="text-amber-800 dark:text-amber-300 pt-1">
+            <p className="rounded-md bg-black/20 px-3 py-2 text-[#F8FFF5] font-medium">
               Provinsi dilewati: {result.skippedProvinces.join(", ")}
             </p>
           )}
-        </Card>
+        </div>
       )}
     </div>
   );

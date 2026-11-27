@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Sprout, HelpCircle, ShieldAlert } from "lucide-react";
+import { Sprout, HelpCircle } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -34,13 +34,20 @@ function isRouteActive(currentPath: string, targetPath: string): boolean {
 export default function AppSidebar({ role }: { role: string }) {
   const pathname = usePathname();
   const navGroups = GET_NAVIGATION_GROUPS(role);
+  const isAdmin = role === "admin";
 
   return (
-    <Sidebar className="border-r border-border/80 bg-card select-none print:hidden">
-      <SidebarHeader className="py-5 px-4 border-b border-border/60">
+    <Sidebar className="border-r border-border bg-card select-none print:hidden">
+      <SidebarHeader className="py-4 px-4 border-b border-border">
         <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-9 h-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-xs transition-transform group-hover:scale-105">
-            <Sprout className="w-5 h-5" />
+          <div
+            className={`w-9 h-9 flex items-center justify-center transition-all ${
+              isAdmin
+                ? "rounded-lg bg-[#0D5907] text-white group-hover:bg-[#2F8208] group-hover:scale-105"
+                : "rounded-xl bg-primary text-primary-foreground shadow-xs group-hover:scale-105"
+            }`}
+          >
+            <Sprout className="w-5 h-5" aria-hidden="true" />
           </div>
           <div className="flex flex-col">
             <span className="font-display font-extrabold text-base text-foreground tracking-tight leading-tight">
@@ -53,13 +60,13 @@ export default function AppSidebar({ role }: { role: string }) {
         </Link>
       </SidebarHeader>
 
-      <SidebarContent className="px-2 py-4 space-y-4">
+      <SidebarContent className={`px-2.5 py-5 ${isAdmin ? "space-y-6" : "space-y-5"}`}>
         {navGroups.map((group, groupIndex) => (
           <SidebarGroup key={groupIndex} className="p-0">
-            <SidebarGroupLabel className="px-3 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+            <SidebarGroupLabel className="px-3.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
               {group.groupLabel}
             </SidebarGroupLabel>
-            <SidebarMenu className="space-y-1 mt-1">
+            <SidebarMenu className="space-y-1.5 mt-2">
               {group.items.map((item) => {
                 const isActive = isRouteActive(pathname, item.path);
                 const Icon = item.icon;
@@ -69,14 +76,30 @@ export default function AppSidebar({ role }: { role: string }) {
                     <SidebarMenuButton
                       isActive={isActive}
                       tooltip={item.label}
-                      className={`min-h-11 px-3.5 rounded-xl text-sm font-medium transition-colors ${
+                      className={`min-h-11 px-3.5 text-sm font-medium transition-colors ${
+                        isAdmin ? "py-2.5 rounded-lg admin-nav-link" : "rounded-xl"
+                      } ${
                         isActive
-                          ? "!bg-emerald-600 !text-white font-semibold shadow-xs hover:!bg-emerald-700 hover:!text-white data-active:!bg-emerald-600 data-active:!text-white"
+                          ? isAdmin
+                            ? "!bg-[#0D5907] !text-white font-semibold hover:!bg-[#2F8208] hover:!text-white active:!bg-[#0D5907] active:!text-white data-active:!bg-[#0D5907] data-active:!text-white"
+                            : "!bg-emerald-600 !text-white font-semibold shadow-xs hover:!bg-emerald-700 hover:!text-white data-active:!bg-emerald-600 data-active:!text-white"
                           : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                       }`}
-                      render={<Link href={item.path} />}
+                      render={
+                        <Link
+                          href={item.path}
+                          aria-current={isActive ? "page" : undefined}
+                        />
+                      }
                     >
-                      <Icon className={`w-4 h-4 mr-2.5 shrink-0 ${isActive ? "!text-white" : "text-muted-foreground"}`} />
+                      <Icon
+                        aria-hidden="true"
+                        className={`w-4 h-4 mr-2.5 shrink-0 ${
+                          isActive
+                            ? "!text-white"
+                            : "text-muted-foreground"
+                        }`}
+                      />
                       <span>{item.label}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -87,15 +110,15 @@ export default function AppSidebar({ role }: { role: string }) {
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="p-3 border-t border-border/60 space-y-1">
+      <SidebarFooter className="p-3 border-t border-border space-y-1">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
               className="min-h-10 px-3 rounded-lg text-xs text-muted-foreground hover:text-foreground"
               render={<Link href="/bantuan" />}
             >
-              <HelpCircle className="w-4 h-4 mr-2 text-muted-foreground" />
-              <span>Bantuan & Ketentuan</span>
+              <HelpCircle className="w-4 h-4 mr-2 text-muted-foreground" aria-hidden="true" />
+              <span>Bantuan &amp; Ketentuan</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

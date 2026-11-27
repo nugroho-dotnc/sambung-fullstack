@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, LogOut, User, Shield, Sprout, Building2 } from "lucide-react";
+import { Bell, LogOut, User } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
@@ -29,7 +29,14 @@ export default function TopBar() {
       case "pembeli":
         return <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30 text-xs">Pembeli</Badge>;
       case "admin":
-        return <Badge variant="outline" className="bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/30 text-xs">Pengawas Data</Badge>;
+        return (
+          <Badge
+            variant="outline"
+            className="admin-brand-pill rounded-md px-2 py-0.5 text-xs font-semibold"
+          >
+            Pengawas Data
+          </Badge>
+        );
       default:
         return <Badge variant="secondary" className="text-xs">Pengguna</Badge>;
     }
@@ -43,8 +50,16 @@ export default function TopBar() {
       : name.slice(0, 2).toUpperCase();
   };
 
+  const isAdmin = user?.role === "admin";
+
   return (
-    <header className="sticky top-0 z-40 w-full h-16 border-b border-border/80 bg-card/90 backdrop-blur-md transition-colors shadow-2xs print:hidden">
+    <header
+      className={`sticky top-0 z-40 w-full h-16 border-b transition-colors print:hidden ${
+        isAdmin
+          ? "border-border bg-card/95 backdrop-blur-sm"
+          : "border-border/80 bg-card/90 backdrop-blur-md shadow-2xs"
+      }`}
+    >
       <div className="h-full px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <SidebarTrigger size="lg" />
@@ -64,19 +79,32 @@ export default function TopBar() {
           <Button
             variant="ghost"
             size="icon"
-            className="w-10 h-10 rounded-full relative cursor-pointer"
+            className="w-10 h-10 rounded-full relative cursor-pointer hover:bg-muted active:scale-95 transition-all"
             nativeButton={false}
             render={<Link href="/notifikasi" aria-label="Notifikasi transaksi" />}
           >
-            <Bell className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" />
-            <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
+            <Bell className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" aria-hidden="true" />
+            <span
+              aria-hidden="true"
+              className={`absolute top-2 right-2 w-2 h-2 rounded-full ${
+                isAdmin ? "admin-live-dot bg-[#78B000]" : "bg-emerald-600 animate-pulse"
+              }`}
+            />
           </Button>
 
           {/* User Profile Dropdown Menu (Tanpa Role Switcher!) */}
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-2.5 p-1.5 rounded-full hover:bg-muted/60 transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-primary">
+            <DropdownMenuTrigger
+              className={`flex items-center gap-2.5 p-1.5 rounded-full hover:bg-muted/70 active:scale-[0.98] transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                isAdmin ? "hover:ring-2 hover:ring-[#C08809]/60" : ""
+              }`}
+            >
               <Avatar className="w-9 h-9 border border-border">
-                <AvatarFallback className="font-bold text-xs bg-primary/10 text-primary">
+                <AvatarFallback
+                  className={`font-bold text-xs ${
+                    isAdmin ? "bg-[#0D5907] text-white" : "bg-primary/10 text-primary"
+                  }`}
+                >
                   {getInitials(user?.name)}
                 </AvatarFallback>
               </Avatar>

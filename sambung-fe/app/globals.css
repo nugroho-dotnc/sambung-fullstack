@@ -100,6 +100,16 @@
   --type-subheading: 1.625rem; /* ~26px (16px * 1.618) */
   --type-body: 1rem;           /* 16px (Ukuran dasar) */
   --type-caption: 0.75rem;     /* 12px (Batas minimal 12px; 16px / 1.618 di-clamp ke 12px) */
+
+  /* Semantic Status Notifications (WCAG AA) */
+  --status-info-bg: #1D2B4F;
+  --status-info-fg: #D4D8E4;
+  --status-warning-bg: #78412E;
+  --status-warning-fg: #FFE4D2;
+  --status-error-bg: #912A2A;
+  --status-error-fg: #F5E5E5;
+  --status-success-bg: #4E782E;
+  --status-success-fg: #F8FFF5;
 }
 
 /* ==========================================================================
@@ -174,6 +184,95 @@
 
   --contract: var(--secondary-foreground);
   --contract-surface: var(--secondary);
+}
+
+/* ==========================================================================
+   Admin Panel Editorial Precision Scope (6-Color Brand + WCAG AA)
+   Palet: #855C05 | #C08809 | #E7A303 | #0D5907 | #2F8208 | #78B000
+   ========================================================================== */
+.admin-panel {
+  --admin-gold-deep: #855C05;
+  --admin-gold: #C08809;
+  --admin-gold-bright: #E7A303;
+  --admin-green-deep: #0D5907;
+  --admin-green: #2F8208;
+  --admin-green-bright: #78B000;
+
+  --admin-canvas: #F3F2EA;
+  --background: #F3F2EA;
+  --card: #FFFFFF;
+  --popover: #FFFFFF;
+  --foreground: #141A13;
+  --card-foreground: #141A13;
+  --popover-foreground: #141A13;
+  --muted: #ECECE3;
+  --muted-foreground: #4D574B;
+  --secondary: #ECECE3;
+  --secondary-foreground: #141A13;
+  --accent: #ECECE3;
+  --accent-foreground: #141A13;
+  --border: #DCDBD0;
+  --input: #8A8B7E;
+  --ring: #0D5907;
+  --primary: #0D5907;
+  --primary-foreground: #FFFFFF;
+  --sidebar: #FAF9F4;
+  --sidebar-foreground: #141A13;
+  --sidebar-primary: #0D5907;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-border: #DCDBD0;
+  --sidebar-accent: #ECECE3;
+  --sidebar-accent-foreground: #141A13;
+
+  --admin-positive-text: #2F8208;
+  --admin-gold-text: #855C05;
+  --admin-warning-text: #855C05;
+  --admin-error-text: #912A2A;
+  --admin-info-text: #0D5907;
+  --admin-row-hover: #F5F2E6;
+  --admin-focus-bg: #F3F6EE;
+  --admin-primary-hover-bg: #2F8208;
+  --admin-primary-hover-fg: #FFFFFF;
+  --admin-input-hover-border: #855C05;
+}
+
+.dark .admin-panel {
+  --admin-canvas: #0B100C;
+  --background: #0B100C;
+  --card: #141D15;
+  --popover: #141D15;
+  --foreground: #F1F5F0;
+  --card-foreground: #F1F5F0;
+  --popover-foreground: #F1F5F0;
+  --muted: #1A241B;
+  --muted-foreground: #A7B5A5;
+  --secondary: #1A241B;
+  --secondary-foreground: #F1F5F0;
+  --accent: #1A241B;
+  --accent-foreground: #F1F5F0;
+  --border: #253327;
+  --input: #5B6B5C;
+  --ring: #78B000;
+  --primary: #0D5907;
+  --primary-foreground: #FFFFFF;
+  --sidebar: #0E140F;
+  --sidebar-foreground: #F1F5F0;
+  --sidebar-primary: #0D5907;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-border: #253327;
+  --sidebar-accent: #1A241B;
+  --sidebar-accent-foreground: #F1F5F0;
+
+  --admin-positive-text: #78B000;
+  --admin-gold-text: #E7A303;
+  --admin-warning-text: #E7A303;
+  --admin-error-text: #F7B3B3;
+  --admin-info-text: #78B000;
+  --admin-row-hover: #182319;
+  --admin-focus-bg: #162217;
+  --admin-primary-hover-bg: #2F8208;
+  --admin-primary-hover-fg: #FFFFFF;
+  --admin-input-hover-border: #C08809;
 }
 
 /* ==========================================================================
@@ -400,6 +499,315 @@
 @utility type-caption {
   font-size: var(--type-caption);
   line-height: 1.5;
+}
+
+@utility status-info {
+  background-color: var(--status-info-bg) !important;
+  color: var(--status-info-fg) !important;
+  border-color: transparent !important;
+}
+
+@utility status-warning {
+  background-color: var(--status-warning-bg) !important;
+  color: var(--status-warning-fg) !important;
+  border-color: transparent !important;
+}
+
+@utility status-error {
+  background-color: var(--status-error-bg) !important;
+  color: var(--status-error-fg) !important;
+  border-color: transparent !important;
+}
+
+@utility status-success {
+  background-color: var(--status-success-bg) !important;
+  color: var(--status-success-fg) !important;
+  border-color: transparent !important;
+}
+
+@utility admin-brand-pill {
+  background-color: #0D5907 !important;
+  color: #FFFFFF !important;
+  border: none !important;
+}
+
+@utility admin-surface {
+  background-color: var(--card);
+  border: none !important;
+  border-radius: 0.5rem;
+  box-shadow: none !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-shadow: 0 0 #0000 !important;
+}
+
+/* ==========================================================================
+   Admin Panel Pseudo-Classes & Microinteractions
+   ========================================================================== */
+@keyframes admin-pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.75;
+  }
+  70% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+@layer components {
+  .admin-panel .admin-kpi-cell {
+    position: relative;
+    transition: background-color 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .admin-panel .admin-kpi-cell::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    height: 2px;
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+    background-color: var(--admin-green);
+  }
+
+  .dark .admin-panel .admin-kpi-cell::after {
+    background-color: var(--admin-green-bright);
+  }
+
+  .admin-panel .admin-kpi-cell:hover,
+  .admin-panel .admin-kpi-cell:focus-within {
+    background-color: var(--admin-row-hover);
+  }
+
+  .admin-panel .admin-kpi-cell:hover::after,
+  .admin-panel .admin-kpi-cell:focus-within::after {
+    transform: scaleX(1);
+  }
+
+  .admin-panel .admin-table tbody tr {
+    transition: background-color 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .admin-panel .admin-table tbody tr:hover,
+  .admin-panel .admin-table tbody tr:focus-within {
+    background-color: var(--admin-row-hover);
+  }
+
+  .admin-panel .admin-field-row {
+    transition: background-color 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .admin-panel .admin-field-row:hover {
+    background-color: var(--admin-row-hover);
+  }
+
+  .admin-panel .admin-field-row:focus-within {
+    background-color: var(--admin-focus-bg);
+  }
+
+  .admin-panel .admin-nav-link {
+    transition:
+      background-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+      color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+      transform 140ms ease;
+  }
+
+  .admin-panel .admin-nav-link svg {
+    transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .admin-panel .admin-nav-link:hover svg {
+    transform: translateX(2px);
+  }
+
+  .admin-panel .admin-nav-link:active {
+    transform: scale(0.985);
+  }
+
+  .admin-panel .admin-breadcrumb-link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    padding-bottom: 1px;
+    transition: color 160ms ease;
+  }
+
+  .admin-panel .admin-breadcrumb-link::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1.5px;
+    background-color: var(--admin-gold-text);
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .admin-panel .admin-breadcrumb-link:hover,
+  .admin-panel .admin-breadcrumb-link:focus-visible {
+    color: var(--foreground);
+  }
+
+  .admin-panel .admin-breadcrumb-link:hover::after,
+  .admin-panel .admin-breadcrumb-link:focus-visible::after {
+    transform: scaleX(1);
+  }
+
+  .admin-panel .admin-filter-btn {
+    border: none;
+    background-color: var(--muted);
+    color: var(--foreground);
+    transition:
+      background-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+      color 180ms ease,
+      transform 140ms ease;
+  }
+
+  .admin-panel .admin-filter-btn:hover:not(:disabled) {
+    background-color: var(--admin-row-hover);
+  }
+
+  .admin-panel .admin-filter-btn:active:not(:disabled) {
+    transform: translateY(1px) scale(0.98);
+  }
+
+  .admin-panel .admin-filter-btn[aria-pressed="true"] {
+    background-color: #0D5907 !important;
+    color: #FFFFFF !important;
+    border: none !important;
+  }
+
+  .admin-panel .admin-filter-btn[aria-pressed="true"]:hover:not(:disabled) {
+    background-color: #2F8208 !important;
+    color: #FFFFFF !important;
+    border: none !important;
+  }
+
+  .admin-panel .admin-cta {
+    position: relative;
+    background-color: #0D5907 !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    transition:
+      background-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+      color 180ms ease,
+      transform 140ms ease,
+      box-shadow 180ms ease;
+  }
+
+  .admin-panel .admin-cta:hover:not(:disabled) {
+    background-color: #2F8208 !important;
+    color: #FFFFFF !important;
+  }
+
+  .admin-panel .admin-cta:active:not(:disabled) {
+    transform: translateY(1px) scale(0.985);
+  }
+
+  .admin-panel .admin-cta:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .admin-panel .admin-cta .cta-arrow {
+    transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .admin-panel .admin-cta:hover:not(:disabled) .cta-arrow {
+    transform: translateX(3px);
+  }
+
+  .admin-panel .admin-tabs-list [data-slot="tabs-trigger"] {
+    position: relative;
+    color: var(--muted-foreground);
+    transition:
+      color 180ms ease,
+      transform 140ms ease;
+  }
+
+  .admin-panel .admin-tabs-list [data-slot="tabs-trigger"]::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: -1px;
+    height: 2px;
+    opacity: 1;
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    background-color: var(--admin-green-deep);
+  }
+
+  .dark .admin-panel .admin-tabs-list [data-slot="tabs-trigger"]::after {
+    background-color: var(--admin-green-bright);
+  }
+
+  .admin-panel .admin-tabs-list [data-slot="tabs-trigger"]:hover::after {
+    transform: scaleX(0.35);
+  }
+
+  .admin-panel .admin-tabs-list [data-slot="tabs-trigger"][data-active] {
+    color: var(--foreground);
+  }
+
+  .admin-panel .admin-tabs-list [data-slot="tabs-trigger"][data-active]::after {
+    transform: scaleX(1);
+  }
+
+  .admin-panel .admin-tabs-list [data-slot="tabs-trigger"]:active {
+    transform: translateY(1px);
+  }
+
+  .admin-panel input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  .admin-panel textarea,
+  .admin-panel [data-slot="select-trigger"] {
+    transition:
+      border-color 180ms ease,
+      box-shadow 180ms ease,
+      background-color 180ms ease;
+  }
+
+  .admin-panel input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):hover:not(:disabled),
+  .admin-panel textarea:hover:not(:disabled),
+  .admin-panel [data-slot="select-trigger"]:hover:not(:disabled) {
+    border-color: var(--admin-input-hover-border);
+  }
+
+  .admin-panel input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus-visible,
+  .admin-panel textarea:focus-visible,
+  .admin-panel [data-slot="select-trigger"]:focus-visible {
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 22%, transparent);
+  }
+
+  .admin-panel .admin-live-dot {
+    position: relative;
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 9999px;
+  }
+
+  .admin-panel .admin-live-dot::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    background-color: inherit;
+    animation: admin-pulse-ring 2.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  }
+
+  .admin-panel .admin-editorial-note {
+    padding-top: 0.25rem;
+  }
 }
 
 /* ==========================================================================

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { PageContainer } from "@/components/shared/page-container";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAdminUsers } from "@/features/admin/hooks/use-admin";
@@ -27,79 +27,89 @@ export default function AdminUsersPage() {
   };
 
   return (
-    <PageContainer>
+    <PageContainer className="py-7 sm:py-9 space-y-7 sm:space-y-8">
       {/* Header & Breadcrumb */}
-      <div>
+      <header className="border-b border-border pb-6">
         <nav
           aria-label="Breadcrumb"
-          className="flex items-center gap-2 text-xs text-muted-foreground mb-2"
+          className="flex items-center gap-2 text-xs text-muted-foreground mb-2.5"
         >
-          <Link href="/admin" className="hover:text-foreground font-semibold">
+          <Link href="/admin" className="admin-breadcrumb-link font-semibold">
             Pengawas Sistem
           </Link>
-          <span className="text-muted-foreground/50">/</span>
-          <span className="font-medium text-foreground">Manajemen Pengguna</span>
+          <span className="text-muted-foreground/60" aria-hidden="true">/</span>
+          <span aria-current="page" className="font-medium text-foreground">
+            Manajemen Pengguna
+          </span>
         </nav>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+            <h1 className="font-display text-2xl sm:text-[28px] font-bold tracking-tight text-foreground">
               Daftar Pengguna &amp; Tata Kelola Privasi
             </h1>
-            <p className="mt-1 text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-3xl">
+            <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed max-w-3xl">
               Pengawasan profil petani dan pembeli terdaftar. Penyamaran nomor telepon wajib
               diterapkan bahkan bagi pengawas sistem guna melindungi privasi pengguna.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-primary/10 text-xs font-semibold text-primary border border-primary/20 shrink-0">
-            <Lock className="w-4 h-4 shrink-0" />
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md admin-brand-pill text-xs font-semibold shrink-0 self-start sm:self-auto">
+            <Lock className="w-4 h-4 shrink-0 text-white" aria-hidden="true" />
             <span>Penyamaran Kontak Wajib</span>
           </div>
         </div>
-      </div>
+      </header>
 
       {closureNotice && (
-        <div className="p-4 rounded-2xl bg-amber-500/10 text-amber-900 dark:text-amber-200 border border-amber-500/30 text-xs font-medium flex items-start gap-2 leading-relaxed">
-          <Info className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
+        <div
+          role="status"
+          aria-live="polite"
+          className="px-4 py-3.5 rounded-lg status-warning text-xs font-medium flex items-start gap-2.5 leading-relaxed"
+        >
+          <Info className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
           <span>{closureNotice}</span>
         </div>
       )}
 
       {/* Main Table Card */}
-      <Card className="rounded-2xl border border-border/80 overflow-hidden shadow-xs bg-card">
-        <CardHeader className="py-4 px-6 border-b border-border/70 flex flex-row items-center justify-between">
-          <CardTitle className="text-base font-bold text-foreground">
+      <Card className="admin-surface p-0 gap-0 overflow-hidden">
+        <div className="px-6 py-5 border-b border-border flex items-center justify-between gap-3">
+          <h2 className="font-display text-base font-bold text-foreground">
             Pengguna Terdaftar di Platform
-          </CardTitle>
-          <span className="text-xs text-muted-foreground tabular-nums">
+          </h2>
+          <span className="text-xs font-semibold text-[var(--admin-gold-text)] tabular-nums">
             {users?.length || 0} akun
           </span>
-        </CardHeader>
-        <CardContent className="p-0 overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="admin-table w-full text-left border-collapse text-[13px]">
+            <caption className="sr-only">
+              Daftar pengguna terdaftar beserta peran, nomor kontak tersamar, wilayah, dan status akun
+            </caption>
             <thead>
-              <tr className="border-b border-border/80 bg-muted/40 text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                <th className="py-3 px-5">ID Pengguna</th>
-                <th className="py-3 px-5">Nama Lengkap</th>
-                <th className="py-3 px-5">Peran</th>
-                <th className="py-3 px-5">Nomor Kontak Tersamar</th>
-                <th className="py-3 px-5">Wilayah Domisili</th>
-                <th className="py-3 px-5">Nama Usaha / Poktan</th>
-                <th className="py-3 px-5 text-center">Status Akun</th>
-                <th className="py-3 px-5 text-right">Tata Kelola Akun</th>
+              <tr className="border-b border-border bg-muted/50 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <th scope="col" className="py-3.5 px-5 first:pl-6 last:pr-6">ID Pengguna</th>
+                <th scope="col" className="py-3.5 px-5 first:pl-6 last:pr-6">Nama Lengkap</th>
+                <th scope="col" className="py-3.5 px-5 first:pl-6 last:pr-6">Peran</th>
+                <th scope="col" className="py-3.5 px-5 first:pl-6 last:pr-6">Nomor Kontak Tersamar</th>
+                <th scope="col" className="py-3.5 px-5 first:pl-6 last:pr-6">Wilayah Domisili</th>
+                <th scope="col" className="py-3.5 px-5 first:pl-6 last:pr-6">Nama Usaha / Poktan</th>
+                <th scope="col" className="py-3.5 px-5 first:pl-6 last:pr-6 text-center">Status Akun</th>
+                <th scope="col" className="py-3.5 px-5 first:pl-6 last:pr-6 text-right">Tata Kelola Akun</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/60">
+            <tbody className="divide-y divide-border">
               {isLoading ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-xs text-muted-foreground">
+                  <td colSpan={8} className="p-10 text-center text-xs text-muted-foreground">
                     Memuat data pengguna...
                   </td>
                 </tr>
               ) : (users || []).length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-xs text-muted-foreground">
+                  <td colSpan={8} className="p-10 text-center text-xs text-muted-foreground">
                     Tidak ditemukan data pengguna terdaftar.
                   </td>
                 </tr>
@@ -108,58 +118,55 @@ export default function AdminUsersPage() {
                   const isPendingClosure = closurePendingUsers.includes(u.id);
 
                   return (
-                    <tr key={u.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="py-3.5 px-5 tabular-nums text-muted-foreground whitespace-nowrap text-xs">
+                    <tr key={u.id}>
+                      <td className="py-4 px-5 first:pl-6 last:pr-6 tabular-nums text-muted-foreground whitespace-nowrap text-xs">
                         #{u.id}
                       </td>
-                      <td className="py-3.5 px-5 font-bold text-foreground whitespace-nowrap">
+                      <td className="py-4 px-5 first:pl-6 last:pr-6 font-semibold text-foreground whitespace-nowrap">
                         {u.name}
                       </td>
-                      <td className="py-3.5 px-5 whitespace-nowrap">
+                      <td className="py-4 px-5 first:pl-6 last:pr-6 whitespace-nowrap">
                         <Badge
-                          variant={
+                          variant="outline"
+                          className={`rounded-md px-2 py-0.5 text-xs font-semibold uppercase ${
                             u.role === "admin"
-                              ? "destructive"
-                              : u.role === "petani"
-                              ? "default"
-                              : "secondary"
-                          }
-                          className="text-xs font-bold uppercase"
+                              ? "admin-brand-pill"
+                              : "bg-muted text-foreground border-transparent"
+                          }`}
                         >
                           {u.role}
                         </Badge>
                       </td>
-                      <td className="py-3.5 px-5 text-muted-foreground whitespace-nowrap tabular-nums">
-                        <span className="bg-muted px-2 py-0.5 rounded text-xs font-semibold">
+                      <td className="py-4 px-5 first:pl-6 last:pr-6 text-muted-foreground whitespace-nowrap tabular-nums">
+                        <span className="bg-muted text-foreground px-2.5 py-0.5 rounded text-xs font-semibold">
                           {u.phone}
                         </span>
                       </td>
-                      <td className="py-3.5 px-5 text-muted-foreground whitespace-nowrap">
+                      <td className="py-4 px-5 first:pl-6 last:pr-6 text-muted-foreground whitespace-nowrap text-xs">
                         Kec. {u.district}, Kab. {u.regency}
                       </td>
-                      <td className="py-3.5 px-5 font-semibold text-foreground whitespace-nowrap">
+                      <td className="py-4 px-5 first:pl-6 last:pr-6 font-medium text-foreground whitespace-nowrap">
                         {u.businessName || "-"}
                       </td>
-                      <td className="py-3.5 px-5 text-center whitespace-nowrap">
+                      <td className="py-4 px-5 first:pl-6 last:pr-6 text-center whitespace-nowrap">
                         <span
-                          className={`inline-block px-2 py-0.5 rounded-md text-xs font-bold ${
-                            isPendingClosure
-                              ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
-                              : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                          className={`inline-block px-2.5 py-0.5 rounded-md text-xs font-semibold ${
+                            isPendingClosure ? "status-warning" : "status-success"
                           }`}
                         >
                           {isPendingClosure ? "Permohonan Tutup" : "Aktif"}
                         </span>
                       </td>
-                      <td className="py-3.5 px-5 text-right whitespace-nowrap">
+                      <td className="py-4 px-5 first:pl-6 last:pr-6 text-right whitespace-nowrap">
                         {u.role !== "admin" && (
                           <Button
+                            type="button"
                             variant="ghost"
                             size="sm"
                             onClick={() => handleToggleClosureRequest(u.id)}
-                            className="text-xs h-7 px-2 font-semibold text-muted-foreground hover:text-destructive cursor-pointer"
+                            className="min-h-9 px-3 rounded-lg text-xs font-semibold text-muted-foreground hover:text-[var(--admin-error-text)] hover:bg-muted active:scale-95 transition-all cursor-pointer"
                           >
-                            <UserX className="w-3.5 h-3.5 mr-1" />
+                            <UserX className="w-3.5 h-3.5 mr-1.5" aria-hidden="true" />
                             <span>{isPendingClosure ? "Batalkan Tutup" : "Minta Tutup"}</span>
                           </Button>
                         )}
@@ -170,7 +177,7 @@ export default function AdminUsersPage() {
               )}
             </tbody>
           </table>
-        </CardContent>
+        </div>
       </Card>
     </PageContainer>
   );
