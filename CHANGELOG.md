@@ -17,6 +17,12 @@ Semua perubahan penting pada proyek **SAMBUNG** (`sambung-be` dan `sambung-fe`) 
   - Menampilkan alur sekuensial lengkap: Pesanan Diajukan $\rightarrow$ Histori Tawar Balik $\rightarrow$ Harga Disepakati $\rightarrow$ Tanda Tangan Petani & Pembeli $\rightarrow$ Pengiriman $\rightarrow$ Penerimaan Selesai (atau status Pembatalan) dengan icon Lucide murni tanpa emotikon sesuai referensi visual.
 
 ### Changed
+- **Frontend (`sambung-fe`) — Redesain Tipografi & Arsitektur Kartu Dasbor Admin**:
+  - Mengadopsi prinsip desain bersih (*clean UI*) dari panel Petani dan Produsen pada `sambung-fe/app/admin/(panel)/page.tsx`:
+    - Mengubah 4 kartu metrik kapital kaku menjadi 3 kartu metrik lapang (*sentence case* dan angka hero `text-3xl font-extrabold font-display` dengan satuan terpisah).
+    - Menghapus grid 6 kartu modul navigasi yang redundan dengan Sidebar, menggantinya dengan panel aksi prioritas (*Antrean Moderasi Penawaran Petani*).
+    - Meratakan tampilan log audit sistem menjadi baris datar minimalis (`divide-y divide-border/60`) tanpa kartu bertumpuk (*no nested cards*).
+    - Menyederhanakan kartu batas otoritas pengawas menjadi card datar satu lapis yang proporsional.
 - **Frontend (`sambung-fe`) — Navbar Kapsul Melayang Dinamis (Floating Capsule to Full Width)**:
   - Mengubah `sambung-fe/components/layouts/Navbar.tsx` menjadi floating capsule navbar dinamis sesuai referensi visual:
     - Default (paling atas): Mengambang elegan sebagai pill `rounded-full` dengan latar frosted glass `backdrop-blur-md`, brand SAMBUNG + tagline, tautan dengan titik pemisah `•`, dan tombol CTA kapsul kontras tinggi berikon `ArrowUpRight`.
