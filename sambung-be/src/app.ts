@@ -7,6 +7,7 @@ import express from "express";
 import { ApiError } from "./shared/api-error.ts";
 import { authRouter } from "./modules/auth/auth.routes.ts";
 import { errorHandler } from "./middleware/error-handler.ts";
+import { requestLogger } from "./middleware/request-logger.ts";
 import { parseAllowedOrigins } from "./config/env.ts";
 import type { PrismaClient } from "@prisma/client";
 
@@ -17,6 +18,8 @@ export function createApp(db: PrismaClient, origin: string, consentVersion = "de
 
   app.set("trust proxy", 1);
   app.disable("x-powered-by");
+
+  app.use(requestLogger);
 
   app.use((req, res, next) => {
     res.vary("Origin");
