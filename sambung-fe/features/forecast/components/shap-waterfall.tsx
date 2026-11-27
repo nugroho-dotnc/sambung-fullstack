@@ -1,6 +1,15 @@
 "use client";
 
-import { CloudRain, Sprout, Landmark, Compass, TrendingUp, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import {
+  CloudRain,
+  Sprout,
+  Landmark,
+  Compass,
+  TrendingUp,
+  ArrowUpRight,
+  ArrowDownRight,
+  Minus,
+} from "lucide-react";
 import type { ShapFactor, ShapCategory } from "../domain/forecast-data";
 
 const CATEGORY_ICONS: Record<ShapCategory, typeof Sprout> = {
@@ -21,7 +30,6 @@ const CATEGORY_LABELS: Record<ShapCategory, string> = {
 
 export function ShapWaterfall({
   factors,
-  userRole,
 }: {
   factors: ShapFactor[];
   userRole?: "petani" | "pembeli" | "admin";
@@ -40,6 +48,7 @@ export function ShapWaterfall({
         const Icon = CATEGORY_ICONS[factor.category] || Sprout;
         const label = CATEGORY_LABELS[factor.category] || factor.category;
         const isPushUp = factor.impact > 0;
+        const isNeutral = factor.impact === 0;
 
         return (
           <div
@@ -52,7 +61,9 @@ export function ShapWaterfall({
                   className={`p-1.5 rounded-lg shrink-0 ${
                     isPushUp
                       ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
-                      : "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
+                      : isNeutral
+                        ? "bg-muted text-muted-foreground"
+                        : "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
@@ -71,13 +82,20 @@ export function ShapWaterfall({
                 className={`text-[11px] font-bold px-2 py-0.5 rounded-md border whitespace-nowrap tabular-nums flex items-center gap-1 shrink-0 ${
                   isPushUp
                     ? "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
-                    : "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                    : isNeutral
+                      ? "bg-muted text-muted-foreground border-border/80"
+                      : "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
                 }`}
               >
                 {isPushUp ? (
                   <>
                     <ArrowUpRight className="w-3 h-3 text-emerald-600" />
                     <span>+Rp{factor.impact}/kg</span>
+                  </>
+                ) : isNeutral ? (
+                  <>
+                    <Minus className="w-3 h-3 text-muted-foreground" />
+                    <span>Stabil (Rp0/kg)</span>
                   </>
                 ) : (
                   <>

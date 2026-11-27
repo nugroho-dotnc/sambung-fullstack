@@ -9,6 +9,10 @@ Semua perubahan penting pada proyek **SAMBUNG** (`sambung-be` dan `sambung-fe`) 
 ## [Unreleased]
 
 ### Added
+- **Frontend (`sambung-fe`) — Integrasi Live API AI, Penanganan *Cold Start*, & Antarmuka AI Pengawas (2026-11-27)**:
+  - Menambahkan lapisan layanan dan hook TanStack Query live untuk `GET /ai/health` (`features/ai/{services/ai-health.service.ts,hooks/use-ai-health.ts}`), `GET /fair-price/params` + `POST /fair-price/calculate` (`features/fair-price/`), `GET /price-board` (`features/price-board/`), `GET /spatial-disparity` (`features/region-map/`), serta `usePriceReference` / `extractPriceReference` (`features/price-check/`).
+  - Memperbarui `lib/api/{errors.ts,client.ts}` (meneruskan header `Retry-After` pada `ApiError.retryAfterSeconds`) dan `components/shared/async-boundary.tsx` (tampilan tunggu *cold start* `AI_SERVICE_STARTING` serta status `AI_SERVICE_UNAVAILABLE` lengkap dengan tombol muat ulang).
+  - Menambahkan indikator kesiapan layanan AI live pada dasbor pengawas (`app/admin/(panel)/page.tsx`), tab **Simulasi *What-If* (Live)** (`features/admin/components/what-if-simulator.tsx` → `POST /admin/predict/live` *stateless* + penanganan kuota `429`), dan tab **Ingest Data Mingguan AI** (`features/admin/components/weekly-ingest-panel.tsx` → `POST /admin/ai/ingest` mendukung form, impor CSV, uji kering `persist: false`, serta konfirmasi simpan permanen `persist: true`).
 - **Backend (`sambung-be`) — Suite Tes Rute AI & Dokumentasi Integrasi (Tahap 3 Backend Only, 2026-11-27)**:
   - Menambahkan `sambung-be/tests/integration/ai.routes.test.mjs` yang menguji seluruh rute publik AI (`/ai/health`, `/spatial-disparity`, `/price-board`, `/fair-price/params`, `/fair-price/calculate`, `/forecasts`), validasi ketat Zod `422`, isolasi cache overlay `SystemParameter`, penerusan `rendemen`/`hppGovernment` ke `price-checks/preview`, guard admin `401`/`403`, `GET /admin/observations` 34 provinsi nyata, `POST /admin/predict/live` (*stateless* + *rate limit* `429` + `Retry-After`), `POST /admin/ai/ingest` (`422` data simulasi/kalender + `AuditLog` + clear cache), serta smoke test baca-saja ke HF Space asli.
   - Memperbarui `sambung-be/README.md` (daftar endpoint AI, konfigurasi *rate limit*, 7 suite uji, struktur `src/modules/ai/`, dan migrasi `005`) serta `sambung-be/.env.example` (`AI_PREDICT_LIVE_RATE_LIMIT_*`).
@@ -29,6 +33,12 @@ Semua perubahan penting pada proyek **SAMBUNG** (`sambung-be` dan `sambung-fe`) 
   - Menampilkan alur sekuensial lengkap: Pesanan Diajukan $\rightarrow$ Histori Tawar Balik $\rightarrow$ Harga Disepakati $\rightarrow$ Tanda Tangan Petani & Pembeli $\rightarrow$ Pengiriman $\rightarrow$ Penerimaan Selesai (atau status Pembatalan) dengan icon Lucide murni tanpa emotikon sesuai referensi visual.
 
 ### Changed
+- **Frontend (`sambung-fe`) — Migrasi Seluruh Halaman Analitik & Acuan Transaksi ke `sambung-be` Live (2026-11-27)**:
+  - Memigrasikan `app/admin/(panel)/model/page.tsx` dan `features/admin/` dari `model_evaluation.json` (*snake_case*) ke `GET /admin/model-evaluation` (*camelCase*), termasuk perbandingan baseline 2 pekan dan 4 pekan.
+  - Memigrasikan Papan Rantai Harga (`app/(workspace)/harga/page.tsx` dan `app/(public)/_sections/price-board.tsx`) ke `GET /price-board` murni untuk `Beras Medium I`, menghapus pengali semu (`Beras Premium`, skala `GKP`) serta periode `"Pekan Berjalan"` yang tidak valid.
+  - Memigrasikan Peta Disparitas 34 Provinsi (`app/(workspace)/peta/page.tsx`, `app/(workspace)/peta/tabel/page.tsx`, `app/(public)/peta-harga/_components/full-price-map.tsx`, `app/(public)/_sections/price-map.tsx`) ke `GET /spatial-disparity` dan `GET /price-board`.
+  - Memigrasikan Kalkulator Harga Wajar (`app/(workspace)/harga-wajar/page.tsx` dengan `<Suspense>`, `features/fair-price/components/fair-price-simulator.tsx`) serta 7 konsumen acuan transaksi (`petani/page.tsx`, `pembeli/page.tsx`, `pembeli/katalog/page.tsx`, `offer-detail-view.tsx`, `offer-wizard.tsx`, `partial-order-form.tsx`, `negotiation-room.tsx`) ke `/fair-price/params` dan `/fair-price/calculate`.
+  - Menghapus fallback statis pada `app/(workspace)/prakiraan/page.tsx` dan `features/forecast/domain/forecast-data.ts`, menampilkan jumlah provinsi dinamis dari `GET /forecasts/meta`, serta memperketat batas input HTML di `app/admin/(panel)/parameter/page.tsx` (`Rendemen GKP/GKG` `40–75%`, toleransi `0,5–25%`, HPP `3000–20000`).
 - **Backend (`sambung-be`) — Sinkronisasi Parameter Sistem, Observasi Admin Live, & Validasi Ketat Kueri (Tahap 2 Backend Only, 2026-11-27)**:
   - Memperketat `forecastQuerySchema` (`z.strictObject`) serta menambahkan `modelName` opsional pada metadata `forecast.service.ts`.
   - Menghubungkan `pricing.service.ts` dan `ai-price.client.ts` ke `rendemenGKP`, `rendemenGKG`, dan `governmentFloorPriceGKP` aktif di `SystemParameter` (dengan guard tipe dan rentang yang aman bagi mock parsial).
@@ -63,12 +73,25 @@ Semua perubahan penting pada proyek **SAMBUNG** (`sambung-be` dan `sambung-fe`) 
   - Kontak nomor telepon dan WhatsApp mitra kini baru dibuka ketika kedua belah pihak telah menyelesaikan tanda tangan digital (status `signed`, `shipping`, `completed`), bukan lagi pada saat harga disepakati (`approved`).
 
 ### Fixed
+- **Frontend (`sambung-fe`) — Perbaikan QA Manual Rute Publik, Ruang Kerja, Tanda Tangan, & OTP (2026-11-27)**:
+  - Menyeragamkan tipografi rentang harga `Acuan Wajar ... (GKP)` dan memperjelas atribusi sumber di `app/(workspace)/petani/page.tsx` serta `app/(workspace)/pembeli/page.tsx`.
+  - Menyesuaikan tinggi viewport peta publik agar tombol aksi panel samping terlihat tanpa scroll, membuat CTA simulasi pada panel samping `app/(public)/peta-harga/_components/full-price-map.tsx` sadar status login (`useCurrentUser`), serta memperjelas keterangan kartu tingkat petani (`±1,87 kg GKP` setara 1 kg beras).
+  - Menghapus baris tombol cepat `Sentra AI Aktif:` dan merapikan pemilih 24 provinsi pada `app/(workspace)/prakiraan/page.tsx`.
+  - Membuat tinta kanvas `SignatureDialog` (`features/contracts/components/signature-dialog.tsx`) adaptif terhadap tema terang/gelap (`useTheme`), menyalin ulang goresan ke PNG bertinta gelap kanonik saat kirim agar dokumen/PDF tetap kontras, menskalakan koordinat pointer terhadap resolusi kanvas, serta menambahkan `dark:invert print:invert-0` pada pratinjau tanda tangan di `app/(workspace)/kontrak/[id]/bukti/page.tsx`.
+  - Menghapus sisa state & `sessionStorage` OTP saat keluar akun (`features/auth/hooks/use-auth.ts`) maupun saat pengajuan OTP baru (`app/(auth)/masuk/page.tsx` & `app/(auth)/masuk/verifikasi/page.tsx` dengan `VerificationForm` ber-*key* unik serta `autoComplete="off"`).
+  - Menghapus label teknis `(TreeSHAP)` dari judul hasil simulasi *What-If* pada `features/admin/components/what-if-simulator.tsx`.
+- **Frontend (`sambung-fe`) — Perbaikan GeoJSON Indonesia, Faktor SHAP Netral, & Lint Dialog Tanda Tangan (2026-11-27)**:
+  - Menghapus karakter liar `T` pada awal berkas `sambung-fe/data/indonesia-provinces.json` sehingga GeoJSON kembali valid (`FeatureCollection`, 32 fitur).
+  - Menangani faktor SHAP bernilai `impact === 0` (`Pasar Cenderung Stabil`) di `features/forecast/components/shap-waterfall.tsx` dan `impactRp === 0` di `app/(workspace)/peta/page.tsx` secara netral tanpa panah turun `-Rp0/kg`.
+  - Menghapus pemanggilan `setState` sinkron di dalam `useEffect` pada `features/contracts/components/signature-dialog.tsx` dengan nilai turunan `effectiveTypedName` agar lolos aturan React 19 `react-hooks/set-state-in-effect`.
 - **Backend (`sambung-be`) — Hitung Stok Kontrak Aktif (`signed` & `shipping`)**:
   - Memperbarui fungsi `present()` pada `sambung-be/src/modules/offers/offers.service.ts` agar `approvedVolumeKg` menjumlahkan status `approved`, `signed`, dan `shipping` (sebelumnya hanya `approved`), sehingga stok yang sedang ditandatangani atau dikirim tidak kembali dihitung sebagai `availableVolumeKg`.
 - **Backend (`sambung-be`) — Check Constraint PostgreSQL Status Kontrak**:
   - Memperbarui check constraint SQL `Contract_status_check` agar mengizinkan status `'signed'` dan `'shipping'` dan mencatatnya pada migrasi `005_contract_signatures_and_fulfillment/migration.sql`.
 
 ### Removed
+- **Frontend (`sambung-fe`) — Penghapusan Seluruh Snapshot JSON AI Statis (`2026-11-27`)**:
+  - Menghapus direktori `sambung-fe/data/ai/` (`fair_price_params.json`, `forecast_produsen.json`, `model_evaluation.json`, `price_board_4tier.json`, `spatial_disparity.json`) setelah seluruh halaman dan komponen transaksi beralih penuh ke endpoint live `sambung-be`.
 - **Backend (`sambung-be`) — Penghapusan Protokol Gradio SSE & Fallback File Snapshot Lokal (`2026-11-27`)**:
   - Menghapus seluruh impor `node:fs/promises`, jalur `/gradio_api/call/*`, serta penggunaan `AI_SNAPSHOT_PATH` dan `AI_FORECAST_SNAPSHOT_PATH` dari modul `forecast`, `pricing`, `.env`, `.env.example`, dan README `sambung-be`.
 

@@ -11,11 +11,14 @@ import { useVerifyOtp, useRequestOtp, useOtpMode } from "@/features/auth/hooks/u
 import { useRedirectAuthenticatedUser } from "@/features/auth/hooks/use-redirect-authenticated";
 import { resolvePostAuthPath } from "@/features/auth/domain/role-routes";
 
-function VerificationContent() {
+function VerificationForm({
+  phone,
+  redirect,
+}: {
+  phone: string;
+  redirect: string | null;
+}) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const phone = searchParams.get("phone") || "";
-  const redirect = searchParams.get("redirect");
   const { isRedirecting } = useRedirectAuthenticatedUser(redirect);
 
   const [otpCode, setOtpCode] = useState("");
@@ -71,6 +74,7 @@ function VerificationContent() {
       sessionStorage.setItem("otp-mode", nextMode);
       sessionStorage.setItem(`otp-hint:${phone}`, result.debugHint ?? "");
       setHint(result.debugHint ?? "");
+      setOtpCode("");
       setCountdown(60);
     } catch (err) {
       setErrorMsg(
@@ -95,6 +99,7 @@ function VerificationContent() {
         otpCode: cleanCode,
       });
 
+      setOtpCode("");
       sessionStorage.removeItem(`otp-hint:${phone}`);
       if (res.isNewUser) {
         const nextParams = new URLSearchParams({ phone });
@@ -128,7 +133,7 @@ function VerificationContent() {
         </p>
       </div>
 
-      <form onSubmit={handleVerify} className="space-y-5">
+      <form onSubmit={handleVerify} autoComplete="off" className="space-y-5">
         <div className="space-y-3">
           <div className="space-y-2">
             <Label htmlFor="otp" className="text-sm font-semibold">
@@ -140,7 +145,10 @@ function VerificationContent() {
               </div>
               <Input
                 id="otp"
+                name="otp-code"
                 type="text"
+                inputMode="numeric"
+                autoComplete="off"
                 maxLength={4}
                 placeholder="4 digit"
                 value={otpCode}
@@ -218,6 +226,21 @@ function VerificationContent() {
         )
       )}
     </div>
+  );
+}
+
+function VerificationContent() {
+  const searchParams = useSearchParams();
+  const phone = searchParams.get("phone") || "";
+  const reqId = searchParams.get("req") || "";
+  const redirect = searchParams.get("redirect");
+
+  return (
+    <VerificationForm
+      key={`${phone}:${reqId}`}
+      phone={phone}
+      redirect={redirect}
+    />
   );
 }
 

@@ -76,6 +76,18 @@ export function useLogout() {
   return useMutation({
     mutationFn: () => authService.logout(),
     onSuccess: () => {
+      if (typeof window !== "undefined") {
+        try {
+          window.sessionStorage.removeItem("otp-mode");
+          for (const key of Object.keys(window.sessionStorage)) {
+            if (key.startsWith("otp-hint:")) {
+              window.sessionStorage.removeItem(key);
+            }
+          }
+        } catch {
+          // Ignore storage access errors in restricted contexts
+        }
+      }
       queryClient.setQueryData(authKeys.currentUser(), null);
       queryClient.clear();
       router.push("/");

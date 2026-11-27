@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { PenTool, Type, RotateCcw, CheckCircle2 } from "lucide-react";
+import { useTheme } from "@/providers/theme-provider";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,6 +12,43 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+
+interface Point {
+  x: number;
+  y: number;
+}
+
+function redrawStrokes(
+  canvas: HTMLCanvasElement,
+  strokes: Point[][],
+  strokeColor: string,
+) {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = strokeColor;
+  ctx.fillStyle = strokeColor;
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  for (const stroke of strokes) {
+    if (stroke.length === 0) continue;
+    if (stroke.length === 1) {
+      ctx.beginPath();
+      ctx.arc(stroke[0].x, stroke[0].y, 1.25, 0, Math.PI * 2);
+      ctx.fill();
+      continue;
+    }
+    ctx.beginPath();
+    ctx.moveTo(stroke[0].x, stroke[0].y);
+    for (let i = 1; i < stroke.length; i++) {
+      ctx.lineTo(stroke[i].x, stroke[i].y);
+    }
+    ctx.stroke();
+  }
+}
 
 interface SignatureDialogProps {
   open: boolean;
@@ -29,44 +67,40 @@ export function SignatureDialog({
   onConfirm,
   isSubmitting = false,
 }: SignatureDialogProps) {
+  const { resolvedTheme } = useTheme();
+  const displayInk = resolvedTheme === "dark" ? "#f8fafc" : "#0f172a";
+
   const [activeTab, setActiveTab] = useState<"draw" | "type">("draw");
-  const [typedName, setTypedName] = useState(signerName || "");
+  const [typedName, setTypedName] = useState<string | null>(null);
+  const effectiveTypedName = typedName ?? signerName;
   const [hasDrawn, setHasDrawn] = useState(false);
   const [agreed, setAgreed] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const isDrawingRef = useRef(false);
+  const strokesRef = useRef<Point[][]>([]);
 
-  // Initialize canvas when dialog opens or activeTab switches to draw
+  // Initialize and redraw canvas whenever dialog opens, switches to draw tab, or theme changes
   useEffect(() => {
     if (open && activeTab === "draw") {
       const canvas = canvasRef.current;
       if (!canvas) return;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-      ctx.strokeStyle = "#0f172a";
-      ctx.lineWidth = 2.5;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
+      redrawStrokes(canvas, strokesRef.current, displayInk);
     }
-  }, [open, activeTab]);
+  }, [open, activeTab, displayInk]);
 
-  useEffect(() => {
-    if (signerName && !typedName) {
-      setTypedName(signerName);
-    }
-  }, [signerName, typedName]);
-
-  function getCanvasCoords(e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) {
+  function getCanvasCoords(e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>): Point {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
+    const scaleX = rect.width > 0 ? canvas.width / rect.width : 1;
+    const scaleY = rect.height > 0 ? canvas.height / rect.height : 1;
     const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
     const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
     return {
-      x: clientX - rect.left,
-      y: clientY - rect.top,
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY,
     };
   }
 
@@ -75,9 +109,20 @@ export function SignatureDialog({
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    const { x, y } = getCanvasCoords(e);
+    const point = getCanvasCoords(e);
+    strokesRef.current.push([point]);
+
+    ctx.strokeStyle = displayInk;
+    ctx.fillStyle = displayInk;
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
     ctx.beginPath();
-    ctx.moveTo(x, y);
+    ctx.arc(point.x, point.y, 1.25, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(point.x, point.y);
+
     isDrawingRef.current = true;
     setHasDrawn(true);
     setError(null);
@@ -89,8 +134,16 @@ export function SignatureDialog({
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    const { x, y } = getCanvasCoords(e);
-    ctx.lineTo(x, y);
+    const point = getCanvasCoords(e);
+    const activeStroke = strokesRef.current[strokesRef.current.length - 1];
+    if (activeStroke) {
+      activeStroke.push(point);
+    }
+    ctx.strokeStyle = displayInk;
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.lineTo(point.x, point.y);
     ctx.stroke();
   }
 
@@ -99,12 +152,25 @@ export function SignatureDialog({
   }
 
   function clearCanvas() {
+    strokesRef.current = [];
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (canvas) {
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
     setHasDrawn(false);
+  }
+
+  function handleDialogOpenChange(nextOpen: boolean) {
+    if (!nextOpen) {
+      strokesRef.current = [];
+      isDrawingRef.current = false;
+      setHasDrawn(false);
+      setError(null);
+    }
+    onOpenChange(nextOpen);
   }
 
   async function handleSubmit() {
@@ -115,14 +181,18 @@ export function SignatureDialog({
     }
 
     if (activeTab === "draw") {
-      if (!hasDrawn || !canvasRef.current) {
+      if (!hasDrawn || !canvasRef.current || strokesRef.current.length === 0) {
         setError("Silakan buat goresan tanda tangan Anda pada bidang kanvas.");
         return;
       }
-      const dataUrl = canvasRef.current.toDataURL("image/png");
+      const exportCanvas = document.createElement("canvas");
+      exportCanvas.width = canvasRef.current.width;
+      exportCanvas.height = canvasRef.current.height;
+      redrawStrokes(exportCanvas, strokesRef.current, "#09090b");
+      const dataUrl = exportCanvas.toDataURL("image/png");
       await onConfirm({ type: "draw", signature: dataUrl });
     } else {
-      const trimmed = typedName.trim();
+      const trimmed = effectiveTypedName.trim();
       if (trimmed.length < 2) {
         setError("Silakan ketikkan nama Anda minimal 2 karakter.");
         return;
@@ -132,7 +202,7 @@ export function SignatureDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-lg font-bold text-foreground">
@@ -229,7 +299,7 @@ export function SignatureDialog({
               <input
                 id="signatureTypedName"
                 type="text"
-                value={typedName}
+                value={effectiveTypedName}
                 onChange={(e) => {
                   setTypedName(e.target.value);
                   setError(null);
@@ -246,7 +316,7 @@ export function SignatureDialog({
               </span>
               <div className="min-h-14 flex items-center justify-center">
                 <span className="font-signature text-3xl sm:text-4xl text-foreground tracking-wide select-none">
-                  {typedName || signerName || "Nama Anda"}
+                  {effectiveTypedName || "Nama Anda"}
                 </span>
               </div>
             </div>
@@ -281,14 +351,14 @@ export function SignatureDialog({
             variant="outline"
             className="min-h-10 text-xs"
             disabled={isSubmitting}
-            onClick={() => onOpenChange(false)}
+            onClick={() => handleDialogOpenChange(false)}
           >
             Batal
           </Button>
           <Button
             type="button"
             className="min-h-10 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
-            disabled={isSubmitting || (activeTab === "draw" ? !hasDrawn : !typedName.trim())}
+            disabled={isSubmitting || (activeTab === "draw" ? !hasDrawn : !effectiveTypedName.trim())}
             onClick={() => void handleSubmit().catch(() => undefined)}
           >
             <CheckCircle2 className="w-4 h-4 mr-1.5" />

@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAdminStats, useAdminAuditLogs } from "@/features/admin/hooks/use-admin";
+import { useAiHealth } from "@/features/ai/hooks/use-ai-health";
 import {
   ShieldCheck,
   Database,
@@ -14,11 +15,18 @@ import {
   ScrollText,
   ArrowRight,
   CheckCircle2,
+  RefreshCw,
 } from "lucide-react";
 
 export default function AdminDashboardPage() {
   const { data: stats, isLoading: statsLoading } = useAdminStats();
   const { data: logs, isLoading: logsLoading } = useAdminAuditLogs();
+  const {
+    data: aiHealth,
+    isLoading: aiHealthLoading,
+    isFetching: aiHealthFetching,
+    refetch: refetchAiHealth,
+  } = useAiHealth();
 
   const hasAnomaly = (stats?.flaggedOffers || 0) > 0;
 
@@ -52,14 +60,48 @@ export default function AdminDashboardPage() {
               {stats?.dataFreshnessStatus ? "Aktif & Valid" : "Memuat..."}
             </Badge>
           </CardHeader>
-          <CardContent className="p-5 pt-0">
+          <CardContent className="p-5 pt-0 space-y-2.5">
             <div className="text-2xl sm:text-3xl font-extrabold font-display text-foreground flex items-baseline gap-1.5">
-              <span>Bapanas & BPS</span>
+              <span>Bapanas &amp; BPS</span>
             </div>
-            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
               <Database className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               Sinkronisasi data acuan pasar berkala
             </p>
+            <div className="pt-2 border-t border-border/60 flex items-center justify-between gap-2 text-[11px]">
+              <div className="flex items-center gap-1.5">
+                <span className="text-muted-foreground font-medium">Layanan AI:</span>
+                <Badge
+                  variant="outline"
+                  className={
+                    aiHealthLoading
+                      ? "bg-muted text-muted-foreground text-[10px] font-semibold"
+                      : aiHealth?.ready
+                        ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[10px] font-semibold"
+                        : aiHealth?.status === "starting"
+                          ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30 text-[10px] font-semibold"
+                          : "bg-destructive/10 text-destructive border-destructive/30 text-[10px] font-semibold"
+                  }
+                >
+                  {aiHealthLoading
+                    ? "Memeriksa..."
+                    : aiHealth?.ready
+                      ? `Siap${aiHealth.modelVersion ? ` (${aiHealth.modelVersion})` : ""}`
+                      : aiHealth?.status === "starting"
+                        ? "Memuat Model..."
+                        : "Tidak Tersedia"}
+                </Badge>
+              </div>
+              <button
+                type="button"
+                onClick={() => void refetchAiHealth()}
+                disabled={aiHealthFetching}
+                aria-label="Segarkan status layanan AI"
+                className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer p-0.5 disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${aiHealthFetching ? "animate-spin" : ""}`} />
+              </button>
+            </div>
           </CardContent>
         </Card>
 

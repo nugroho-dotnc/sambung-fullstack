@@ -18,7 +18,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { formatRupiah } from "@/features/offers/components/offer-summary";
 import {
   PriceRangeSlider,
-  PriceReferenceService,
+  usePriceReference,
   ConfirmRedLightDialog,
 } from "@/features/price-check";
 import { useContractCommand } from "@/features/contracts/hooks/use-contracts";
@@ -50,10 +50,18 @@ export function PartialOrderForm({ item }: { item: CatalogItem }) {
   const numVolume = Number(volumeKg.replace(",", ".")) || 0;
   const estimatedTotal = numVolume * proposedPrice;
 
+  const { reference: liveRef } = usePriceReference(
+    item.grainType,
+    item.province || item.regency || "Subang",
+  );
   const saved = item.priceCheck?.reference;
-  const priceRef = process.env.NEXT_PUBLIC_USE_MOCK === "true"
-    ? PriceReferenceService.getReference(item.grainType, item.regency || "Subang")
-    : { lowerBound: saved?.bounds.lowerOperational ?? 0, upperBound: saved?.bounds.upperOperational ?? 0, toleranceDelta: (saved?.deltaBp ?? 300)/10000 };
+  const priceRef = {
+    lowerBound: saved?.bounds.lowerOperational ?? liveRef?.lowerBound ?? 0,
+    upperBound: saved?.bounds.upperOperational ?? liveRef?.upperBound ?? 0,
+    toleranceDelta: saved
+      ? (saved.deltaBp ?? 300) / 10000
+      : (liveRef?.toleranceDelta ?? 0.03),
+  };
 
   function setVolumePercentage(percent: number) {
     const calculated = Math.round(item.availableVolumeKg * percent) / 100;

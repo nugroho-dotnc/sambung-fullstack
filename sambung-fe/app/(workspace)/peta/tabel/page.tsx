@@ -1,13 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { SEED_PROVINCIAL_DATA } from "@/features/region-map/domain/map-types";
+import { useSpatialDisparity } from "@/features/region-map/hooks/use-spatial-disparity";
 import { ProvincialTable } from "@/features/region-map/components/provincial-table";
 import { PageContainer } from "@/components/shared/page-container";
+import { AsyncBoundary } from "@/components/shared/async-boundary";
 import { Button } from "@/components/ui/button";
-import { Map as MapIcon, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 export default function PetaTabelPage() {
+  const spatialQuery = useSpatialDisparity();
+  const provinces = spatialQuery.data?.provinces ?? [];
+
   return (
     <PageContainer>
       {/* Header & Breadcrumbs */}
@@ -33,8 +37,7 @@ export default function PetaTabelPage() {
               Tabel Disparitas Harga Provinsi
             </h1>
             <p className="mt-1 text-sm text-muted-foreground leading-relaxed max-w-3xl">
-              Daftar komparasi lengkap harga gabah di seluruh provinsi di Indonesia terhadap
-              median nasional beserta deviasi persentase dan jumlah titik sampel pengamatan.
+              Daftar komparasi lengkap harga gabah &amp; beras di seluruh provinsi di Indonesia terhadap median nasional beserta deviasi persentase dan jumlah titik sampel pengamatan.
             </p>
           </div>
 
@@ -50,8 +53,15 @@ export default function PetaTabelPage() {
         </div>
       </div>
 
-      {/* Provincial Table Component */}
-      <ProvincialTable data={SEED_PROVINCIAL_DATA} />
+      <AsyncBoundary
+        isLoading={spatialQuery.isLoading}
+        isError={spatialQuery.isError}
+        error={spatialQuery.error}
+        isEmpty={!spatialQuery.isLoading && !spatialQuery.isError && provinces.length === 0}
+        onRetry={() => void spatialQuery.refetch()}
+      >
+        <ProvincialTable data={provinces} />
+      </AsyncBoundary>
     </PageContainer>
   );
 }

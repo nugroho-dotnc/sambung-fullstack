@@ -25,7 +25,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { AsyncBoundary } from "@/components/shared/async-boundary";
 import { useOffers, useOfferCommand } from "../hooks/use-offers";
 import { formatRupiah } from "./offer-summary";
-import { PriceRangeSlider, PriceReferenceService } from "@/features/price-check";
+import { PriceRangeSlider, usePriceReference } from "@/features/price-check";
 import { useMobile } from "@/hooks/use-mobile";
 import type { HarvestOffer } from "../schemas";
 
@@ -40,7 +40,18 @@ export function OfferDetailView({ offerId }: { offerId: string }) {
   const [newPrice, setNewPrice] = useState(offer?.askPrice || 7000);
   const [confirmWithdraw, setConfirmWithdraw] = useState(false);
 
-  const priceRef = PriceReferenceService.getReference(offer?.grainType || "GKP", offer?.regency || "Subang");
+  const { reference: liveRef } = usePriceReference(
+    offer?.grainType || "GKP",
+    offer?.province || offer?.regency || "Subang",
+  );
+  const savedRef = offer?.priceCheck?.reference;
+  const priceRef = {
+    lowerBound: savedRef?.bounds.lowerOperational ?? liveRef?.lowerBound ?? 0,
+    upperBound: savedRef?.bounds.upperOperational ?? liveRef?.upperBound ?? 0,
+    toleranceDelta: savedRef
+      ? (savedRef.deltaBp ?? 300) / 10000
+      : (liveRef?.toleranceDelta ?? 0.03),
+  };
 
   async function handlePriceUpdate() {
     if (!offer) return;
@@ -296,7 +307,9 @@ export function OfferDetailView({ offerId }: { offerId: string }) {
                 <div className="text-right text-xs">
                   <span className="text-muted-foreground block">Rentang Acuan Pasar</span>
                   <span className="tabular-nums text-emerald-700 dark:text-emerald-400 font-semibold">
-                      {process.env.NEXT_PUBLIC_USE_MOCK==="true" ? formatRupiah(priceRef.lowerBound)+" – "+formatRupiah(priceRef.upperBound) : offer.priceCheck ? formatRupiah(offer.priceCheck.reference.bounds.lowerOperational)+" – "+formatRupiah(offer.priceCheck.reference.bounds.upperOperational) : "Tersedia saat tinjau tawaran"}
+                    {priceRef.lowerBound > 0 && priceRef.upperBound > 0
+                      ? `${formatRupiah(priceRef.lowerBound)} – ${formatRupiah(priceRef.upperBound)}`
+                      : "Tersedia saat tinjau tawaran"}
                   </span>
                 </div>
               </div>

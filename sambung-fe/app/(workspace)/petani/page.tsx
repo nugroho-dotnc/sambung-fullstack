@@ -11,16 +11,16 @@ import { PlusCircle, ArrowRight, Info } from "lucide-react";
 import { useCurrentUser } from "@/features/auth/hooks/use-auth";
 import { useOffers } from "@/features/offers/hooks/use-offers";
 import { useContracts } from "@/features/contracts/hooks/use-contracts";
-import { PriceReferenceService } from "@/features/price-check";
+import { usePriceReference } from "@/features/price-check";
 
 export default function FarmerDashboardPage() {
   const { data: user } = useCurrentUser();
   const { data: offers = [] } = useOffers();
   const { data: contracts = [] } = useContracts();
 
-  const priceRef = PriceReferenceService.getReference(
+  const { reference: priceRef, isLoading: refLoading } = usePriceReference(
     "GKP",
-    user?.province || user?.regency || "Jawa Timur"
+    user?.province || user?.regency || "Jawa Timur",
   );
 
   const metrics = useMemo(() => {
@@ -78,18 +78,30 @@ export default function FarmerDashboardPage() {
         <Card className="rounded-2xl border-border/80 shadow-xs">
           <CardHeader className="p-5 pb-2">
             <span className="text-xs font-semibold text-muted-foreground">
-              Acuan Wajar {user?.regency || priceRef.region} (GKP)
+              Acuan Wajar {user?.regency || priceRef?.region || user?.province || "Wilayah"} (GKP)
             </span>
           </CardHeader>
           <CardContent className="p-5 pt-0">
-            <div className="text-2xl sm:text-3xl font-extrabold font-display text-emerald-700 dark:text-emerald-400 tabular-nums">
-              Rp{priceRef.lowerBound.toLocaleString("id-ID")}{" "}
-              <span className="text-sm font-normal text-muted-foreground">
-                - Rp{priceRef.upperBound.toLocaleString("id-ID")}
-              </span>
-            </div>
+            {refLoading ? (
+              <div className="text-sm font-medium text-muted-foreground py-1">
+                Memuat acuan harga wajar...
+              </div>
+            ) : priceRef ? (
+              <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+                <span className="text-xl sm:text-2xl font-extrabold font-display text-emerald-700 dark:text-emerald-400 tabular-nums tracking-tight">
+                  Rp{priceRef.lowerBound.toLocaleString("id-ID")} – Rp{priceRef.upperBound.toLocaleString("id-ID")}
+                </span>
+                <span className="text-xs font-normal text-muted-foreground font-sans">/kg</span>
+              </div>
+            ) : (
+              <div className="text-sm font-semibold text-muted-foreground py-1">
+                Acuan belum tersedia saat ini
+              </div>
+            )}
             <p className="text-xs text-muted-foreground mt-1">
-              Berdasarkan pantauan pasar berkala setempat
+              {priceRef
+                ? `Acuan ${priceRef.region} · ${priceRef.sourceNote} (${priceRef.updatedAt})`
+                : "Berdasarkan pantauan pasar berkala setempat"}
             </p>
           </CardContent>
         </Card>

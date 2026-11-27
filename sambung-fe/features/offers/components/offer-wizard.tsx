@@ -27,7 +27,7 @@ import { OfferSummary, formatRupiah } from "./offer-summary";
 import {
   PriceRangeSlider,
   ConfirmRedLightDialog,
-  PriceReferenceService,
+  usePriceReference,
   evaluatePriceLight,
 } from "@/features/price-check";
 import { useMobile } from "@/hooks/use-mobile";
@@ -223,29 +223,25 @@ function WizardForm({
 
   const [checked, setChecked] = useState<{ reference: Reference; requiresConfirmation: boolean } | null>(null);
 
-  // Baseline fallback calculation
-  const fallbackRef = PriceReferenceService.getReference(fields.grainType, region?.regency || user?.regency || "Subang");
-  const applied = (step === 2 || showRedAlertModal) ? checked?.reference : reference.data;
+  // Live regional reference fallback from GET /fair-price/params
+  const { reference: liveParamsRef } = usePriceReference(
+    fields.grainType,
+    region?.province || region?.regency || user?.province || user?.regency || "Subang",
+  );
+  const applied = step === 2 || showRedAlertModal ? checked?.reference : reference.data;
 
-  const priceRef = live
-    ? {
-        lowerBound: applied?.bounds.lowerOperational ?? fallbackRef.lowerBound,
-        upperBound: applied?.bounds.upperOperational ?? fallbackRef.upperBound,
-        toleranceDelta: applied ? (applied.deltaBp ?? 300) / 10000 : fallbackRef.toleranceDelta,
-        isFallback: !applied,
-        referenceSource: applied?.referenceSource || fallbackRef.sourceNote,
-        sourceMode: applied?.sourceMode ?? "fallback",
-        sourceDate: applied?.sourceDate ?? fallbackRef.updatedAt,
-      }
-    : {
-        lowerBound: fallbackRef.lowerBound,
-        upperBound: fallbackRef.upperBound,
-        toleranceDelta: fallbackRef.toleranceDelta,
-        isFallback: false,
-        referenceSource: fallbackRef.sourceNote,
-        sourceMode: "fallback",
-        sourceDate: fallbackRef.updatedAt,
-      };
+  const priceRef = {
+    lowerBound: applied?.bounds.lowerOperational ?? liveParamsRef?.lowerBound ?? 0,
+    upperBound: applied?.bounds.upperOperational ?? liveParamsRef?.upperBound ?? 0,
+    toleranceDelta: applied
+      ? (applied.deltaBp ?? 300) / 10000
+      : (liveParamsRef?.toleranceDelta ?? 0.03),
+    isFallback: !applied,
+    referenceSource:
+      applied?.referenceSource || liveParamsRef?.sourceNote || "Acuan Harga Regional PIHPS BI",
+    sourceMode: applied?.sourceMode ?? "fallback",
+    sourceDate: applied?.sourceDate ?? liveParamsRef?.updatedAt ?? null,
+  };
 
   const numericPrice = Number(fields.askPrice.replace(/\D/g, "")) || 0;
   const evaluation = evaluatePriceLight({
@@ -718,11 +714,11 @@ function WizardForm({
                       <span>Memuat rekomendasi harga wajar wilayah untuk {region?.id || fields.districtId}...</span>
                     </div>
                   )}
-                  {live && !reference.isLoading && priceRef.isFallback && (
+                  {live && !reference.isLoading && priceRef.isFallback && liveParamsRef && (
                     <div className="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50/80 p-3 text-xs text-blue-800 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300">
                       <Info className="w-4 h-4 shrink-0 text-blue-600" />
                       <span>
-                        Menggunakan acuan harga dasar regional ({fallbackRef.region} - {priceRef.referenceSource}) sebagai panduan pasar.
+                        Menggunakan acuan harga dasar regional ({liveParamsRef.region} - {priceRef.referenceSource}) sebagai panduan pasar.
                       </span>
                     </div>
                   )}

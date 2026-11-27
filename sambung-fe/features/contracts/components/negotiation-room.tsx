@@ -37,7 +37,7 @@ import { formatRupiah } from "@/features/offers/components/offer-summary";
 import { isContactRevealed, CONTRACT_STATUS_LABELS } from "../domain/state-machine";
 import {
   PriceRangeSlider,
-  PriceReferenceService,
+  usePriceReference,
   ConfirmRedLightDialog,
 } from "@/features/price-check";
 import { ContractService } from "../services/contract.service";
@@ -87,9 +87,18 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
   const hasPartnerSigned = isFarmer ? Boolean(contract.buyerSignature) : Boolean(contract.farmerSignature);
   const bothSigned = Boolean(contract.farmerSignature && contract.buyerSignature);
 
-  const saved=contract.priceReference;
-  const priceRef=process.env.NEXT_PUBLIC_USE_MOCK==="true"?PriceReferenceService.getReference(contract.grainType,contract.regency):
-    {lowerBound:saved?.bounds.lowerOperational ?? 0,upperBound:saved?.bounds.upperOperational ?? 0,toleranceDelta:(saved?.deltaBp ?? 300)/10000};
+  const { reference: liveRef } = usePriceReference(
+    contract.grainType,
+    contract.province || contract.regency,
+  );
+  const saved = contract.priceReference;
+  const priceRef = {
+    lowerBound: saved?.bounds.lowerOperational ?? liveRef?.lowerBound ?? 0,
+    upperBound: saved?.bounds.upperOperational ?? liveRef?.upperBound ?? 0,
+    toleranceDelta: saved
+      ? (saved.deltaBp ?? 300) / 10000
+      : (liveRef?.toleranceDelta ?? 0.03),
+  };
   const path="/contracts/"+encodeURIComponent(contract.id)+"/";
   function quote(action:"accept"|"counter",price:number){
     return {action,price,regionId:contract.district,quality:contract.quality,grainType:contract.grainType};
