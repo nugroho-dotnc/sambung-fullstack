@@ -11,21 +11,49 @@ test("tawaran 1000 kg, dua sesi, retry, perubahan harga dan penarikan", async t 
   const url = process.env.TEST_DATABASE_URL;
   assert.ok(url && new URL(url).pathname.endsWith("_test"), "Gunakan database khusus uji");
   const db = new PrismaClient({ datasourceUrl: url });
+  const savedBaseUrl = process.env.AI_BASE_URL;
+  const savedApiKey = process.env.AI_API_KEY;
   let lowerBound = 6500;
   let unavailable = false;
   const ai = createServer((req, res) => {
-    if (unavailable) return res.writeHead(503).end();
-    if (req.method === "POST") return res.end(JSON.stringify({ event_id: "test" }));
-    const value = { grainType:"GKP", region:"Jawa Timur", lowerBound, upperBound:7600,
-      medianPrice:7100, ricePrice:13450, rendemen:0.5338, referenceSource:"fixture" };
-    res.end("event: complete\ndata: " + JSON.stringify([value]) + "\n\n");
+    if (req.headers["x-api-key"] !== "test-ai-key") {
+      res.writeHead(401, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: { code: "UNAUTHORIZED", message: "Invalid key" } }));
+    }
+    if (unavailable) {
+      res.writeHead(503, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: { code: "SERVICE_STARTING", message: "Starting..." } }));
+    }
+    assert.equal(req.method, "POST");
+    assert.equal(req.url, "/api/v1/fair-price/calculate");
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        grainType: "GKP",
+        region: "Jawa Timur",
+        lowerBound,
+        upperBound: 7600,
+        medianPrice: 7100,
+        ricePrice: 13450,
+        rendemen: 0.5338,
+        referenceSource: "fixture",
+      })
+    );
   }).listen(0, "127.0.0.1");
   await once(ai, "listening");
   process.env.AI_BASE_URL = "http://127.0.0.1:" + ai.address().port;
-  delete process.env.AI_SNAPSHOT_PATH;
+  process.env.AI_API_KEY = "test-ai-key";
   const app = createApp(db, "http://localhost:3000").listen(0, "127.0.0.1");
   await once(app, "listening");
-  t.after(async () => { app.close(); ai.close(); await db.$disconnect(); });
+  t.after(async () => {
+    app.close();
+    ai.close();
+    if (savedBaseUrl === undefined) delete process.env.AI_BASE_URL;
+    else process.env.AI_BASE_URL = savedBaseUrl;
+    if (savedApiKey === undefined) delete process.env.AI_API_KEY;
+    else process.env.AI_API_KEY = savedApiKey;
+    await db.$disconnect();
+  });
   async function login(role) {
     const user = await db.account.create({data:{role, name:"Uji "+role, phone:randomUUID(),
       province:"Jawa Timur", regency:"Jember", district:"Sumbersari"}});
@@ -77,8 +105,8 @@ test("tawaran 1000 kg, dua sesi, retry, perubahan harga dan penarikan", async t 
   assert.ok((await call("/catalog?district=Sumbersari",buyer)).data.data.some(row=>row.id===a.data.id));
   assert.equal((await call(path+"/withdraw",farmer,{version:3})).status,200);
   assert.equal((await call(catalog,buyer)).status,404);
-  process.env.AI_SNAPSHOT_PATH="../sambung-fe/data/ai/fair_price_params.json";
-  const fallback=await check();
-  assert.equal(fallback.reference.sourceMode,"snapshot");
-  assert.ok(fallback.reference.sourceDate);
+  unavailable = true;
+  const previewUnavailable = await call("/price-checks/preview", "", quote);
+  assert.equal(previewUnavailable.status, 503);
+  assert.equal(previewUnavailable.data.code, "AI_SERVICE_STARTING");
 });

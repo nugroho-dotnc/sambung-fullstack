@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createServer } from "node:http";
 import {randomUUID,randomBytes} from "node:crypto";
 import {once} from "node:events";
 import {PrismaClient} from "@prisma/client";
@@ -11,11 +12,31 @@ test("kontrak dua pihak, reservasi serentak, tenggat, akses dan retry",async t=>
   const url=process.env.TEST_DATABASE_URL;
   assert.ok(url && new URL(url).pathname.endsWith("_test"));
   const db=new PrismaClient({datasourceUrl:url});
-  process.env.AI_BASE_URL="http://127.0.0.1:1";
-  process.env.AI_SNAPSHOT_PATH="../sambung-fe/data/ai/fair_price_params.json";
+  const savedBaseUrl=process.env.AI_BASE_URL;
+  const savedApiKey=process.env.AI_API_KEY;
+  const ai=createServer((req,res)=>{
+    if(req.headers["x-api-key"]!=="test-ai-key"){
+      res.writeHead(401,{"Content-Type":"application/json"});
+      return res.end(JSON.stringify({error:{code:"UNAUTHORIZED",message:"Invalid key"}}));
+    }
+    res.writeHead(200,{"Content-Type":"application/json"});
+    res.end(JSON.stringify({
+      grainType:"GKP",region:"Jawa Timur",lowerBound:6366,upperBound:7405,
+      medianPrice:6942,ricePrice:13450,rendemen:0.5338,referenceSource:"fixture",
+    }));
+  }).listen(0,"127.0.0.1");
+  await once(ai,"listening");
+  process.env.AI_BASE_URL="http://127.0.0.1:"+ai.address().port;
+  process.env.AI_API_KEY="test-ai-key";
   const app=createApp(db,"http://localhost:3000").listen(0,"127.0.0.1");
   await once(app,"listening");
-  t.after(async()=>{app.close();await db.$disconnect();});
+  t.after(async()=>{
+    app.close();
+    ai.close();
+    if(savedBaseUrl===undefined) delete process.env.AI_BASE_URL; else process.env.AI_BASE_URL=savedBaseUrl;
+    if(savedApiKey===undefined) delete process.env.AI_API_KEY; else process.env.AI_API_KEY=savedApiKey;
+    await db.$disconnect();
+  });
   async function login(role){
     const person=await db.account.create({data:{name:role,role,phone:randomUUID(),province:"Jawa Timur",regency:"Jember",district:"Sumbersari"}});
     const token=randomBytes(32).toString("hex");
@@ -50,10 +71,10 @@ test("kontrak dua pihak, reservasi serentak, tenggat, akses dan retry",async t=>
   const accept={...await price("accept",6800),priceOfferVersion:2};
   assert.equal((await api(path+"/accept",buyer,{...accept,priceOfferVersion:1})).code,"VERSION_CONFLICT");
   const accepted=await api(path+"/accept",buyer,accept);
-  assert.equal(accepted.data.status,"approved");assert.ok(accepted.data.farmerPhone);
+  assert.equal(accepted.data.status,"approved");assert.equal(accepted.data.farmerPhone,undefined);
   for(let n=0;n<2;n++) assert.equal((await api(path+"/confirm",farmer,{})).data.status,"approved");
   const done=await api(path+"/confirm",buyer,{});
-  assert.equal(done.data.status,"completed");assert.equal(done.data.farmerPhone,undefined);
+  assert.equal(done.data.status,"completed");assert.ok(done.data.farmerPhone);
   assert.equal(await stock(),700);
   const race=await Promise.all([buyer,other].map(u=>api("/contracts",u,{...input,volumeKg:600})));
   assert.deepEqual(race.map(r=>r.status).sort(),[201,409]);assert.equal(await stock(),100);

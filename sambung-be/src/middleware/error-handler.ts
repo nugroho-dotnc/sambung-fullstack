@@ -63,7 +63,17 @@ export const errorHandler: ErrorRequestHandler = (error, req, res, _next) => {
   }
 
   if (error instanceof ApiError) {
-    res.status(error.status).json({ code: error.code, message: error.message });
+    if (error.retryAfter) {
+      res.set("Retry-After", error.retryAfter);
+    }
+    const body: Record<string, unknown> = {
+      code: error.code,
+      message: error.message,
+    };
+    if (error.detail !== undefined) {
+      body.detail = error.detail;
+    }
+    res.status(error.status).json(body);
     return;
   }
 

@@ -21,7 +21,7 @@ test("integrasi prakiraan AI - pemanggilan endpoint, parameter, dan metadata", a
     assert.ok(meta.latestObservationWeek);
     assert.ok(Array.isArray(meta.activeProvinces));
     assert.ok(meta.activeProvinces.includes("Jawa Timur"));
-    assert.ok(["live", "snapshot"].includes(meta.sourceMode));
+    assert.equal(meta.sourceMode, "live");
 
     // 2. Ambil prakiraan Jawa Timur 2 pekan
     const resJatim2w = await fetch(`${base}/forecasts?province=Jawa%20Timur&horizonWeeks=2`, {

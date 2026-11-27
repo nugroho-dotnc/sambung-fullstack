@@ -4,6 +4,15 @@ import { ApiError } from "../../shared/api-error.ts";
 import { present, include } from "../offers/offers.service.ts";
 import { MODERATION_MARKER, applyModerationNote } from "../offers/offer-moderation.ts";
 import { createNotification } from "../notifications/notifications.service.ts";
+import {
+  clearAiCache,
+  fetchAiFairPriceParams,
+  fetchAiModelEvaluation,
+  ingestAiWeeklyPrices,
+  predictAiLive,
+  type AiLivePredictPayload,
+  type AiWeeklyIngestPayload,
+} from "../ai/ai-api.client.ts";
 
 export interface CreateAuditLogInput {
   actorRole: "admin" | "petani" | "pembeli" | "sistem";
@@ -166,6 +175,8 @@ export async function updateSystemParameters(
     details: `Pembaruan parameter pasar: ${JSON.stringify(updates)}`,
   });
 
+  clearAiCache();
+
   return {
     orderExpiryHours: updated.orderExpiryHours,
     fairPriceToleranceDelta: updated.fairPriceToleranceDelta,
@@ -194,39 +205,73 @@ export async function getAuditLogs(db: PrismaClient) {
   }));
 }
 
+interface FairPriceParamsObservationSource {
+  updatedAt?: unknown;
+  provinces?: Record<
+    string,
+    {
+      province?: unknown;
+      referenceSource?: unknown;
+      GKP?: { medianPrice?: unknown };
+    }
+  >;
+}
+
 export async function getObservations() {
-  return [
-    {
-      id: "obs-jatim-01",
-      province: "Jawa Timur",
-      commodity: "Gabah Kering Panen (GKP)",
-      price: 6942,
-      unit: "Rp/kg",
-      source: "PIHPS BI Produsen & Bapanas",
-      period: "Pekan Berjalan",
-      status: "Valid" as const,
-    },
-    {
-      id: "obs-jabar-01",
-      province: "Jawa Barat",
-      commodity: "Gabah Kering Panen (GKP)",
-      price: 6850,
-      unit: "Rp/kg",
-      source: "PIHPS BI Produsen & Bapanas",
-      period: "Pekan Berjalan",
-      status: "Valid" as const,
-    },
-    {
-      id: "obs-jateng-01",
-      province: "Jawa Tengah",
-      commodity: "Gabah Kering Panen (GKP)",
-      price: 6880,
-      unit: "Rp/kg",
-      source: "PIHPS BI Produsen & Bapanas",
-      period: "Pekan Berjalan",
-      status: "Valid" as const,
-    },
-  ];
+  const params = await fetchAiFairPriceParams<FairPriceParamsObservationSource>();
+  if (!params || typeof params !== "object" || !params.provinces || typeof params.provinces !== "object") {
+    throw new ApiError(
+      502,
+      "AI_UNEXPECTED_RESPONSE",
+      "Format data observasi dari layanan AI tidak sesuai."
+    );
+  }
+
+  const period =
+    typeof params.updatedAt === "string" && params.updatedAt ? params.updatedAt : "Pekan Berjalan";
+
+  const observations = Object.entries(params.provinces)
+    .filter(([key, entry]) => key !== "Nasional" && entry?.province !== "Nasional")
+    .flatMap(([key, entry]) => {
+      const median = entry?.GKP?.medianPrice;
+      if (typeof median !== "number" || !Number.isFinite(median)) {
+        return [];
+      }
+      const province =
+        typeof entry?.province === "string" && entry.province.trim() ? entry.province.trim() : key;
+      const slug = province
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+      const source =
+        typeof entry?.referenceSource === "string" && entry.referenceSource
+          ? entry.referenceSource
+          : "PIHPS BI Produsen & Bapanas";
+
+      return [
+        {
+          id: `obs-${slug}-gkp`,
+          province,
+          commodity: "Gabah Kering Panen (GKP)",
+          price: Math.round(median),
+          unit: "Rp/kg",
+          source,
+          period,
+          status: "Valid" as const,
+        },
+      ];
+    })
+    .sort((a, b) => a.province.localeCompare(b.province, "id"));
+
+  if (observations.length === 0) {
+    throw new ApiError(
+      502,
+      "AI_UNEXPECTED_RESPONSE",
+      "Daftar observasi provinsi dari layanan AI kosong."
+    );
+  }
+
+  return observations;
 }
 
 export async function publishObservations(db: PrismaClient, actorName: string) {
@@ -239,7 +284,44 @@ export async function publishObservations(db: PrismaClient, actorName: string) {
     details: "Publikasi snapshot observasi harga pasar ke seluruh sistem.",
   });
 
+  clearAiCache();
+
   return { success: true, message: "Observasi pasar berhasil dipublikasikan." };
+}
+
+export async function getAdminModelEvaluation() {
+  return fetchAiModelEvaluation();
+}
+
+export async function runAdminLivePrediction(payload: AiLivePredictPayload) {
+  return predictAiLive(payload);
+}
+
+export async function runAdminAiIngest(
+  db: PrismaClient,
+  actorName: string,
+  payload: AiWeeklyIngestPayload
+) {
+  const result = await ingestAiWeeklyPrices<{ updatedProvincesCount?: number }>(payload);
+
+  const count =
+    typeof result?.updatedProvincesCount === "number"
+      ? result.updatedProvincesCount
+      : payload.updates.length;
+
+  await createAuditLog(db, {
+    actorRole: "admin",
+    actorName,
+    action: payload.persist === false ? "AI_INGEST_DRY_RUN" : "AI_INGEST_WEEKLY",
+    targetType: "ai_market_state",
+    targetId: payload.weekStart,
+    details:
+      payload.persist === false
+        ? `Uji kering (dry-run) ingest data AI pekan ${payload.weekStart} (${payload.updates.length} provinsi).`
+        : `Ingest pembaruan harga pasar AI pekan ${payload.weekStart} (${count} provinsi diperbarui).`,
+  });
+
+  return result;
 }
 
 export async function moderateOffer(

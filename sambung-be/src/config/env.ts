@@ -29,6 +29,9 @@ const configuration = z.object({
   FONNTE_TOKEN: z.string().optional(),
   NODE_ENV: z.string().optional().refine((value) => value !== "production"),
   CONSENT_VERSION: z.string().min(1).default("demo-v1"),
+  AI_BASE_URL: z.string().url().optional(),
+  AI_API_KEY: z.string().optional(),
+  AI_TIMEOUT_MS: z.coerce.number().int().min(1000).max(120000).optional(),
 });
 
 export function readConfig() {

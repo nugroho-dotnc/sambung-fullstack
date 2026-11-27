@@ -21,7 +21,9 @@ export const forecastRecordSchema = z.object({
   province: z.string(),
   commodity: z.string(),
   referenceDate: z.string().optional(),
+  referenceDateIso: z.string().optional(),
   targetDate: z.string(),
+  targetDateIso: z.string().optional(),
   riceProducerPrice: z.number(),
   confidenceInterval80: z.tuple([z.number(), z.number()]),
   gkpEstimate: z.number(),
@@ -38,6 +40,7 @@ export const forecastRecordSchema = z.object({
 export const forecastPayloadSchema = z.object({
   generatedAtUtc: z.string(),
   latestObservationWeek: z.string(),
+  modelName: z.string().optional(),
   modelVersion: z.string(),
   championPerHorizon: z.record(z.string(), z.string()).optional(),
   derivedConversion: z.object({
@@ -53,7 +56,7 @@ export const forecastPayloadSchema = z.object({
 export type ForecastRecord = z.infer<typeof forecastRecordSchema>;
 export type ForecastPayload = z.infer<typeof forecastPayloadSchema>;
 
-export const forecastQuerySchema = z.object({
+export const forecastQuerySchema = z.strictObject({
   province: z.string().optional(),
   horizonWeeks: z.coerce.number().pipe(z.union([z.literal(2), z.literal(4)])).optional(),
   activeOnly: z.enum(["true", "false"]).optional().transform(v => v === "true"),
