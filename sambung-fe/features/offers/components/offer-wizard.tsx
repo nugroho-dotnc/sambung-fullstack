@@ -5,7 +5,7 @@ import { apiClient } from "@/lib/api/client";
 import { useOffer } from "../hooks/use-offers";
 import { offerRequestId } from "../services/request-id";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { Check, CheckCircle2, ChevronRight, ArrowLeft, ShieldCheck, Info, Loader2, InfoIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -128,6 +128,7 @@ function WizardForm({
   initialOffer?: HarvestOffer;
   onBack?: () => void;
 }) {
+  const fieldId = useId();
   const isMobile = useMobile();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -460,7 +461,7 @@ function WizardForm({
   const estimatedTotal = volumeNum * priceNum;
 
   return (
-    <div className="space-y-8 w-full">
+    <div className="@container w-full space-y-6 sm:space-y-8">
       {/* Step Indicator Header */}
       <div>
         <button
@@ -537,11 +538,11 @@ function WizardForm({
       {/* Step 1: Form Input */}
       {step === 1 && (
         <form onSubmit={handleProceedToReview}>
-          <fieldset disabled={pending} className="space-y-8">
-            <div className="grid items-start gap-6 lg:grid-cols-12">
+          <fieldset disabled={pending} className="min-w-0 space-y-6 sm:space-y-8">
+            <div className="grid grid-cols-1 items-start gap-6 @3xl:grid-cols-12">
               {/* Left Column: Harvest & Location Fields */}
-              <div className="lg:col-span-7 flex flex-col gap-6">
-                <section className="rounded-2xl border border-border/80 bg-card p-6 sm:p-7 flex flex-col gap-8">
+              <div className="flex min-w-0 flex-col gap-6 @3xl:col-span-7">
+                <section className="@container flex flex-col gap-5 rounded-2xl border border-border/80 bg-card p-4 sm:gap-6 sm:p-7">
                   <div className="border-b border-border/60 pb-3">
                     <h2 className="text-base font-semibold text-foreground">
                       1. Rincian Komoditas & Volume
@@ -551,12 +552,12 @@ function WizardForm({
                     </p>
                   </div>
 
-                  <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-4 @md:grid-cols-2">
                     {/* Jenis Gabah */}
-                    <div className="sm:col-span-2 space-y-1.5">
-                      <span className="text-xs font-medium text-foreground block">
+                    <div className="col-span-full min-w-0 space-y-1.5">
+                      <label htmlFor={`${fieldId}-grain-type`} className="block text-xs font-medium text-foreground">
                         Jenis Gabah <span className="text-destructive">*</span>
-                      </span>
+                      </label>
                       <Select
                         items={GRAIN_TYPE_OPTIONS}
                         value={fields.grainType}
@@ -567,7 +568,7 @@ function WizardForm({
                           }
                         }}
                       >
-                        <SelectTrigger className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                        <SelectTrigger id={`${fieldId}-grain-type`} className="w-full min-w-0 h-11 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
                           <SelectValue placeholder="Pilih jenis gabah" />
                         </SelectTrigger>
                         <SelectContent>
@@ -581,8 +582,8 @@ function WizardForm({
                     </div>
 
                     {/* Volume Bersih */}
-                    <label className="block space-y-1.5">
-                      <span className="text-xs font-medium text-foreground">
+                    <label className="block min-w-0 self-end space-y-1.5">
+                      <span className="block text-xs font-medium text-foreground">
                         Volume Bersih (kg) <span className="text-destructive">*</span>
                       </span>
                       <input
@@ -592,28 +593,28 @@ function WizardForm({
                         value={fields.totalVolumeKg}
                         onChange={(e) => updateField("totalVolumeKg", e.target.value)}
                         placeholder="Contoh: 5000"
-                        className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="h-11 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-base tabular-nums focus:outline-none focus:ring-2 focus:ring-primary sm:text-sm"
                       />
                     </label>
 
                     {/* Tanggal Panen */}
-                    <label className="block space-y-1.5">
-                      <span className="text-xs font-medium text-foreground">
+                    <label className="block min-w-0 self-end space-y-1.5">
+                      <span className="block text-xs font-medium text-foreground">
                         Tanggal Panen / Siap Angkut (opsional)
                       </span>
                       <input
                         type="date"
                         value={fields.availableOn}
                         onChange={(e) => updateField("availableOn", e.target.value)}
-                        className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="block h-11 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-base focus:outline-none focus:ring-2 focus:ring-primary sm:text-sm"
                       />
                     </label>
 
                     {/* Wilayah Acuan Pasar (Dropdown) */}
-                    <div className="space-y-1.5 col-span-2">
-                      <span className="text-xs font-medium text-foreground block">
+                    <div className="col-span-full min-w-0 space-y-1.5">
+                      <label htmlFor={`${fieldId}-district`} className="block text-xs font-medium text-foreground">
                         Wilayah Acuan Pasar (Kecamatan) <span className="text-destructive">*</span>
-                      </span>
+                      </label>
                       {(() => {
                         const districtItems = live
                           ? choices.map((c) => ({ value: c.id, label: c.label }))
@@ -630,6 +631,7 @@ function WizardForm({
                             }}
                           >
                             <ComboboxInput
+                              id={`${fieldId}-district`}
                               placeholder="Pilih atau cari kecamatan acuan..."
                               disabled={initialOffer?.typeLocationLocked}
                               className="w-full h-11 rounded-xl bg-background text-sm"
@@ -648,9 +650,9 @@ function WizardForm({
                         );
                       })()}
                     </div>
-                    
+
                     {/* Opsi Kadar Air / Mutu Gabah */}
-                    <div className="sm:col-span-2 space-y-2.5">
+                    <div className="col-span-full min-w-0 space-y-2.5">
                       <div className="flex items-center gap-2">
                         <label className="flex items-center gap-2.5 cursor-pointer select-none">
                           <Checkbox
@@ -679,7 +681,7 @@ function WizardForm({
                       </div>
 
                       {fields.hasQuality && (
-                        <label className="space-y-1.5 sm:max-w-xs md:max-w-max w-full pt-1 col-span-2">
+                        <label className="block w-full space-y-1.5 pt-1 @md:max-w-xs">
                           <span className="text-xs font-medium text-foreground">
                             Estimasi Kadar Air (%) <span className="text-destructive">*</span>
                           </span>
@@ -691,7 +693,7 @@ function WizardForm({
                               value={fields.quality}
                               onChange={(e) => updateField("quality", e.target.value)}
                               placeholder="Contoh: 22.5"
-                              className="w-full h-11 rounded-xl border border-input bg-background px-3 pr-8 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-primary"
+                              className="h-11 w-full rounded-xl border border-input bg-background pl-3 pr-8 text-base tabular-nums focus:outline-none focus:ring-2 focus:ring-primary sm:text-sm"
                             />
                             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground">%</span>
                           </div>
@@ -704,36 +706,31 @@ function WizardForm({
 
 
                     {/* Lokasi Fisik Pengambilan (Manual Input) */}
-                    <div className="space-y-1.5 col-span-2">
-                      <label className="block space-y-1.5">
-                        <span className="text-xs font-medium text-foreground">
-                          Lokasi / Titik Penjemputan Gabah <span className="text-destructive">*</span>
-                        </span>
-                        <Textarea
-                          required
-                          value={fields.pickupAddress}
-                          onChange={(e) => updateField("pickupAddress", e.target.value)}
-                          placeholder="Contoh: Dusun Sukamaju RT 02/01, Desa Sukamulya"
-                          className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                        />
-                      </label>
-                    </div>
-                    
-                    
+                    <label className="col-span-full block min-w-0 space-y-1.5">
+                      <span className="block text-xs font-medium text-foreground">
+                        Lokasi / Titik Penjemputan Gabah <span className="text-destructive">*</span>
+                      </span>
+                      <Textarea
+                        required
+                        value={fields.pickupAddress}
+                        onChange={(e) => updateField("pickupAddress", e.target.value)}
+                        placeholder="Contoh: Dusun Sukamaju RT 02/01, Desa Sukamulya"
+                        className="min-h-20 w-full rounded-xl border border-input bg-background px-3 focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </label>
+
                     {/* Catatan Tambahan */}
-                    <div className="sm:col-span-2 space-y-1.5">
-                      <label className="space-y-1.5">
-                        <span className="text-xs font-medium text-foreground">
-                          Catatan Tambahan untuk Produsen (Opsional)
-                        </span>
-                        <Textarea
-                          value={fields.notes}
-                          onChange={(e) => updateField("notes", e.target.value)}
-                          placeholder="Contoh: Akses truk engkel bisa masuk sampai depan gudang panen."
-                          className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                        />
-                      </label>
-                    </div>
+                    <label className="col-span-full block min-w-0 space-y-1.5">
+                      <span className="block text-xs font-medium text-foreground">
+                        Catatan Tambahan untuk Produsen (Opsional)
+                      </span>
+                      <Textarea
+                        value={fields.notes}
+                        onChange={(e) => updateField("notes", e.target.value)}
+                        placeholder="Contoh: Akses truk engkel bisa masuk sampai depan gudang panen."
+                        className="min-h-20 w-full rounded-xl border border-input bg-background px-3 focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </label>
                   </div>
                 </section>
 
@@ -777,8 +774,8 @@ function WizardForm({
               </div>
 
               {/* Right Column: Dynamic Price Summary Card */}
-              <div className="lg:col-span-5 space-y-6">
-                <section className="rounded-2xl border border-border/80 bg-card p-6 space-y-4">
+              <div className="min-w-0 @3xl:col-span-5">
+                <section className="space-y-4 rounded-2xl border border-border/80 bg-card p-4 sm:p-6">
                   <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
                     <ShieldCheck className="w-4 h-4 text-primary" />
                     Estimasi Nilai Total Pasokan
@@ -813,20 +810,20 @@ function WizardForm({
             </div>
 
             {/* Form Actions Footer */}
-            <footer className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <footer className="flex flex-col gap-4 rounded-2xl border border-border/80 bg-card p-4 sm:p-6 @3xl:flex-row @3xl:items-center @3xl:justify-between">
               <div>
                 <p className="text-xs font-semibold text-foreground">
                   Tawaran Belum Diterbitkan
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Klik tombol di samping untuk meninjau ringkasan sebelum terbit ke pasar.
+                  Tinjau ringkasan sebelum menerbitkan tawaran ke pasar.
                 </p>
               </div>
-              <div className="flex items-center gap-3 w-full sm:w-auto">
+              <div className="flex flex-wrap gap-2 sm:gap-3">
                 <Button
                   type="button"
                   variant="outline"
-                  className="flex-1 sm:flex-none min-h-11 px-5"
+                  className="min-h-11 grow px-3 @3xl:grow-0"
                   disabled={pending}
                   onClick={() => {
                     const input = validate();
@@ -837,7 +834,7 @@ function WizardForm({
                 </Button>
                 <Button
                   type="submit"
-                  className="flex-1 sm:flex-none min-h-11 px-6 font-semibold"
+                  className="min-h-11 grow px-4 font-semibold @3xl:grow-0"
                   disabled={pending}
                 >
                   {isMobile ? "Lanjut Tinjau" : "Lanjut Tinjau Tawaran"}
@@ -851,9 +848,9 @@ function WizardForm({
 
       {/* Step 2: Review Offer */}
       {step === 2 && review && (
-        <div className="space-y-8">
-          <div className="grid items-start gap-6 lg:grid-cols-12">
-            <section className="lg:col-span-7 rounded-2xl border border-border/80 bg-card p-6 sm:p-7 space-y-5">
+        <div className="space-y-6 sm:space-y-8">
+          <div className="grid grid-cols-1 items-start gap-6 @3xl:grid-cols-12">
+            <section className="min-w-0 space-y-5 rounded-2xl border border-border/80 bg-card p-4 sm:p-7 @3xl:col-span-7">
               <div className="border-b border-border/60 pb-3">
                 <span className="text-xs font-bold uppercase tracking-wider text-primary">
                   Tinjauan Akhir
@@ -881,7 +878,7 @@ function WizardForm({
               )}
             </section>
 
-            <aside className="lg:col-span-5 rounded-2xl border border-border/80 bg-card p-6 space-y-4">
+            <aside className="min-w-0 space-y-4 rounded-2xl border border-border/80 bg-card p-4 sm:p-6 @3xl:col-span-5">
               <h3 className="text-sm font-semibold text-foreground">
                 Ketentuan Kesepakatan Digital
               </h3>
@@ -914,7 +911,7 @@ function WizardForm({
             </aside>
           </div>
 
-          <footer className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <footer className="flex flex-col gap-4 rounded-2xl border border-border/80 bg-card p-4 sm:p-6 @3xl:flex-row @3xl:items-center @3xl:justify-between">
             <div>
               <p className="text-xs font-semibold text-foreground">
                 Siap Menayangkan Pasokan?
@@ -923,11 +920,11 @@ function WizardForm({
                 Anda masih dapat menarik atau memperbarui tawaran selama belum ada pesanan aktif.
               </p>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+            <div className="flex flex-wrap gap-2 sm:gap-3">
               <Button
                 type="button"
                 variant="outline"
-                className="flex-1 sm:flex-initial min-h-11 px-3 sm:px-4"
+                className="min-h-11 grow px-3 sm:px-4 @3xl:grow-0"
                 disabled={pending}
                 onClick={() => setStep(1)}
               >
@@ -936,7 +933,7 @@ function WizardForm({
               <Button
                 type="button"
                 variant="outline"
-                className="flex-1 sm:flex-initial min-h-11 px-3 sm:px-4"
+                className="min-h-11 grow px-3 sm:px-4 @3xl:grow-0"
                 disabled={pending}
                 hidden={saved?.status === "published"}
                 onClick={() => void persist(review, false)}
@@ -945,7 +942,7 @@ function WizardForm({
               </Button>
               <Button
                 type="button"
-                className="flex-1 sm:flex-initial min-h-11 px-4 sm:px-6 font-semibold"
+                className="min-h-11 grow px-4 font-semibold sm:px-6 @3xl:grow-0"
                 disabled={pending}
                 onClick={() => void persist(review, true)}
               >
