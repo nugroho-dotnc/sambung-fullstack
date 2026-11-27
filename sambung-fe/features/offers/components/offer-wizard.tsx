@@ -34,6 +34,7 @@ import { useMobile } from "@/hooks/use-mobile";
 import { UnsavedChangesDialog } from "@/components/shared/unsaved-changes-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Textarea } from "@/components/ui/textarea";
 
 const emptyFields = {
   grainType: "GKP" as "GKP" | "GKG",
@@ -446,7 +447,7 @@ function WizardForm({
   const estimatedTotal = volumeNum * priceNum;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 w-full">
       {/* Step Indicator Header */}
       <div>
         <button
@@ -526,8 +527,8 @@ function WizardForm({
           <fieldset disabled={pending} className="space-y-8">
             <div className="grid items-start gap-6 lg:grid-cols-12">
               {/* Left Column: Harvest & Location Fields */}
-              <div className="lg:col-span-7 space-y-6">
-                <section className="rounded-2xl border border-border/80 bg-card p-6 sm:p-7 space-y-8">
+              <div className="lg:col-span-7 flex flex-col gap-6">
+                <section className="rounded-2xl border border-border/80 bg-card p-6 sm:p-7 flex flex-col gap-8">
                   <div className="border-b border-border/60 pb-3">
                     <h2 className="text-base font-semibold text-foreground">
                       1. Rincian Komoditas & Volume
@@ -595,6 +596,32 @@ function WizardForm({
                       />
                     </label>
 
+                    {/* Wilayah Acuan Pasar (Dropdown) */}
+                    <div className="space-y-1.5 col-span-2">
+                      <span className="text-xs font-medium text-foreground block">
+                        Wilayah Acuan Pasar (Kecamatan) <span className="text-destructive">*</span>
+                      </span>
+                      <Select
+                        items={live ? choices.map((c) => ({ value: c.id, label: c.label })) : DISTRICT_SELECT_ITEMS}
+                        value={fields.districtId}
+                        disabled={initialOffer?.typeLocationLocked}
+                        onValueChange={(val) => {
+                          if (val) updateField("districtId", val);
+                        }}
+                      >
+                        <SelectTrigger className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                          <SelectValue placeholder="Pilih kecamatan acuan" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {choices.map((opt) => (
+                            <SelectItem key={opt.id} value={opt.id}>
+                              {opt.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
                     {/* Opsi Kadar Air / Mutu Gabah */}
                     <div className="sm:col-span-2 space-y-2.5">
                       <div className="flex items-center gap-2">
@@ -648,40 +675,14 @@ function WizardForm({
                       )}
                     </div>
 
-                    {/* Wilayah Acuan Pasar (Dropdown) */}
-                    <div className="space-y-1.5">
-                      <span className="text-xs font-medium text-foreground block">
-                        Wilayah Acuan Pasar (Kecamatan) <span className="text-destructive">*</span>
-                      </span>
-                      <Select
-                        items={live ? choices.map((c) => ({ value: c.id, label: c.label })) : DISTRICT_SELECT_ITEMS}
-                        value={fields.districtId}
-                        disabled={initialOffer?.typeLocationLocked}
-                        onValueChange={(val) => {
-                          if (val) updateField("districtId", val);
-                        }}
-                      >
-                        <SelectTrigger className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-                          <SelectValue placeholder="Pilih kecamatan acuan" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {choices.map((opt) => (
-                            <SelectItem key={opt.id} value={opt.id}>
-                              {opt.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
 
                     {/* Lokasi Fisik Pengambilan (Manual Input) */}
-                    <div className="space-y-1.5">
+                    <div className="space-y-1.5 col-span-2">
                       <label className="block space-y-1.5">
                         <span className="text-xs font-medium text-foreground">
                           Lokasi / Titik Penjemputan Gabah <span className="text-destructive">*</span>
                         </span>
-                        <input
-                          type="text"
+                        <Textarea
                           required
                           value={fields.pickupAddress}
                           onChange={(e) => updateField("pickupAddress", e.target.value)}
@@ -690,15 +691,15 @@ function WizardForm({
                         />
                       </label>
                     </div>
-
+                    
+                    
                     {/* Catatan Tambahan */}
                     <div className="sm:col-span-2 space-y-1.5">
-                      <label className="block space-y-1.5">
+                      <label className="space-y-1.5">
                         <span className="text-xs font-medium text-foreground">
                           Catatan Tambahan untuk Pembeli (Opsional)
                         </span>
-                        <input
-                          type="text"
+                        <Textarea
                           value={fields.notes}
                           onChange={(e) => updateField("notes", e.target.value)}
                           placeholder="Contoh: Akses truk engkel bisa masuk sampai depan gudang panen."
@@ -934,7 +935,7 @@ function WizardForm({
 
       {/* Step 3: Success Confirmation */}
       {step === 3 && saved && (
-        <section className="rounded-2xl border border-border/80 bg-card p-8 sm:p-12 text-center max-w-2xl mx-auto space-y-6">
+        <section className="rounded-2xl border border-border/80 bg-card p-8 sm:p-12 text-center w-full mx-auto space-y-6">
           <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 flex items-center justify-center mx-auto">
             <CheckCircle2 className="w-10 h-10" />
           </div>
@@ -953,7 +954,7 @@ function WizardForm({
             <OfferSummary input={saved} />
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
+          <div className="flex flex-col sm:flex-row items-end justify-center gap-3 pt-4">
             <Button
               className="w-full sm:w-auto min-h-11 px-6"
               onClick={() => router.push("/petani/tawaran")}
