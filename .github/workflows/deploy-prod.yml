@@ -1,8 +1,6 @@
 name: Notify and Deploy src to Prod Server
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
