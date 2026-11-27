@@ -6,6 +6,7 @@ import {
   MessageSquare,
   CheckCheck,
   PenTool,
+  CreditCard,
   Truck,
   CheckCircle2,
   MapPin,
@@ -14,6 +15,11 @@ import {
 } from "lucide-react";
 import { formatRupiah } from "@/features/offers/components/offer-summary";
 import { CONTRACT_STATUS_LABELS } from "../domain/state-machine";
+import {
+  formatPaymentChannel,
+  getPaymentDeadlineInfo,
+  isContractPaid,
+} from "../domain/payment-helpers";
 import type { Contract } from "../schemas";
 
 interface TimelineEvent {
@@ -37,7 +43,13 @@ function formatTimelineDate(dateStr?: string | null): string {
   });
 }
 
-export function ContractTimeline({ contract }: { contract: Contract }) {
+export function ContractTimeline({
+  contract,
+  nowMs,
+}: {
+  contract: Contract;
+  nowMs?: number;
+}) {
   const events = useMemo(() => {
     const list: TimelineEvent[] = [];
 
@@ -122,8 +134,10 @@ export function ContractTimeline({ contract }: { contract: Contract }) {
       icon: PenTool,
     });
 
-    // Jika dibatalkan saat tahap approved (sebelum 2 tanda tangan lengkap)
-    if (contract.status === "cancelled") {
+    const bothPartiesSigned = Boolean(contract.farmerSignedAt && contract.buyerSignedAt);
+
+    // Jika dibatalkan saat tahap approved (sebelum kedua tanda tangan lengkap)
+    if (contract.status === "cancelled" && !bothPartiesSigned) {
       list.push({
         id: "terminal_cancel_approved",
         title: "Kesepakatan Dibatalkan",
@@ -135,38 +149,94 @@ export function ContractTimeline({ contract }: { contract: Contract }) {
       return list;
     }
 
-    // 6. Pengiriman Gabah
+    // Jika dibatalkan otomatis setelah kontrak ditandatangani kedua pihak (gagal bayar 7+3 hari)
+    if (contract.status === "cancelled") {
+      list.push({
+        id: "escrow_payment_cancelled",
+        title: "Pembayaran Escrow (Midtrans Sandbox)",
+        description: "Pembayaran tidak diselesaikan dalam tenggat waktu 7 + 3 hari",
+        timestamp: null,
+        state: "cancelled",
+        icon: CreditCard,
+      });
+      list.push({
+        id: "terminal_cancel_unpaid",
+        title: "Kontrak Dibatalkan Sistem",
+        description: contract.cancelReason || "Pembeli tidak membayar dalam tenggat waktu.",
+        timestamp: contract.updatedAt,
+        state: "cancelled",
+        icon: XCircle,
+      });
+      return list;
+    }
+
+    // 6. Pembayaran Escrow (Midtrans Sandbox)
+    const paid = isContractPaid(contract);
+    const inGracePhase =
+      Boolean(contract.paymentReminderSentAt) ||
+      (typeof nowMs === "number" &&
+        getPaymentDeadlineInfo(contract, nowMs).phase === "grace");
+
+    list.push({
+      id: "escrow_payment",
+      title: "Pembayaran Escrow (Midtrans Sandbox)",
+      description: paid && contract.payment
+        ? `Lunas ${formatRupiah(contract.payment.grossAmount)} melalui ${formatPaymentChannel(contract.payment)} (${contract.payment.orderId})`
+        : contract.status === "signed"
+        ? inGracePhase
+          ? "Masa tenggang 3 hari sedang berjalan. Segera selesaikan pembayaran melalui Midtrans Sandbox"
+          : "Kontrak sah mengikat. Menunggu pembeli melunasi pembayaran escrow dalam tenggat 7 hari"
+        : "Menunggu penyelesaian pembayaran escrow setelah kedua pihak menandatangani kontrak",
+      timestamp: paid ? (contract.payment?.paidAt ?? null) : null,
+      state: paid
+        ? "completed"
+        : contract.status === "signed"
+        ? "in_progress"
+        : "pending",
+      icon: CreditCard,
+    });
+
+    // 7. Pengiriman Gabah
     const isShipped = Boolean(contract.shippedAt) || ["shipping", "completed"].includes(contract.status);
     list.push({
       id: "grain_shipping",
       title: "Pengiriman Pasokan Gabah",
       description: isShipped
         ? "Armada pengangkut telah diberangkatkan oleh petani menuju lokasi pembeli"
-        : contract.status === "signed"
-        ? "Kontrak mengikat secara hukum. Menunggu pihak petani memberangkatkan armada"
-        : "Akan diproses setelah kedua pihak melengkapi tanda tangan",
+        : contract.status === "signed" && paid
+        ? "Pembayaran escrow telah lunas. Menunggu pihak petani memberangkatkan armada"
+        : contract.status === "signed" && !paid
+        ? "Pengiriman gabah baru dapat dikonfirmasi setelah pembayaran escrow pembeli lunas"
+        : "Akan diproses setelah tanda tangan lengkap dan pembayaran escrow terverifikasi",
       timestamp: contract.shippedAt ?? null,
-      state: isShipped ? "completed" : contract.status === "signed" ? "in_progress" : "pending",
+      state: isShipped
+        ? "completed"
+        : contract.status === "signed" && paid
+        ? "in_progress"
+        : "pending",
       icon: Truck,
     });
 
-    // 7. Penerimaan Barang & Transaksi Selesai
+    // 8. Penerimaan Barang & Pencairan Escrow
     const isCompleted = contract.status === "completed" && Boolean(contract.completedAt);
+    const isReleased = contract.payment?.escrowStatus === "released";
     list.push({
       id: "order_completed",
       title: "Penerimaan & Transaksi Selesai",
       description: isCompleted
-        ? "Gabah telah diterima dan diperiksa oleh pembeli. Transaksi komitmen pasokan selesai tuntas"
+        ? isReleased && contract.payment
+          ? `Gabah telah diterima oleh pembeli dan dana bersih ${formatRupiah(contract.payment.contractAmount)} telah dicairkan kepada petani`
+          : "Gabah telah diterima dan diperiksa oleh pembeli. Transaksi komitmen pasokan selesai tuntas"
         : contract.status === "shipping"
         ? "Gabah sedang dalam perjalanan. Menunggu pembeli memeriksa dan mengonfirmasi penerimaan barang"
-        : "Tahap akhir penerimaan fisik komoditas",
+        : "Tahap akhir penerimaan fisik komoditas dan pencairan dana escrow",
       timestamp: contract.completedAt ?? null,
       state: isCompleted ? "completed" : contract.status === "shipping" ? "in_progress" : "pending",
       icon: isCompleted ? CheckCircle2 : MapPin,
     });
 
     return list;
-  }, [contract]);
+  }, [contract, nowMs]);
 
   const currentStatusMeta = CONTRACT_STATUS_LABELS[contract.status];
 

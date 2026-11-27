@@ -56,11 +56,15 @@ export async function apiClient(
 
   if (!response.ok) {
     const result = errorSchema.safeParse(payload);
+    const retryAfterRaw = response.headers.get("retry-after");
+    const retryAfterParsed = retryAfterRaw !== null && retryAfterRaw.trim() !== "" ? Number(retryAfterRaw) : NaN;
+    const retryAfterSeconds = Number.isFinite(retryAfterParsed) && retryAfterParsed > 0 ? retryAfterParsed : undefined;
     throw new ApiError(
       result.success ? result.data.message : "Permintaan gagal diproses.",
       response.status,
       result.success ? result.data.code : "HTTP_ERROR",
       result.success ? result.data.fieldErrors : undefined,
+      retryAfterSeconds,
     );
   }
   return payload;

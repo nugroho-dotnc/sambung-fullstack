@@ -18,6 +18,7 @@ export async function getForecasts(query: z.infer<typeof forecastQuerySchema>) {
     meta: {
       generatedAtUtc: result.generatedAtUtc,
       latestObservationWeek: result.latestObservationWeek,
+      ...(result.modelName ? { modelName: result.modelName } : {}),
       modelVersion: result.modelVersion,
       championPerHorizon: result.championPerHorizon,
       derivedConversion: result.derivedConversion,

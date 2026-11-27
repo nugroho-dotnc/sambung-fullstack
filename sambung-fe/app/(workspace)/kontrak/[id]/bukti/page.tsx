@@ -2,11 +2,17 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { ArrowLeft, Printer, ShieldCheck, CheckCircle2, Wheat, QrCode } from "lucide-react";
+import { ArrowLeft, Printer, ShieldCheck, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageContainer } from "@/components/shared/page-container";
 import { DocumentSheetSkeleton } from "@/components/shared/page-skeletons";
 import { useContract } from "@/features/contracts/hooks/use-contracts";
+import {
+  computeContractPaymentBreakdown,
+  formatPaymentChannel,
+  formatPaymentDateTime,
+  getPaymentStatusMeta,
+} from "@/features/contracts/domain/payment-helpers";
 import { formatRupiah } from "@/features/offers/components/offer-summary";
 import { useMobile } from "@/hooks/use-mobile";
 
@@ -41,7 +47,9 @@ export default function DigitalContractProofPage({
     );
   }
 
-  const totalValue = contract.volumeKg * contract.currentPrice;
+  const breakdown = computeContractPaymentBreakdown(contract);
+  const totalValue = breakdown.contractAmount;
+  const paymentMeta = getPaymentStatusMeta(contract);
 
   return (
     <PageContainer className="print:p-0 print:max-w-none">
@@ -175,18 +183,112 @@ export default function DigitalContractProofPage({
                 </td>
               </tr>
             </tbody>
-            <tfoot className="bg-muted/30 border-t border-border/80 font-bold">
-              <tr>
+            <tfoot className="bg-muted/30 border-t border-border/80">
+              <tr className="border-b border-border/50">
+                <td colSpan={3} className="px-3.5 py-2.5 text-right text-xs font-medium text-muted-foreground">
+                  Nilai Bersih Gabah (100% Hak Petani):
+                </td>
+                <td className="px-3.5 py-2.5 text-right tabular-nums text-xs font-semibold text-foreground">
+                  {formatRupiah(breakdown.contractAmount)}
+                </td>
+              </tr>
+              <tr className="border-b border-border/50">
+                <td colSpan={3} className="px-3.5 py-2.5 text-right text-xs font-medium text-muted-foreground">
+                  Biaya Layanan Pembayaran (0,5% · Ditanggung Pembeli):
+                </td>
+                <td className="px-3.5 py-2.5 text-right tabular-nums text-xs font-semibold text-foreground">
+                  {formatRupiah(breakdown.buyerFeeAmount)}
+                </td>
+              </tr>
+              <tr className="font-bold">
                 <td colSpan={3} className="p-3.5 text-right text-xs">
-                  Total Nilai Transaksi:
+                  Total Tagihan Escrow (Midtrans):
                 </td>
                 <td className="p-3.5 text-right tabular-nums text-sm text-emerald-700 dark:text-emerald-400">
-                  {formatRupiah(totalValue)}
+                  {formatRupiah(breakdown.grossAmount)}
                 </td>
               </tr>
             </tfoot>
           </table>
         </div>
+
+        {/* Bukti Pembayaran & Status Escrow (Midtrans Sandbox) */}
+        {(Boolean(contract.payment) ||
+          ["signed", "shipping", "completed"].includes(contract.status)) && (
+          <div className="rounded-xl border border-border/80 bg-muted/15 p-4 space-y-3 text-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2.5">
+              <div className="flex items-center gap-2 font-bold text-foreground">
+                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Bukti Pembayaran &amp; Status Escrow (Midtrans Sandbox)</span>
+              </div>
+              <span className="font-semibold text-foreground">
+                {paymentMeta.label}
+              </span>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2">
+              <div className="flex justify-between gap-2">
+                <span className="text-muted-foreground">Order ID:</span>
+                <span className="font-mono font-semibold text-foreground">
+                  {contract.payment?.orderId ?? "-"}
+                </span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="text-muted-foreground">Kanal Pembayaran:</span>
+                <span className="font-semibold text-foreground">
+                  {contract.payment
+                    ? formatPaymentChannel(contract.payment)
+                    : "-"}
+                </span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="text-muted-foreground">Referensi / Nomor VA:</span>
+                <span className="font-mono font-semibold text-foreground">
+                  {contract.payment?.paymentReference ?? "-"}
+                </span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="text-muted-foreground">ID Transaksi Midtrans:</span>
+                <span className="font-mono text-foreground">
+                  {contract.payment?.midtransTransactionId ?? "-"}
+                </span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="text-muted-foreground">Waktu Pelunasan:</span>
+                <span className="tabular-nums text-foreground">
+                  {formatPaymentDateTime(contract.payment?.paidAt)}
+                </span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="text-muted-foreground">Waktu Pencairan Escrow:</span>
+                <span className="tabular-nums font-medium text-foreground">
+                  {contract.payment?.escrowStatus === "released"
+                    ? formatPaymentDateTime(contract.payment.releasedAt)
+                    : contract.payment?.escrowStatus === "held"
+                    ? "Ditahan sampai serah terima selesai"
+                    : "-"}
+                </span>
+              </div>
+              {contract.payment?.status !== "paid" &&
+                (contract.paymentDueAt || contract.paymentGraceEndsAt) && (
+                  <>
+                    <div className="flex justify-between gap-2">
+                      <span className="text-muted-foreground">Tenggat Bayar (7 Hari):</span>
+                      <span className="tabular-nums text-foreground">
+                        {formatPaymentDateTime(contract.paymentDueAt)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-2">
+                      <span className="text-muted-foreground">Batas Masa Tenggang (+3 Hari):</span>
+                      <span className="tabular-nums text-foreground">
+                        {formatPaymentDateTime(contract.paymentGraceEndsAt)}
+                      </span>
+                    </div>
+                  </>
+                )}
+            </div>
+          </div>
+        )}
 
         {/* Clauses / Legal Disclaimer */}
         <div className="rounded-xl bg-muted/20 p-4 border border-border/60 text-xs text-muted-foreground space-y-1.5 leading-relaxed">
@@ -199,7 +301,7 @@ export default function DigitalContractProofPage({
               Penimbangan tonase riil, pemeriksaan mutu/kadar air fisik, dan serah terima gabah dilakukan secara mandiri di lokasi penjemputan gabah.
             </li>
             <li>
-              Pembayaran dan penyelesaian keuangan diselesaikan langsung antara pihak pembeli dan petani di luar platform.
+              Pembayaran transaksi diproses melalui escrow Midtrans Sandbox (nilai gabah 100% menjadi hak bersih Petani ditambah biaya layanan 0,5% yang ditanggung Pembeli) dalam tenggat 7 hari sejak penandatanganan lengkap dengan masa tenggang 3 hari; dana escrow dicairkan kepada Petani setelah Pembeli mengonfirmasi penerimaan gabah.
             </li>
           </ol>
         </div>
@@ -216,7 +318,7 @@ export default function DigitalContractProofPage({
                   <img
                     src={contract.farmerSignature}
                     alt={`Tanda tangan ${contract.farmerName}`}
-                    className="h-16 max-w-[180px] object-contain"
+                    className="h-16 max-w-[180px] object-contain dark:invert print:invert-0"
                   />
                 ) : (
                   <span className="font-signature text-2xl sm:text-3xl text-foreground tracking-wide py-2">
@@ -268,7 +370,7 @@ export default function DigitalContractProofPage({
                   <img
                     src={contract.buyerSignature}
                     alt={`Tanda tangan ${contract.buyerName}`}
-                    className="h-16 max-w-[180px] object-contain"
+                    className="h-16 max-w-[180px] object-contain dark:invert print:invert-0"
                   />
                 ) : (
                   <span className="font-signature text-2xl sm:text-3xl text-foreground tracking-wide py-2">

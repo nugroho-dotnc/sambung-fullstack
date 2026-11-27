@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { forecastService } from "../services/forecast.service";
 
 export const forecastQueryKeys = {
@@ -18,10 +18,16 @@ export function useForecastMeta() {
   });
 }
 
-export function useForecast(province?: string, horizonWeeks?: 2 | 4) {
+export function useForecast(
+  province?: string,
+  horizonWeeks?: 2 | 4,
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: forecastQueryKeys.detail(province, horizonWeeks),
     queryFn: () => forecastService.getForecasts({ province, horizonWeeks }),
+    enabled: options?.enabled ?? Boolean(province),
+    placeholderData: keepPreviousData,
     staleTime: 60 * 1000,
   });
 }

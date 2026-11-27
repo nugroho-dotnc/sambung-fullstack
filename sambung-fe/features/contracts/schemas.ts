@@ -11,6 +11,63 @@ export const contractStatusSchema = z.enum([
   "expired",
 ]);
 
+export const paymentStatusSchema = z.enum([
+  "pending",
+  "paid",
+  "failed",
+  "expired",
+  "cancelled",
+  "refunded",
+]);
+
+export const escrowStatusSchema = z.enum([
+  "unpaid",
+  "held",
+  "released",
+  "refunded",
+]);
+
+export const contractPaymentSchema = z.object({
+  id: z.string(),
+  contractId: z.string(),
+  attempt: z.number().int().positive(),
+  orderId: z.string(),
+  contractAmount: z.number(),
+  buyerFeeAmount: z.number(),
+  grossAmount: z.number(),
+  currency: z.string(),
+  provider: z.string(),
+  status: paymentStatusSchema,
+  escrowStatus: escrowStatusSchema,
+  paymentType: z.string().nullable().optional(),
+  paymentChannel: z.string().nullable().optional(),
+  paymentReference: z.string().nullable().optional(),
+  midtransTransactionId: z.string().nullable().optional(),
+  midtransStatus: z.string().nullable().optional(),
+  fraudStatus: z.string().nullable().optional(),
+  redirectUrl: z.string().nullable().optional(),
+  paidAt: z.string().nullable().optional(),
+  releasedAt: z.string().nullable().optional(),
+  expiresAt: z.string().nullable().optional(),
+  lastSyncedAt: z.string().nullable().optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export const initiatePaymentResponseSchema = z.object({
+  payment: contractPaymentSchema,
+  snapToken: z.string(),
+  redirectUrl: z.string(),
+  clientKey: z.string(),
+  snapScriptUrl: z.string(),
+});
+
+export const syncPaymentResponseSchema = z.object({
+  payment: contractPaymentSchema,
+  synced: z.boolean(),
+  awaitingMethodSelection: z.boolean(),
+});
+
 export const negotiationHistoryItemSchema = z.object({
   id: z.string(),
   role: z.enum(["petani", "pembeli"]),
@@ -28,7 +85,7 @@ export const contractSchema = z.object({
   farmerPhone: z.string().optional(),
   priceOfferVersion:z.number().int().optional(),
   priceReference:z.object({bounds:z.object({lowerOperational:z.number(),upperOperational:z.number()}),deltaBp:z.number(),
-    referenceSource:z.string(),sourceDate:z.string().nullable().optional()}).optional(),
+    referenceSource:z.string(),sourceDate:z.string().nullable().optional()}).nullable().optional(),
   quality:z.number().nullable().optional(),
   farmerBusiness: z.string().optional(),
   buyerId: z.string(),
@@ -44,6 +101,10 @@ export const contractSchema = z.object({
   currentTurnRole: z.enum(["petani", "pembeli"]),
   history: z.array(negotiationHistoryItemSchema),
   expiresAt: z.string(),
+  paymentDueAt: z.string().optional().nullable(),
+  paymentGraceEndsAt: z.string().optional().nullable(),
+  paymentReminderSentAt: z.string().optional().nullable(),
+  payment: contractPaymentSchema.optional().nullable(),
   farmerConfirmed: z.boolean(),
   buyerConfirmed: z.boolean(),
   farmerSignature: z.string().optional().nullable(),
@@ -62,6 +123,11 @@ export const contractSchema = z.object({
   district: z.string().optional().default("Pagaden"),
 });
 
+export type PaymentStatus = z.infer<typeof paymentStatusSchema>;
+export type EscrowStatus = z.infer<typeof escrowStatusSchema>;
+export type ContractPayment = z.infer<typeof contractPaymentSchema>;
+export type InitiatePaymentResponse = z.infer<typeof initiatePaymentResponseSchema>;
+export type SyncPaymentResponse = z.infer<typeof syncPaymentResponseSchema>;
 export type NegotiationHistoryItem = z.infer<typeof negotiationHistoryItemSchema>;
 export type Contract = z.infer<typeof contractSchema>;
 

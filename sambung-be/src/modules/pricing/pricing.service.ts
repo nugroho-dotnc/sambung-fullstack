@@ -2,6 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 import { digest } from "../auth/session.ts";
 import { ApiError } from "../../shared/api-error.ts";
+import { resolveValidHpp, resolveValidRendemen, resolveValidTolerance } from "../ai/ai.service.ts";
 import { calculate } from "./ai-price.client.ts";
 
 export const referenceInput = z.object({
@@ -29,14 +30,23 @@ export async function reference(db: PrismaClient, input: z.infer<typeof referenc
     throw new ApiError(422, "INVALID_REGION", "Pilih kecamatan yang tersedia pada daftar wilayah.");
   }
 
-  const result = await calculate(input.grainType, region.province, input.quality ?? null);
+  const rendemen = resolveValidRendemen(
+    input.grainType === "GKP" ? sysParam?.rendemenGKP : sysParam?.rendemenGKG
+  );
+  const hppGovernment =
+    input.grainType === "GKP" ? resolveValidHpp(sysParam?.governmentFloorPriceGKP) : undefined;
+
+  const result = await calculate(input.grainType, region.province, input.quality ?? null, {
+    rendemen,
+    hppGovernment,
+  });
   const bounds = {
     lowerOriginal: result.lowerBound,
     upperOriginal: result.upperBound,
     lowerOperational: Math.round(result.lowerBound),
     upperOperational: Math.round(result.upperBound),
   };
-  const deltaBp = Math.round((sysParam?.fairPriceToleranceDelta ?? 0.03) * 10000);
+  const deltaBp = Math.round(resolveValidTolerance(sysParam?.fairPriceToleranceDelta) * 10000);
   const data = { ...result, regionId: region.id, quality: input.quality ?? null, bounds, deltaBp };
 
   return {

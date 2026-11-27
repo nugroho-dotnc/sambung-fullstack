@@ -39,14 +39,21 @@ function LoginContent() {
 
     try {
       const result = await requestOtpMutation.mutateAsync(cleanPhone);
+      for (const key of Object.keys(sessionStorage)) {
+        if (key.startsWith("otp-hint:")) {
+          sessionStorage.removeItem(key);
+        }
+      }
       if (IS_DEMO_FE) {
         sessionStorage.setItem(`otp-hint:${cleanPhone}`, result.debugHint ?? "");
-      } else {
-        sessionStorage.removeItem(`otp-hint:${cleanPhone}`);
       }
 
-      const nextParams = new URLSearchParams({ phone: cleanPhone });
+      const nextParams = new URLSearchParams({
+        phone: cleanPhone,
+        req: String(Date.now()),
+      });
       if (redirect) nextParams.set("redirect", redirect);
+      setPhone("");
       router.push(`/masuk/verifikasi?${nextParams.toString()}`);
     } catch (err) {
       setErrorMsg(
@@ -88,6 +95,7 @@ function LoginContent() {
               <Input
                 id="phone"
                 type="tel"
+                autoComplete="tel"
                 placeholder={isLiveOtp ? "Nomor WhatsApp (contoh: 081234567890)" : "081234567890"}
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}

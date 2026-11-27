@@ -24,8 +24,9 @@ import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { AsyncBoundary } from "@/components/shared/async-boundary";
 import { useCatalog } from "@/features/catalog/hooks/use-catalog";
+import { useFairPriceParams } from "@/features/fair-price/hooks/use-fair-price";
 import { formatRupiah } from "@/features/offers/components/offer-summary";
-import { PriceReferenceService, evaluatePriceLight } from "@/features/price-check";
+import { evaluatePriceLight, extractPriceReference } from "@/features/price-check";
 import { useMobile } from "@/hooks/use-mobile";
 
 const DEFAULT_REGENCIES = ["Jember", "Subang", "Karawang"];
@@ -43,6 +44,7 @@ export default function BuyerCatalogPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: items = [], isLoading, isError, error, refetch } = useCatalog();
+  const { data: fairPriceParams } = useFairPriceParams();
 
   const regencyOptions = useMemo(() => {
     const names = new Set(DEFAULT_REGENCIES);
@@ -247,14 +249,23 @@ export default function BuyerCatalogPage() {
       >
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {filteredItems.map((item) => {
-            const priceRef = PriceReferenceService.getReference(
-              item.grainType,
-              item.regency || "Subang"
-            );
+            const savedRef = item.priceCheck?.reference;
+            const liveRef = savedRef
+              ? {
+                  lowerBound: savedRef.bounds.lowerOperational,
+                  upperBound: savedRef.bounds.upperOperational,
+                  toleranceDelta: (savedRef.deltaBp ?? 300) / 10000,
+                }
+              : extractPriceReference(
+                  fairPriceParams,
+                  item.grainType,
+                  item.province || item.regency || "Subang",
+                );
             const evaluation = evaluatePriceLight({
               price: item.askPrice,
-              lowerBound: priceRef.lowerBound,
-              upperBound: priceRef.upperBound,
+              lowerBound: liveRef?.lowerBound ?? 0,
+              upperBound: liveRef?.upperBound ?? 0,
+              toleranceDelta: liveRef?.toleranceDelta,
             });
 
             return (
@@ -311,7 +322,9 @@ export default function BuyerCatalogPage() {
                         className={`font-semibold ${
                           evaluation.status === "HIJAU"
                             ? "text-emerald-700 dark:text-emerald-400"
-                            : "text-amber-700 dark:text-amber-400"
+                            : evaluation.status === "TIDAK_TERSEDIA"
+                              ? "text-muted-foreground"
+                              : "text-amber-700 dark:text-amber-400"
                         }`}
                       >
                         {evaluation.label}

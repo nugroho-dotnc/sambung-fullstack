@@ -174,7 +174,7 @@ function ParametersForm({
               type="number"
               step="0.5"
               min="0.5"
-              max="15"
+              max="25"
               value={tolerancePercent}
               onChange={(e) => setTolerancePercent(Number(e.target.value))}
               className="pr-10 text-sm tabular-nums font-bold"
@@ -210,7 +210,7 @@ function ParametersForm({
               <Input
                 type="number"
                 step="0.01"
-                min="30"
+                min="40"
                 max="75"
                 value={rendemenGKP}
                 onChange={(e) => setRendemenGKP(Number(e.target.value))}
@@ -233,7 +233,7 @@ function ParametersForm({
                 type="number"
                 step="0.01"
                 min="40"
-                max="85"
+                max="75"
                 value={rendemenGKG}
                 onChange={(e) => setRendemenGKG(Number(e.target.value))}
                 className="pr-10 text-sm tabular-nums font-bold"
@@ -269,8 +269,8 @@ function ParametersForm({
             <Input
               type="number"
               step="50"
-              min="4000"
-              max="12000"
+              min="3000"
+              max="20000"
               value={governmentFloorPrice}
               onChange={(e) => setGovernmentFloorPrice(Number(e.target.value))}
               className="pr-14 text-sm tabular-nums font-bold"

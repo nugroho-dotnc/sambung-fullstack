@@ -15,6 +15,12 @@ export function parseAllowedOrigins(raw: string): string[] {
     .filter(Boolean);
 }
 
+const optionalEmpty = <T extends z.ZodType>(schema: T) =>
+  z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    schema.optional()
+  );
+
 const configuration = z.object({
   DATABASE_URL: z.url().regex(/^postgres(?:ql)?:\/\//),
   FE_ORIGIN: z
@@ -29,6 +35,15 @@ const configuration = z.object({
   FONNTE_TOKEN: z.string().optional(),
   NODE_ENV: z.string().optional().refine((value) => value !== "production"),
   CONSENT_VERSION: z.string().min(1).default("demo-v1"),
+  AI_BASE_URL: z.string().url().optional(),
+  AI_API_KEY: z.string().optional(),
+  AI_TIMEOUT_MS: z.coerce.number().int().min(1000).max(120000).optional(),
+  MIDTRANS_SERVER_KEY: z.string().optional(),
+  MIDTRANS_CLIENT_KEY: z.string().optional(),
+  MIDTRANS_SIGNATURE_SECRET_KEY: z.string().optional(),
+  MIDTRANS_SNAP_BASE_URL: optionalEmpty(z.string().url()),
+  MIDTRANS_API_BASE_URL: optionalEmpty(z.string().url()),
+  MIDTRANS_TIMEOUT_MS: optionalEmpty(z.coerce.number().int().min(1000).max(120000)),
 });
 
 export function readConfig() {

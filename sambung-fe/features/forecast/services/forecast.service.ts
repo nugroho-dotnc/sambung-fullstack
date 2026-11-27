@@ -5,6 +5,7 @@ export interface ForecastResponse {
   meta: {
     generatedAtUtc: string;
     latestObservationWeek: string;
+    modelName?: string;
     modelVersion: string;
     championPerHorizon?: Record<string, string>;
     derivedConversion: {
@@ -21,6 +22,7 @@ export interface ForecastResponse {
 
 export interface ForecastMetaResponse {
   latestObservationWeek: string;
+  modelName?: string;
   modelVersion: string;
   derivedConversion: {
     rGkp: number;

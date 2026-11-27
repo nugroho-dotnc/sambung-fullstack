@@ -3,6 +3,12 @@ import type { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 import { sessionHash } from "../auth/session.ts";
 import { ApiError } from "../../shared/api-error.ts";
+import { enforcePredictLiveRateLimit } from "../ai/ai-rate-limit.ts";
+import {
+  livePredictBodySchema,
+  modelEvaluationQuerySchema,
+  weeklyIngestBodySchema,
+} from "../ai/ai.schemas.ts";
 import {
   adminLogin,
   getAdminStats,
@@ -13,6 +19,9 @@ import {
   getObservations,
   publishObservations,
   moderateOffer,
+  getAdminModelEvaluation,
+  runAdminLivePrediction,
+  runAdminAiIngest,
 } from "./admin.service.ts";
 
 export function adminRouter(db: PrismaClient, isSecure: boolean) {
@@ -79,11 +88,11 @@ export function adminRouter(db: PrismaClient, isSecure: boolean) {
     const actor = await getAdminActor(req);
     const body = z
       .object({
-        orderExpiryHours: z.number().int().positive().optional(),
-        fairPriceToleranceDelta: z.number().positive().optional(),
-        rendemenGKP: z.number().positive().optional(),
-        rendemenGKG: z.number().positive().optional(),
-        governmentFloorPriceGKP: z.number().int().positive().optional(),
+        orderExpiryHours: z.number().int().min(1).max(168).optional(),
+        fairPriceToleranceDelta: z.number().min(0.005).max(0.25).optional(),
+        rendemenGKP: z.number().min(0.4).max(0.75).optional(),
+        rendemenGKG: z.number().min(0.4).max(0.75).optional(),
+        governmentFloorPriceGKP: z.number().int().min(3000).max(20000).optional(),
       })
       .parse(req.body);
 
@@ -107,6 +116,25 @@ export function adminRouter(db: PrismaClient, isSecure: boolean) {
     const actor = await getAdminActor(req);
     const result = await publishObservations(db, actor.name);
     res.json(result);
+  });
+
+  router.get("/admin/model-evaluation", async (req, res) => {
+    await getAdminActor(req);
+    modelEvaluationQuerySchema.parse(req.query);
+    res.json(await getAdminModelEvaluation());
+  });
+
+  router.post("/admin/predict/live", async (req, res) => {
+    const actor = await getAdminActor(req);
+    enforcePredictLiveRateLimit(actor.id);
+    const body = livePredictBodySchema.parse(req.body);
+    res.json(await runAdminLivePrediction(body));
+  });
+
+  router.post("/admin/ai/ingest", async (req, res) => {
+    const actor = await getAdminActor(req);
+    const body = weeklyIngestBodySchema.parse(req.body);
+    res.json(await runAdminAiIngest(db, actor.name, body));
   });
 
   router.post("/admin/moderation", async (req, res) => {

@@ -1,10 +1,12 @@
 /**
- * Price reference service for contract & catalog traffic-light checks.
- * Backed by verified fair_price_params.json (34 provinces + Nasional).
+ * Pure price-reference resolver for contract & catalog traffic-light checks.
+ * Backed dynamically by GET /fair-price/params response data.
  */
 
-import fairPriceJson from "@/data/ai/fair_price_params.json";
-import { getProvinceReferenceEntry } from "@/features/fair-price/domain/calculate-fair-price";
+import type {
+  FairPriceParamsResponse,
+  FairProvinceRecord,
+} from "@/features/fair-price/domain/calculate-fair-price";
 
 export interface PriceReference {
   grainType: "GKP" | "GKG";
@@ -42,36 +44,51 @@ const REGION_TO_PROVINCE: Record<string, string> = {
   pinrang: "Sulawesi Selatan",
 };
 
-function resolveProvinceName(region: string): string {
+export function resolveProvinceFromRegion(
+  region: string,
+  provinces: Record<string, FairProvinceRecord>,
+): string {
   const raw = (region || "").trim();
-  const provinces = fairPriceJson.provinces as Record<string, unknown>;
-  if (raw in provinces) return raw;
+  if (raw && raw in provinces) return raw;
 
   const lower = raw.toLowerCase();
   for (const key of Object.keys(provinces)) {
     if (key.toLowerCase() === lower) return key;
   }
   for (const [alias, prov] of Object.entries(REGION_TO_PROVINCE)) {
-    if (lower.includes(alias)) return prov;
+    if (lower.includes(alias) && prov in provinces) return prov;
   }
-  return "Nasional";
+  if ("Nasional" in provinces) return "Nasional";
+  return Object.keys(provinces)[0] ?? "Nasional";
 }
 
-export class PriceReferenceService {
-  static getReference(grainType: "GKP" | "GKG" = "GKP", region: string = "Jawa Barat"): PriceReference {
-    const resolvedProv = resolveProvinceName(region);
-    const entry = getProvinceReferenceEntry(resolvedProv);
-    const bounds = grainType === "GKG" ? entry.GKG : entry.GKP;
+export function extractPriceReference(
+  params: FairPriceParamsResponse | undefined,
+  grainType: "GKP" | "GKG" = "GKP",
+  region: string = "Jawa Barat",
+): PriceReference | null {
+  if (!params?.provinces) return null;
 
-    return {
-      grainType,
-      lowerBound: bounds.lowerBound,
-      upperBound: bounds.upperBound,
-      medianPrice: bounds.medianPrice,
-      toleranceDelta: 0.03, // Toleransi batas awal 3%
-      region: resolvedProv,
-      sourceNote: `${entry.referenceSource} + rasio empiris Bapanas`,
-      updatedAt: fairPriceJson.updatedAt,
-    };
-  }
+  const resolvedProv = resolveProvinceFromRegion(region, params.provinces);
+  const entry =
+    params.provinces[resolvedProv] ??
+    params.provinces["Jawa Timur"] ??
+    params.provinces["Nasional"];
+
+  if (!entry) return null;
+
+  const bounds = grainType === "GKG" ? entry.GKG : entry.GKP;
+  const toleranceDelta =
+    params.toleranceDelta ?? params.systemParameters?.fairPriceToleranceDelta ?? 0.03;
+
+  return {
+    grainType,
+    lowerBound: bounds.lowerBound,
+    upperBound: bounds.upperBound,
+    medianPrice: bounds.medianPrice,
+    toleranceDelta,
+    region: entry.province,
+    sourceNote: `${entry.referenceSource} + rasio empiris Bapanas`,
+    updatedAt: params.updatedAt,
+  };
 }
