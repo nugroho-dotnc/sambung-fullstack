@@ -36,7 +36,7 @@ export const CONTRACT_STATUS_LABELS: Record<ContractStatus, { label: string; ton
  * STRICT RULE (BR-018): Contact details are opened once price is agreed or later stages.
  */
 export function isContactRevealed(status: ContractStatus): boolean {
-  return ["approved", "signed", "shipping", "completed"].includes(status);
+  return ["signed", "shipping", "completed"].includes(status);
 }
 
 /**

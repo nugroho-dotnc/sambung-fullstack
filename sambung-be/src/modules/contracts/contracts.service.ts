@@ -13,7 +13,7 @@ type Row=Prisma.ContractGetPayload<{include:typeof include}>;
 function fail(code:string,message:string):never {throw new ApiError(409,code,message);}
 function missing():never {throw new ApiError(404,"NOT_FOUND","Kontrak tidak ditemukan.");}
 function resolveContractContacts(row: Row, actorRole: string) {
-  if (!["approved", "signed", "shipping", "completed"].includes(row.status)) {
+  if (!["signed", "shipping", "completed"].includes(row.status)) {
     return {};
   }
   if (actorRole === "admin") {

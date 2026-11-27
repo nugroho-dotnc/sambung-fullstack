@@ -524,7 +524,7 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
                     Kontak Dilindungi oleh SAMBUNG
                   </p>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Nomor WhatsApp dan alamat lengkap mitra akan terbuka otomatis saat kedua pihak telah menyepakati harga pasokan.
+                    Nomor WhatsApp dan kontak mitra akan terbuka otomatis setelah kedua pihak menandatangani kontrak kesepakatan secara sah.
                   </p>
                 </div>
               </div>

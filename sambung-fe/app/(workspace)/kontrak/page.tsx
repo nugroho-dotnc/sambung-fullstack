@@ -256,7 +256,7 @@ export default function ContractsListPage() {
                       <div className="flex items-center gap-1.5 text-xs text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-900/60">
                         <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                         <span>
-                          Kontrak mengikat secara hukum. Siap untuk pengiriman.
+                          Kontrak mengikat secara hukum. Kontak mitra terbuka untuk koordinasi pengiriman.
                         </span>
                       </div>
                     )}
