@@ -162,6 +162,10 @@ Semua perubahan penting pada proyek **SAMBUNG** (`sambung-be` dan `sambung-fe`) 
   - Kontak nomor telepon dan WhatsApp mitra kini baru dibuka ketika kedua belah pihak telah menyelesaikan tanda tangan digital (status `signed`, `shipping`, `completed`), bukan lagi pada saat harga disepakati (`approved`).
 
 ### Fixed
+- **Frontend (`sambung-fe`) — Kontras Teks Status Light Mode & Penyeragaman Pill/Tombol Hijau Panel Admin (2026-11-28)**:
+  - Menambahkan `!important` pada utilitas `@utility status-info`, `status-warning`, `status-error`, dan `status-success`, serta pada `.admin-cta` dan `.admin-filter-btn[aria-pressed="true"]` di `app/globals.css` agar warna teks terang pada `Badge` tidak tertimpa oleh `.text-foreground` di mode terang maupun `hover:bg-primary/80` bawaan `buttonVariants`.
+  - Menambahkan utilitas `@utility admin-brand-pill` (`#0D5907` / `#FFFFFF` dengan border `#2F8208`), menetapkan `--sidebar-primary` & `--sidebar-primary-foreground` khusus `.admin-panel`, serta memperjelas warna teks inaktif `.admin-tabs-list` dan state `active:` di `components/layouts/Sidebar.tsx`.
+  - Mengganti seluruh pill konteks biru (`status-info`) pada header 8 halaman panel admin, `TopBar.tsx`, dan lencana peran `admin` di `pengguna/page.tsx` menjadi `admin-brand-pill`, serta menyeragamkan tombol CTA di `app/admin/(panel)/page.tsx` agar seluruh tombol utama menggunakan `admin-cta` hijau.
 - **Frontend (`sambung-fe`) — Perbaikan State Controlled/Uncontrolled Komponen Base UI `<Select>` (`2026-11-28`)**:
   - Mengubah operan `value` pada komponen `<Select>` dari `... || undefined` menjadi `... || null` agar Base UI `Select` selalu berjalan dalam mode *controlled* sejak render pertama (menghindari galat `changing the uncontrolled value state of Select to be controlled` saat nilai awal kosong berubah menjadi nilai terpilih):
     - `sambung-fe/features/fair-price/components/fair-price-simulator.tsx` (pilihan komoditas gabah `grainType` dan wilayah provinsi `region`).

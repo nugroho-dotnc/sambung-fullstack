@@ -30,14 +30,82 @@ const CATEGORY_LABELS: Record<ShapCategory, string> = {
 
 export function ShapWaterfall({
   factors,
+  userRole,
 }: {
   factors: ShapFactor[];
   userRole?: "petani" | "pembeli" | "admin";
 }) {
   if (!factors || factors.length === 0) {
     return (
-      <div className="p-4 rounded-xl border border-dashed border-border/80 bg-muted/30 text-xs text-muted-foreground leading-relaxed">
+      <div className="p-4 rounded-lg border border-dashed border-border bg-muted/30 text-xs text-muted-foreground leading-relaxed">
         Rincian faktor pendorong tidak ditampilkan untuk wilayah yang sedang menggunakan acuan harga pekan terakhir.
+      </div>
+    );
+  }
+
+  if (userRole === "admin") {
+    return (
+      <div className="rounded-lg divide-y divide-border overflow-hidden">
+        {factors.map((factor, idx) => {
+          const Icon = CATEGORY_ICONS[factor.category] || Sprout;
+          const label = CATEGORY_LABELS[factor.category] || factor.category;
+          const isPushUp = factor.impact > 0;
+          const isNeutral = factor.impact === 0;
+
+          return (
+            <div
+              key={idx}
+              className="admin-field-row p-4 sm:p-5 bg-card space-y-2"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-2.5 min-w-0">
+                  <div className="p-1.5 rounded-md bg-muted text-[var(--admin-gold-text)] shrink-0 mt-0.5">
+                    <Icon className="w-3.5 h-3.5" aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-[13px] font-bold text-foreground leading-snug">
+                      {factor.feature.replace(/\s*\(ERA5\/.*?\)/i, "")}
+                    </h4>
+                    <span className="text-xs text-muted-foreground uppercase font-semibold tracking-wider block mt-0.5">
+                      {label}
+                    </span>
+                  </div>
+                </div>
+
+                <div
+                  className={`text-xs font-semibold px-2.5 py-0.5 rounded-md whitespace-nowrap tabular-nums inline-flex items-center gap-1 shrink-0 ${
+                    isPushUp
+                      ? "status-success"
+                      : isNeutral
+                        ? "bg-muted text-foreground"
+                        : "status-warning"
+                  }`}
+                >
+                  {isPushUp ? (
+                    <>
+                      <ArrowUpRight className="w-3.5 h-3.5" aria-hidden="true" />
+                      <span>+Rp{factor.impact}/kg</span>
+                    </>
+                  ) : isNeutral ? (
+                    <>
+                      <Minus className="w-3.5 h-3.5" aria-hidden="true" />
+                      <span>Stabil (Rp0/kg)</span>
+                    </>
+                  ) : (
+                    <>
+                      <ArrowDownRight className="w-3.5 h-3.5" aria-hidden="true" />
+                      <span>-Rp{Math.abs(factor.impact)}/kg</span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <p className="text-xs text-muted-foreground leading-relaxed pl-9">
+                {factor.description}
+              </p>
+            </div>
+          );
+        })}
       </div>
     );
   }
