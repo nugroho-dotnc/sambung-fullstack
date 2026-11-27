@@ -48,6 +48,7 @@ import { ShipConfirmDialog, ReceiveConfirmDialog } from "./fulfillment-dialogs";
 import { ContractTimeline } from "./contract-timeline";
 import { ContractPaymentCard } from "./contract-payment-card";
 import { isContractPaid } from "../domain/payment-helpers";
+import { ProBadge } from "@/features/subscription/components/pro-badge";
 
 interface PendingRedAction {
   action: "accept" | "counter";
@@ -450,9 +451,12 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
         <div className="lg:col-span-7 space-y-6">
           {/* Summary Metric Cards */}
           <Card className="rounded-2xl border-border/80 bg-card p-6 space-y-4">
-            <h3 className="text-sm font-semibold text-foreground border-b border-border/60 pb-3">
-              Rincian Komitmen Pasokan Gabah
-            </h3>
+            <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-3">
+              <h3 className="text-sm font-semibold text-foreground">
+                Rincian Komitmen Pasokan Gabah
+              </h3>
+              {isFarmer && contract.buyerIsPro && <ProBadge size="xs" />}
+            </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 text-xs">
               <div className="p-3 rounded-xl bg-muted/40 border border-border/60">
@@ -493,7 +497,7 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
         <div className="lg:col-span-5 space-y-6">
           {/* Contact Details Card (Strict BR-018 Masking) */}
           <Card className="rounded-2xl border-border/80 bg-card p-6 space-y-4">
-            <div className="border-b border-border/60 pb-3 flex items-center justify-between">
+            <div className="border-b border-border/60 pb-3 flex items-center justify-between gap-2">
               <div>
                 <h3 className="text-sm font-semibold text-foreground">
                   Informasi Kontak Mitra
@@ -502,6 +506,7 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
                   Pihak {partnerRole} dalam kesepakatan ini.
                 </p>
               </div>
+              {isFarmer && contract.buyerIsPro && <ProBadge size="xs" />}
             </div>
 
             {!contactRevealed || !partnerPhone ? (
@@ -522,7 +527,10 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
               <div className="space-y-3 text-xs">
                 <div>
                   <span className="text-muted-foreground text-xs block">Nama / Poktan</span>
-                  <span className="text-sm font-bold text-foreground">{partnerName}</span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-bold text-foreground">{partnerName}</span>
+                    {isFarmer && contract.buyerIsPro && <ProBadge size="xs" />}
+                  </div>
                 </div>
 
                 <div>

@@ -16,6 +16,8 @@ export interface ForecastResponse {
     };
     summary?: Record<string, unknown>;
     sourceMode: "live" | "snapshot";
+    restrictedPreview?: boolean;
+    allowedProvince?: string;
   };
   records: ForecastRecord[];
 }

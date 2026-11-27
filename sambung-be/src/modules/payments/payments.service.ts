@@ -1,5 +1,6 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
 import { ApiError } from "../../shared/api-error.ts";
+import { isBuyerPro } from "../auth/session.ts";
 import {
   cancelTransaction,
   createSnapTransaction,
@@ -13,8 +14,13 @@ import {
   type SnapItemDetail,
 } from "./midtrans.client.ts";
 import { midtransWebhookSchema } from "./payments.schemas.ts";
+import {
+  handleSubscriptionMidtransWebhook,
+  PRO_BUYER_FEE_RATE,
+} from "../subscriptions/subscriptions.service.ts";
 
 export const BUYER_FEE_RATE = 0.005;
+export { PRO_BUYER_FEE_RATE };
 export const PAYMENT_DUE_MS = 7 * 86_400_000;
 export const PAYMENT_GRACE_MS = 3 * 86_400_000;
 export const AUTO_CANCEL_REASON = "Pembeli tidak membayar dalam tenggat waktu.";
@@ -89,14 +95,15 @@ export function presentPayment(row: PaymentRecord): PresentedPayment {
 }
 
 /**
- * Computes farmer net payout (contractAmount), 0.5% buyer service fee, and total Midtrans gross amount in integer IDR.
+ * Computes farmer net payout (contractAmount), buyer service fee (0.5% standard or 0.25% Pembeli Pro), and total Midtrans gross amount in integer IDR.
  */
 export function computePaymentAmounts(
   volumeKg: Prisma.Decimal | number | string,
-  currentPrice: number
+  currentPrice: number,
+  feeRate: number = BUYER_FEE_RATE
 ): { contractAmount: bigint; buyerFeeAmount: bigint; grossAmount: bigint } {
   const contractNum = Math.round(Number(volumeKg) * currentPrice);
-  const feeNum = Math.round(contractNum * BUYER_FEE_RATE);
+  const feeNum = Math.round(contractNum * feeRate);
   const contractAmount = BigInt(contractNum);
   const buyerFeeAmount = BigInt(feeNum);
   return {
@@ -440,7 +447,7 @@ export async function initiateContractPayment(
 
   const contractInclude = {
     offer: { select: { ownerId: true, grainType: true } },
-    buyer: { select: { id: true, name: true, phone: true, email: true } },
+    buyer: { select: { id: true, name: true, phone: true, email: true, proExpiresAt: true } },
     payments: { orderBy: { attempt: "desc" as const } },
   };
 
@@ -530,9 +537,15 @@ export async function initiateContractPayment(
         );
         const attempt = latestAttempt + 1;
         const orderId = buildOrderId(contract.id, attempt);
+        const buyerIsPro = isBuyerPro(
+          { role: "pembeli", proExpiresAt: contract.buyer.proExpiresAt },
+          now
+        );
+        const feeRate = buyerIsPro ? PRO_BUYER_FEE_RATE : BUYER_FEE_RATE;
         const { contractAmount, buyerFeeAmount, grossAmount } = computePaymentAmounts(
           contract.volumeKg,
-          contract.currentPrice
+          contract.currentPrice,
+          feeRate
         );
         const expiryInfo = computeSnapExpiry(now, contract.paymentGraceEndsAt);
 
@@ -558,6 +571,7 @@ export async function initiateContractPayment(
           contract,
           durationMinutes: expiryInfo.durationMinutes,
           now,
+          isProRate: buyerIsPro,
         };
       });
     } catch (error) {
@@ -641,7 +655,7 @@ export async function initiateContractPayment(
     }
   }
 
-  const { reserved, contract, durationMinutes, now } = step;
+  const { reserved, contract, durationMinutes, now, isProRate } = step;
 
   const items: SnapItemDetail[] = [
     {
@@ -653,10 +667,12 @@ export async function initiateContractPayment(
   ];
   if (reserved.buyerFeeAmount > 0n) {
     items.push({
-      id: "PLATFORM-FEE-05PCT",
+      id: isProRate ? "PLATFORM-FEE-025PCT" : "PLATFORM-FEE-05PCT",
       price: Number(reserved.buyerFeeAmount),
       quantity: 1,
-      name: "Biaya Layanan Pembayaran (0,5%)",
+      name: isProRate
+        ? "Biaya Layanan Pembayaran (0,25% Pro)"
+        : "Biaya Layanan Pembayaran (0,5%)",
     });
   }
 
@@ -820,6 +836,10 @@ export async function handleMidtransWebhook(db: PrismaClient, rawBody: unknown) 
   });
   if (!isSignatureValid) {
     throw new ApiError(403, "INVALID_SIGNATURE", "Tanda tangan webhook Midtrans tidak valid.");
+  }
+
+  if (payload.order_id.startsWith("SUBS-")) {
+    return handleSubscriptionMidtransWebhook(db, payload);
   }
 
   const existing = await db.payment.findUnique({

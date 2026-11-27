@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAdminUsers } from "@/features/admin/hooks/use-admin";
+import { ProBadge } from "@/features/subscription/components/pro-badge";
 import { Lock, UserX, Info } from "lucide-react";
 
 export default function AdminUsersPage() {
@@ -116,18 +117,21 @@ export default function AdminUsersPage() {
                         {u.name}
                       </td>
                       <td className="py-3.5 px-5 whitespace-nowrap">
-                        <Badge
-                          variant={
-                            u.role === "admin"
-                              ? "destructive"
-                              : u.role === "petani"
-                              ? "default"
-                              : "secondary"
-                          }
-                          className="text-xs font-bold uppercase"
-                        >
-                          {u.role}
-                        </Badge>
+                        <div className="flex items-center gap-1.5">
+                          <Badge
+                            variant={
+                              u.role === "admin"
+                                ? "destructive"
+                                : u.role === "petani"
+                                ? "default"
+                                : "secondary"
+                            }
+                            className="text-xs font-bold uppercase"
+                          >
+                            {u.role}
+                          </Badge>
+                          {u.role === "pembeli" && u.isPro && <ProBadge size="xs" />}
+                        </div>
                       </td>
                       <td className="py-3.5 px-5 text-muted-foreground whitespace-nowrap tabular-nums">
                         <span className="bg-muted px-2 py-0.5 rounded text-xs font-semibold">

@@ -31,6 +31,30 @@ export const priceBoardQuerySchema = z.strictObject({
     .optional(),
 });
 
+export const priceHistoryRangeSchema = z.enum([
+  "4w",
+  "8w",
+  "12w",
+  "1y",
+  "all",
+  "2026",
+  "2025",
+  "2024",
+  "2023",
+  "2022",
+  "2021",
+  "2020",
+  "2019",
+]);
+
+export const priceHistoryStatusSchema = z.enum(["all", "actual", "predicted"]);
+
+export const priceHistoryQuerySchema = z.strictObject({
+  region: z.string().trim().min(2, "Nama wilayah minimal 2 karakter.").default("Jawa Timur"),
+  range: priceHistoryRangeSchema.optional().default("12w"),
+  status: priceHistoryStatusSchema.optional().default("all"),
+});
+
 export const fairPriceParamsQuerySchema = z.strictObject({});
 
 export const modelEvaluationQuerySchema = z.strictObject({});

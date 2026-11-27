@@ -14,6 +14,9 @@ export const userProfileSchema = z.object({
   district: z.string().min(1, "Kecamatan wajib diisi"),
   businessName: z.string().optional(),
   status: z.enum(["active", "closing", "closed"]).default("active"),
+  isPro: z.boolean().optional(),
+  proExpiresAt: z.string().nullable().optional(),
+  subscriptionPlan: z.enum(["free", "pro"]).optional(),
 });
 export type UserProfile = z.infer<typeof userProfileSchema>;
 export type SessionUser = UserProfile;

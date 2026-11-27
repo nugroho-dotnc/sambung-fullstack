@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState } from "react";
 import {
   AlertCircle,
@@ -8,6 +9,7 @@ import {
   Clock,
   Copy,
   CreditCard,
+  Crown,
   ExternalLink,
   RefreshCw,
   ShieldCheck,
@@ -18,6 +20,7 @@ import { Card } from "@/components/ui/card";
 import { formatRupiah } from "@/features/offers/components/offer-summary";
 import {
   computeContractPaymentBreakdown,
+  formatFeeRatePercent,
   formatPaymentChannel,
   formatPaymentDateTime,
   getPaymentDeadlineInfo,
@@ -274,13 +277,32 @@ export function ContractPaymentCard({
           </span>
         </div>
         <div className="flex items-baseline justify-between gap-2">
-          <span className="text-muted-foreground">
-            Biaya Layanan Pembayaran (0,5% · Pembeli)
+          <span className="text-muted-foreground flex flex-wrap items-center gap-1.5">
+            <span>
+              Biaya Layanan Pembayaran ({formatFeeRatePercent(breakdown.feeRate)} · Pembeli)
+            </span>
+            {breakdown.isProDiscount && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-300/70">
+                <Crown className="w-2.5 h-2.5 shrink-0" />
+                Diskon Pembeli Pro · Hemat 50%
+              </span>
+            )}
           </span>
           <span className="font-semibold text-foreground tabular-nums">
             {formatRupiah(breakdown.buyerFeeAmount)}
           </span>
         </div>
+        {isBuyer && !isPaid && !breakdown.isProDiscount && (
+          <div className="text-[11px] text-amber-800 dark:text-amber-300">
+            <Link
+              href="/langganan"
+              className="inline-flex items-center gap-1 hover:underline underline-offset-2 font-medium"
+            >
+              <Crown className="w-3 h-3 shrink-0" />
+              Hemat 50% biaya layanan menjadi 0,25% dengan Pembeli Pro →
+            </Link>
+          </div>
+        )}
         <div className="flex items-baseline justify-between gap-2 border-t border-border/60 pt-2">
           <span className="font-semibold text-foreground">
             Total Tagihan Midtrans

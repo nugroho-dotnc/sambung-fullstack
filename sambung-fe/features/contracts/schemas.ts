@@ -105,6 +105,8 @@ export const contractSchema = z.object({
   paymentGraceEndsAt: z.string().optional().nullable(),
   paymentReminderSentAt: z.string().optional().nullable(),
   payment: contractPaymentSchema.optional().nullable(),
+  buyerIsPro: z.boolean().optional(),
+  buyerFeeRate: z.number().optional(),
   farmerConfirmed: z.boolean(),
   buyerConfirmed: z.boolean(),
   farmerSignature: z.string().optional().nullable(),

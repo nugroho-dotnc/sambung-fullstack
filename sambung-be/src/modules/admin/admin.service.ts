@@ -13,6 +13,10 @@ import {
   type AiLivePredictPayload,
   type AiWeeklyIngestPayload,
 } from "../ai/ai-api.client.ts";
+import {
+  clearPriceHistoryCache,
+  recordAdminIngestToPriceHistory,
+} from "../ai/price-history.service.ts";
 
 export interface CreateAuditLogInput {
   actorRole: "admin" | "petani" | "pembeli" | "sistem";
@@ -285,6 +289,7 @@ export async function publishObservations(db: PrismaClient, actorName: string) {
   });
 
   clearAiCache();
+  clearPriceHistoryCache();
 
   return { success: true, message: "Observasi pasar berhasil dipublikasikan." };
 }
@@ -303,6 +308,15 @@ export async function runAdminAiIngest(
   payload: AiWeeklyIngestPayload
 ) {
   const result = await ingestAiWeeklyPrices<{ updatedProvincesCount?: number }>(payload);
+
+  if (payload.persist !== false) {
+    await recordAdminIngestToPriceHistory(db, payload).catch((err) =>
+      console.warn(
+        "[PriceHistory] Gagal menyimpan ingest mingguan:",
+        err instanceof Error ? err.message : String(err)
+      )
+    );
+  }
 
   const count =
     typeof result?.updatedProvincesCount === "number"

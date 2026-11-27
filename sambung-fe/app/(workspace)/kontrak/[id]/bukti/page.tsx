@@ -8,6 +8,7 @@ import { PageContainer } from "@/components/shared/page-container";
 import { useContract } from "@/features/contracts/hooks/use-contracts";
 import {
   computeContractPaymentBreakdown,
+  formatFeeRatePercent,
   formatPaymentChannel,
   formatPaymentDateTime,
   getPaymentStatusMeta,
@@ -193,7 +194,8 @@ export default function DigitalContractProofPage({
               </tr>
               <tr className="border-b border-border/50">
                 <td colSpan={3} className="px-3.5 py-2.5 text-right text-xs font-medium text-muted-foreground">
-                  Biaya Layanan Pembayaran (0,5% · Ditanggung Pembeli):
+                  Biaya Layanan Pembayaran ({formatFeeRatePercent(breakdown.feeRate)}
+                  {breakdown.isProDiscount ? " · Diskon Pembeli Pro" : ""} · Ditanggung Pembeli):
                 </td>
                 <td className="px-3.5 py-2.5 text-right tabular-nums text-xs font-semibold text-foreground">
                   {formatRupiah(breakdown.buyerFeeAmount)}

@@ -1,19 +1,28 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { User, Phone, MapPin, Building2, LogOut, Info } from "lucide-react";
+import { User, Phone, MapPin, Building2, LogOut, Info, Crown } from "lucide-react";
 import { useCurrentUser, useLogout } from "@/features/auth/hooks/use-auth";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { formatPaymentDateTime } from "@/features/contracts/domain/payment-helpers";
+import { ProBadge } from "@/features/subscription/components/pro-badge";
+import { useMySubscription } from "@/features/subscription/hooks/use-subscription";
 
 export default function ProfilePage() {
   const { data: user } = useCurrentUser();
+  const isBuyer = user?.role === "pembeli";
+  const subQuery = useMySubscription({ enabled: isBuyer });
   const logoutMutation = useLogout();
   const [closureRequested, setClosureRequested] = useState(false);
+
+  const isBuyerPro = isBuyer && Boolean(subQuery.data?.isPro ?? user?.isPro);
+  const proExpiresAt = subQuery.data?.proExpiresAt ?? user?.proExpiresAt ?? null;
 
   return (
     <PageContainer>
@@ -26,16 +35,19 @@ export default function ProfilePage() {
         {/* Kolom Kiri: Kartu Identitas Utama */}
         <Card className="rounded-2xl border-border/80 shadow-xs lg:col-span-2">
           <CardHeader className="pb-4 border-b border-border/60">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <CardTitle className="text-base font-bold">Informasi Terdaftar</CardTitle>
                 <CardDescription className="text-xs">
                   Data yang digunakan dalam surat kesepakatan pasokan digital.
                 </CardDescription>
               </div>
-              <Badge variant="outline" className="capitalize text-xs font-semibold">
-                Peran: {user?.role || "Pengguna"}
-              </Badge>
+              <div className="flex items-center gap-1.5">
+                <Badge variant="outline" className="capitalize text-xs font-semibold">
+                  Peran: {user?.role || "Pengguna"}
+                </Badge>
+                {isBuyerPro && <ProBadge size="xs" />}
+              </div>
             </div>
           </CardHeader>
 
@@ -84,6 +96,53 @@ export default function ProfilePage() {
 
         {/* Kolom Kanan: Pengaturan & Aksi */}
         <div className="space-y-6">
+          {isBuyer && (
+            <Card className="rounded-2xl border-border/80 shadow-xs">
+              <CardHeader className="p-5 pb-3 flex flex-row items-center justify-between gap-2">
+                <div>
+                  <CardTitle className="text-sm font-bold">Status Langganan</CardTitle>
+                  <CardDescription className="text-xs">
+                    {isBuyerPro
+                      ? "Pembeli Pro aktif (biaya escrow 0,25%)."
+                      : "Paket Gratis (biaya escrow standar 0,5%)."}
+                  </CardDescription>
+                </div>
+                {isBuyerPro ? (
+                  <ProBadge size="xs" />
+                ) : (
+                  <Crown className="w-4 h-4 text-amber-500 shrink-0" />
+                )}
+              </CardHeader>
+              <CardContent className="p-5 pt-0 space-y-3">
+                {isBuyerPro && proExpiresAt ? (
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Aktif hingga{" "}
+                    <strong className="text-foreground">
+                      {formatPaymentDateTime(proExpiresAt)}
+                    </strong>
+                    {subQuery.data?.remainingDays
+                      ? ` (${subQuery.data.remainingDays} hari tersisa)`
+                      : ""}
+                    .
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Buka riwayat harga lengkap 2019–sekarang, CSV, Prakiraan AI penuh, dan diskon fee escrow 50% (Rp99.000/30 hari).
+                  </p>
+                )}
+                <Button
+                  nativeButton={false}
+                  render={<Link href="/langganan" />}
+                  variant={isBuyerPro ? "outline" : "default"}
+                  className="w-full min-h-10 text-xs font-semibold cursor-pointer"
+                >
+                  <Crown className="w-3.5 h-3.5 mr-1.5" />
+                  {isBuyerPro ? "Kelola / Perpanjang Pro" : "Upgrade ke Pembeli Pro"}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Pengaturan Tampilan */}
           <Card className="rounded-2xl border-border/80 shadow-xs">
             <CardHeader className="p-5 pb-3">

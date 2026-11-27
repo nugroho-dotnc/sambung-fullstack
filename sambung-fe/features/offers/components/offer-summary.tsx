@@ -1,11 +1,12 @@
 import type { OfferInput } from "../schemas";
 
-export const formatRupiah = (value: number) =>
-  new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(value);
+const RUPIAH_FORMATTER = new Intl.NumberFormat("id-ID", {
+  style: "currency",
+  currency: "IDR",
+  maximumFractionDigits: 0,
+});
+
+export const formatRupiah = (value: number) => RUPIAH_FORMATTER.format(value);
 
 export function OfferSummary({ input }: { input: OfferInput }) {
   const regionText = `Kec. ${input.district || input.districtId || "Pagaden"}, Kab. ${input.regency || "Subang"}`;

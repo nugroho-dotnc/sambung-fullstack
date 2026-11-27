@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, LogOut, User, Shield, Sprout, Building2 } from "lucide-react";
+import { Bell, Crown, LogOut, User } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
@@ -17,10 +17,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { useCurrentUser, useLogout } from "@/features/auth/hooks/use-auth";
+import { ProBadge } from "@/features/subscription/components/pro-badge";
 
 export default function TopBar() {
   const { data: user } = useCurrentUser();
   const logoutMutation = useLogout();
+  const isBuyerPro = user?.role === "pembeli" && Boolean(user?.isPro);
 
   const getRoleBadge = (role?: string) => {
     switch (role) {
@@ -81,8 +83,9 @@ export default function TopBar() {
                 </AvatarFallback>
               </Avatar>
               <div className="hidden md:flex flex-col text-left mr-1">
-                <span className="text-xs font-bold text-foreground leading-tight">
-                  {user?.name || "Pengguna"}
+                <span className="text-xs font-bold text-foreground leading-tight flex items-center gap-1.5">
+                  <span>{user?.name || "Pengguna"}</span>
+                  {isBuyerPro && <ProBadge size="xs" />}
                 </span>
                 <span className="text-xs text-muted-foreground leading-tight">
                   {user?.businessName || user?.role || "SAMBUNG"}
@@ -90,13 +93,16 @@ export default function TopBar() {
               </div>
             </DropdownMenuTrigger>
 
-            <DropdownMenuContent align="end" className="w-56 p-2 rounded-xl shadow-lg">
+            <DropdownMenuContent align="end" className="w-60 p-2 rounded-xl shadow-lg">
               <DropdownMenuGroup>
                 <DropdownMenuLabel className="font-normal p-2">
                   <div className="flex flex-col space-y-1">
                     <p className="text-xs font-bold leading-none text-foreground">{user?.name || "Pengguna"}</p>
                     <p className="text-xs leading-none text-muted-foreground">{user?.phone || user?.email || "-"}</p>
-                    <div className="pt-1.5">{getRoleBadge(user?.role)}</div>
+                    <div className="pt-1.5 flex items-center gap-1.5 flex-wrap">
+                      {getRoleBadge(user?.role)}
+                      {isBuyerPro && <ProBadge size="xs" />}
+                    </div>
                   </div>
                 </DropdownMenuLabel>
               </DropdownMenuGroup>
@@ -109,6 +115,16 @@ export default function TopBar() {
                 <User className="w-4 h-4 text-muted-foreground" />
                 <span>Profil & Pengaturan</span>
               </DropdownMenuItem>
+
+              {user?.role === "pembeli" && (
+                <DropdownMenuItem
+                  className="cursor-pointer flex items-center gap-2 px-2 py-2 text-xs"
+                  render={<Link href="/langganan" />}
+                >
+                  <Crown className="w-4 h-4 text-amber-500" />
+                  <span>{isBuyerPro ? "Kelola Pembeli Pro" : "Langganan Pembeli Pro"}</span>
+                </DropdownMenuItem>
+              )}
 
               <DropdownMenuSeparator />
 

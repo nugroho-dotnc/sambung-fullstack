@@ -23,10 +23,48 @@ model Account {
   status         String        @default("active")
   consentAt      DateTime?     @map("consent_at") @db.Timestamptz(6)
   consentVersion String?       @map("consent_version")
+  proExpiresAt         DateTime?             @map("pro_expires_at") @db.Timestamptz(6)
+  proReminderSentAt    DateTime?             @map("pro_reminder_sent_at") @db.Timestamptz(6)
   offers Offer[]
   sessions       AuthSession[]
+  subscriptionPayments SubscriptionPayment[]
 
+  @@index([role, proExpiresAt], map: "account_pro_expires_at_idx")
   @@map("account")
+}
+
+model SubscriptionPayment {
+  id                    String    @id @default(uuid()) @db.Uuid
+  accountId             String    @map("account_id") @db.Uuid
+  account               Account   @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  planCode              String    @default("pembeli_pro_30d") @map("plan_code")
+  attempt               Int
+  orderId               String    @unique @map("order_id")
+  amount                Int       @default(99000)
+  durationDays          Int       @default(30) @map("duration_days")
+  currency              String    @default("IDR")
+  provider              String    @default("midtrans_sandbox")
+  status                String    @default("pending")
+  paymentType           String?   @map("payment_type")
+  paymentChannel        String?   @map("payment_channel")
+  paymentReference      String?   @map("payment_reference")
+  midtransTransactionId String?   @map("midtrans_transaction_id")
+  midtransStatus        String?   @map("midtrans_status")
+  fraudStatus           String?   @map("fraud_status")
+  snapToken             String?   @map("snap_token")
+  redirectUrl           String?   @map("redirect_url")
+  rawNotification       Json?     @map("raw_notification")
+  periodStart           DateTime? @map("period_start") @db.Timestamptz(6)
+  periodEnd             DateTime? @map("period_end") @db.Timestamptz(6)
+  paidAt                DateTime? @map("paid_at") @db.Timestamptz(6)
+  expiresAt             DateTime? @map("expires_at") @db.Timestamptz(6)
+  lastSyncedAt          DateTime? @map("last_synced_at") @db.Timestamptz(6)
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([accountId, attempt])
+  @@index([accountId, createdAt(sort: Desc)])
+  @@map("subscription_payment")
 }
 
 model OtpChallenge {
@@ -214,5 +252,33 @@ model AuditLog {
 
   @@index([timestamp(sort: Desc)])
   @@map("audit_log")
+}
+
+model MarketPriceHistory {
+  id                     String    @id @default(uuid()) @db.Uuid
+  region                 String
+  commodity              String    @default("Beras Medium I")
+  weekStart              DateTime  @map("week_start") @db.Date
+  farmerPrice            Int?      @map("farmer_price")
+  millerPrice            Int?      @map("miller_price")
+  wholesalePrice         Int?      @map("wholesale_price")
+  retailPrice            Int?      @map("retail_price")
+  modernPrice            Int?      @map("modern_price")
+  predictedFarmerPrice   Int?      @map("predicted_farmer_price")
+  predictedMillerPrice   Int?      @map("predicted_miller_price")
+  predictedGkpPrice      Int?      @map("predicted_gkp_price")
+  predictionLower80      Int?      @map("prediction_lower_80")
+  predictionUpper80      Int?      @map("prediction_upper_80")
+  predictionHorizonWeeks Int?      @map("prediction_horizon_weeks")
+  predictionMethod       String?   @map("prediction_method")
+  predictionModelVersion String?   @map("prediction_model_version")
+  predictedAt            DateTime? @map("predicted_at") @db.Timestamptz(6)
+  source                 String    @default("pihps_bi")
+  createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([region, commodity, weekStart])
+  @@index([region, weekStart(sort: Desc)])
+  @@map("market_price_history")
 }
 

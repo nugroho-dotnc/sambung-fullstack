@@ -1,18 +1,20 @@
 import type {Prisma,PrismaClient} from "@prisma/client";
 import {z} from "zod";
 import {ApiError} from "../../shared/api-error.ts";
-import {digest, maskPhone} from "../auth/session.ts";
+import {digest, isBuyerPro, maskPhone} from "../auth/session.ts";
 import {include as offerInclude,present} from "../offers/offers.service.ts";
 import {preview} from "../pricing/pricing.service.ts";
 import {orderSchema,counterSchema,acceptSchema,reasonSchema,signSchema,shipSchema,receiveSchema,type Action} from "./contracts.schemas.ts";
 import {
+  BUYER_FEE_RATE,
   PAYMENT_DUE_MS,
   PAYMENT_GRACE_MS,
+  PRO_BUYER_FEE_RATE,
   presentPayment,
 } from "../payments/payments.service.ts";
 
 export type Actor={id:string,role:string};
-const person={select:{id:true,name:true,phone:true,businessName:true}} as const;
+const person={select:{id:true,name:true,phone:true,businessName:true,proExpiresAt:true}} as const;
 const include={offer:{include:{region:true,owner:person}},buyer:person,history:{orderBy:{version:"asc"}},payments:{orderBy:{attempt:"desc"},take:1}} as const;
 type Row=Prisma.ContractGetPayload<{include:typeof include}>;
 function fail(code:string,message:string):never {throw new ApiError(409,code,message);}
@@ -40,12 +42,23 @@ function view(row: Row, actorRole: string) {
   const checked = accepted ?? saved;
   const priceReference = checked && typeof checked === "object" && !Array.isArray(checked) ? checked.reference : null;
   const latestPayment = payments[0];
+  const buyerIsPro = isBuyerPro({ role: "pembeli", proExpiresAt: buyer.proExpiresAt });
+  const buyerFeeRate =
+    latestPayment && Number(latestPayment.contractAmount) > 0
+      ? Math.round(
+          (Number(latestPayment.buyerFeeAmount) / Number(latestPayment.contractAmount)) * 10000
+        ) / 10000
+      : buyerIsPro
+      ? PRO_BUYER_FEE_RATE
+      : BUYER_FEE_RATE;
   return {
     ...contract,
     paymentDueAt: contract.paymentDueAt ? contract.paymentDueAt.toISOString() : null,
     paymentGraceEndsAt: contract.paymentGraceEndsAt ? contract.paymentGraceEndsAt.toISOString() : null,
     paymentReminderSentAt: contract.paymentReminderSentAt ? contract.paymentReminderSentAt.toISOString() : null,
     payment: latestPayment ? presentPayment(latestPayment) : null,
+    buyerIsPro,
+    buyerFeeRate,
     priceReference,
     volumeKg: Number(row.volumeKg),
     farmerId: offer.ownerId,
