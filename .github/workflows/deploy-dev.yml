@@ -1,4 +1,4 @@
-name: Notify and Deploy src to Prod Server
+name: Notify and Deploy src to Dev Server
 
 on:
   push:
