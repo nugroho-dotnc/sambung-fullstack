@@ -36,6 +36,7 @@ import {
   getPaymentStatusMeta,
   isContractPaid,
 } from "@/features/contracts/domain/payment-helpers";
+import { ProBadge } from "@/features/subscription/components/pro-badge";
 import { useMobile } from "@/hooks/use-mobile";
 
 function getPaymentBadgeClasses(tone: "emerald" | "blue" | "amber" | "danger" | "neutral"): string {
@@ -227,8 +228,11 @@ export default function ContractsListPage() {
                       <span className="text-xs text-muted-foreground block">
                         Mitra Transaksi:
                       </span>
-                      <h3 className="font-bold text-base text-foreground">
-                        {partnerName}
+                      <h3 className="font-bold text-base text-foreground flex items-center gap-2 flex-wrap">
+                        <span>{partnerName}</span>
+                        {user?.role === "petani" && contract.buyerIsPro && (
+                          <ProBadge size="xs" />
+                        )}
                       </h3>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         Kec. {contract.district}, Kab. {contract.regency}

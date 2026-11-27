@@ -195,7 +195,7 @@ test("Midtrans Sandbox Escrow: P1-P3 skema BIGINT, 0.5% fee, idempotensi, webhoo
 
   const farmer = await login("petani");
   const buyer = await login("pembeli", null); // OTP user without email
-  const otherBuyer = await login("pembeli", "other@example.com");
+  const otherBuyer = await login("pembeli", `other-${randomUUID().slice(0, 8)}@example.com`);
   const admin = await login("admin", `admin-${randomUUID().slice(0, 8)}@sambung.id`);
 
   const offer = await db.offer.create({

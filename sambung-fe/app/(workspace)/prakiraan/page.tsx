@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Calendar, Info, ShieldCheck, AlertTriangle, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { Calendar, Info, ShieldCheck, AlertTriangle, Lock, Crown, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +33,7 @@ import { useCurrentUser } from "@/features/auth/hooks/use-auth";
 export default function ForecastPage() {
   const { data: user } = useCurrentUser();
   const isFarmer = user?.role === "petani";
+  const isFreeBuyer = user?.role === "pembeli" && !user?.isPro;
 
   const [horizon, setHorizon] = useState<2 | 4>(2);
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
@@ -59,7 +61,7 @@ export default function ForecastPage() {
     return activeProvinces[0] || allProvinces[0] || "";
   }, [userProvince, allProvinces, activeProvinces]);
 
-  const province = selectedProvince ?? defaultProvince;
+  const province = isFreeBuyer ? defaultProvince : (selectedProvince ?? defaultProvince);
 
   const forecastQuery = useForecast(province, horizon, {
     enabled: Boolean(province),
@@ -143,35 +145,56 @@ export default function ForecastPage() {
         }
       />
 
-      {/* Province Picker: Full Dropdown */}
-      {allProvinces.length > 0 && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 mb-6">
-          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider shrink-0">
-            Pilih Wilayah Provinsi:
-          </span>
-
-          <div className="w-full sm:w-80 shrink-0">
-            <Select
-              items={provinceOptions}
-              value={province || null}
-              onValueChange={(val) => {
-                if (val) setSelectedProvince(val);
-              }}
+      {/* Province Picker: Full Dropdown (or Locked Domicile Strip for Free Buyers) */}
+      {allProvinces.length > 0 &&
+        (isFreeBuyer ? (
+          <div className="rounded-xl border border-amber-300/70 bg-amber-50/70 dark:border-amber-800/70 dark:bg-amber-950/30 px-4 py-3 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-xs text-amber-950 dark:text-amber-200">
+              <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+              <span>
+                Wilayah Domisili Anda:{" "}
+                <strong className="font-bold">{province || "Indonesia"}</strong> ·
+                Pratinjau Paket Gratis (terbatas 1 provinsi).
+              </span>
+            </div>
+            <Button
+              nativeButton={false}
+              render={<Link href="/langganan" />}
+              size="sm"
+              className="min-h-8 text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white shrink-0 cursor-pointer"
             >
-              <SelectTrigger className="w-full h-9 rounded-lg border border-input bg-background px-3 text-xs font-semibold text-foreground shadow-2xs">
-                <SelectValue placeholder={`Pilih dari ${allProvinces.length} Provinsi`} />
-              </SelectTrigger>
-              <SelectContent>
-                {provinceOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <Crown className="w-3.5 h-3.5 mr-1.5" />
+              Buka Semua Provinsi (Pro)
+            </Button>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 mb-6">
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider shrink-0">
+              Pilih Wilayah Provinsi:
+            </span>
+
+            <div className="w-full sm:w-80 shrink-0">
+              <Select
+                items={provinceOptions}
+                value={province || null}
+                onValueChange={(val) => {
+                  if (val) setSelectedProvince(val);
+                }}
+              >
+                <SelectTrigger className="w-full h-9 rounded-lg border border-input bg-background px-3 text-xs font-semibold text-foreground shadow-2xs">
+                  <SelectValue placeholder={`Pilih dari ${allProvinces.length} Provinsi`} />
+                </SelectTrigger>
+                <SelectContent>
+                  {provinceOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        ))}
 
       <AsyncBoundary
         isLoading={isLoading}
@@ -405,7 +428,26 @@ export default function ForecastPage() {
                   </Popover>
                 </div>
 
-                {activeForecast.isFallback ? (
+                {isFreeBuyer ? (
+                  <div className="p-5 rounded-xl border border-amber-300/70 bg-amber-50/70 dark:bg-amber-950/30 dark:border-amber-800 space-y-3">
+                    <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-bold text-xs">
+                      <Lock className="w-4 h-4 shrink-0" />
+                      <span>Rincian Faktor Penggerak Tersedia di Pembeli Pro</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Paket Pembeli Gratis hanya menampilkan ringkasan proyeksi harga di provinsi domisili. Aktifkan Pembeli Pro untuk melihat bobot faktor cuaca, musim panen, sentra lain, dan HPP di seluruh provinsi.
+                    </p>
+                    <Button
+                      nativeButton={false}
+                      render={<Link href="/langganan" />}
+                      size="sm"
+                      className="w-full min-h-9 text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white cursor-pointer"
+                    >
+                      <Crown className="w-3.5 h-3.5 mr-1.5" />
+                      Upgrade Pembeli Pro — Rp99.000/30 hari
+                    </Button>
+                  </div>
+                ) : activeForecast.isFallback ? (
                   <div className="p-5 rounded-xl border border-amber-300/70 bg-amber-50/70 dark:bg-amber-950/30 dark:border-amber-800 space-y-2.5">
                     <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-bold text-xs">
                       <AlertTriangle className="w-4 h-4 shrink-0" />

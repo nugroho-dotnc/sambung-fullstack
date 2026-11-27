@@ -1,11 +1,14 @@
-import type { Contract, ContractPayment } from "../schemas";
+import type { Contract } from "../schemas";
 
 export const BUYER_FEE_RATE = 0.005;
+export const PRO_BUYER_FEE_RATE = 0.0025;
 
 export interface PaymentBreakdown {
   contractAmount: number;
   buyerFeeAmount: number;
   grossAmount: number;
+  feeRate: number;
+  isProDiscount: boolean;
 }
 
 export interface PaymentStatusMeta {
@@ -36,23 +39,44 @@ const CHANNEL_LABELS: Record<string, string> = {
   bank_transfer: "Transfer Bank (VA)",
 };
 
+export function getEffectiveBuyerFeeRate(contract: Contract): number {
+  if (typeof contract.buyerFeeRate === "number" && contract.buyerFeeRate > 0) {
+    return contract.buyerFeeRate;
+  }
+  return contract.buyerIsPro ? PRO_BUYER_FEE_RATE : BUYER_FEE_RATE;
+}
+
+export function formatFeeRatePercent(rate: number): string {
+  const pct = Math.round(rate * 10000) / 100;
+  return `${pct.toLocaleString("id-ID", { maximumFractionDigits: 2 })}%`;
+}
+
 /**
- * Computes net farmer payout (100%), 0.5% buyer payment service fee, and total Midtrans charge.
+ * Computes net farmer payout (100%), buyer payment service fee (0.5% or 0.25% Pro), and total Midtrans charge.
  */
 export function computeContractPaymentBreakdown(contract: Contract): PaymentBreakdown {
   if (contract.payment && contract.payment.contractAmount > 0) {
+    const inferredRate =
+      Math.round((contract.payment.buyerFeeAmount / contract.payment.contractAmount) * 10000) /
+      10000;
+    const feeRate = contract.buyerFeeRate ?? inferredRate;
     return {
       contractAmount: contract.payment.contractAmount,
       buyerFeeAmount: contract.payment.buyerFeeAmount,
       grossAmount: contract.payment.grossAmount,
+      feeRate,
+      isProDiscount: feeRate < BUYER_FEE_RATE,
     };
   }
+  const feeRate = getEffectiveBuyerFeeRate(contract);
   const contractAmount = Math.round(contract.volumeKg * contract.currentPrice);
-  const buyerFeeAmount = Math.round(contractAmount * BUYER_FEE_RATE);
+  const buyerFeeAmount = Math.round(contractAmount * feeRate);
   return {
     contractAmount,
     buyerFeeAmount,
     grossAmount: contractAmount + buyerFeeAmount,
+    feeRate,
+    isProDiscount: feeRate < BUYER_FEE_RATE,
   };
 }
 
@@ -66,7 +90,9 @@ export function isContractPaid(contract: Contract): boolean {
 /**
  * Formats normalized payment channel or payment type into a readable Indonesian label.
  */
-export function formatPaymentChannel(payment?: ContractPayment | null): string {
+export function formatPaymentChannel(
+  payment?: { paymentChannel?: string | null; paymentType?: string | null } | null
+): string {
   if (!payment) return "Midtrans Sandbox";
   const channelKey = payment.paymentChannel?.trim().toLowerCase();
   if (channelKey && CHANNEL_LABELS[channelKey]) {
