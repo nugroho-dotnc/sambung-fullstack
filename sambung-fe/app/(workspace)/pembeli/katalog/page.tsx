@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import {
   Search,
   Download,
+  Lock,
   Wheat,
   MapPin,
   CheckCircle2,
@@ -35,6 +36,11 @@ import { ListPagination, paginateItems } from "@/components/shared/list-paginati
 import { useCurrentUser } from "@/features/auth/hooks/use-auth";
 import { useCatalog } from "@/features/catalog/hooks/use-catalog";
 import { useFairPriceParams } from "@/features/fair-price/hooks/use-fair-price";
+import { useCurrentUser } from "@/features/auth/hooks/use-auth";
+import {
+  canUserExportCsv,
+  canUserUpgradeToPro,
+} from "@/features/subscription/domain/permissions";
 import { formatRupiah } from "@/features/offers/components/offer-summary";
 import { evaluatePriceLight, extractPriceReference } from "@/features/price-check";
 import { useMobile } from "@/hooks/use-mobile";
@@ -108,7 +114,7 @@ export default function BuyerCatalogPage() {
 
   // CSV Export Function (PR-07)
   function handleExportCsv() {
-    if (filteredItems.length === 0) return;
+    if (!canExportCsv || filteredItems.length === 0) return;
 
     const headers = [
       "ID Pasokan",

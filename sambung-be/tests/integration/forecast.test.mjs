@@ -4,13 +4,18 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { createApp } from "../../src/app.ts";
 import { prisma } from "../../src/db/prisma.ts";
 import { digest } from "../../src/modules/auth/session.ts";
+import { digest } from "../../src/modules/auth/session.ts";
 
 test("integrasi prakiraan AI - pemanggilan endpoint, parameter, dan metadata", async () => {
   const origin = "http://localhost:3000";
-  const app = createApp(prisma, origin);
+  const testUrl = process.env.TEST_DATABASE_URL;
+  const db = testUrl ? new PrismaClient({ datasourceUrl: testUrl }) : prisma;
+  const app = createApp(db, origin);
   const server = app.listen(0);
   const port = server.address().port;
   const base = `http://127.0.0.1:${port}`;
+  let accountId = null;
+  let tokenHash = null;
 
   const suffix = randomUUID().slice(0, 8);
   const farmer = await prisma.account.create({
@@ -72,13 +77,13 @@ test("integrasi prakiraan AI - pemanggilan endpoint, parameter, dan metadata", a
     assert.ok(Array.isArray(rec.shapContributions));
     assert.ok(rec.shapContributions.length > 0);
 
-    // 3. Validasi horizon tidak valid (misal: 3 pekan) harus ditolak 422
+    // 4. Validasi horizon tidak valid (misal: 3 pekan) harus ditolak 422
     const resInvalid = await fetch(`${base}/forecasts?horizonWeeks=3`, {
       headers: { Origin: origin, Cookie: cookie },
     });
     assert.equal(resInvalid.status, 422);
 
-    // 4. Wilayah yang tidak ada dalam basis data harus mengembalikan 404
+    // 5. Wilayah yang tidak ada dalam basis data harus mengembalikan 404
     const resNotFound = await fetch(`${base}/forecasts?province=Atlantis&horizonWeeks=2`, {
       headers: { Origin: origin, Cookie: cookie },
     });

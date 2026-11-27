@@ -232,6 +232,12 @@ Semua perubahan penting pada proyek **SAMBUNG** (`sambung-be` dan `sambung-fe`) 
 - **Backend (`sambung-be`) — Penghapusan Protokol Gradio SSE & Fallback File Snapshot Lokal (`2026-11-27`)**:
   - Menghapus seluruh impor `node:fs/promises`, jalur `/gradio_api/call/*`, serta penggunaan `AI_SNAPSHOT_PATH` dan `AI_FORECAST_SNAPSHOT_PATH` dari modul `forecast`, `pricing`, `.env`, `.env.example`, dan README `sambung-be`.
 
+### Security
+- **Backend (`sambung-be`) — Wajib Autentikasi Sesi Aktif pada `GET /price-history` & `GET /forecasts` (`2026-11-28`)**:
+  - Menambahkan helper `requireActiveActor` di [session.ts](file:///D:/KULIAH%20PNJ/sambung-fullstack/sambung-be/src/modules/auth/session.ts) yang melempar `401 UNAUTHENTICATED` saat cookie sesi tidak ada, tidak valid, kedaluwarsa, atau berasal dari akun nonaktif.
+  - Memasang `requireActiveActor` dan header `Cache-Control: no-store` pada `GET /price-history` di [ai.routes.ts](file:///D:/KULIAH%20PNJ/sambung-fullstack/sambung-be/src/modules/ai/ai.routes.ts) serta `GET /forecasts` di [forecast.routes.ts](file:///D:/KULIAH%20PNJ/sambung-fullstack/sambung-be/src/modules/forecast/forecast.routes.ts) untuk menutup celah akses anonim terhadap riwayat penuh dan prakiraan 34 provinsi beserta TreeSHAP.
+  - Memperbarui cakupan uji integrasi di [ai.routes.test.mjs](file:///D:/KULIAH%20PNJ/sambung-fullstack/sambung-be/tests/integration/ai.routes.test.mjs), [forecast.test.mjs](file:///D:/KULIAH%20PNJ/sambung-fullstack/sambung-be/tests/integration/forecast.test.mjs), [price-history.test.mjs](file:///D:/KULIAH%20PNJ/sambung-fullstack/sambung-be/tests/integration/price-history.test.mjs), dan [subscriptions.test.mjs](file:///D:/KULIAH%20PNJ/sambung-fullstack/sambung-be/tests/integration/subscriptions.test.mjs) untuk memverifikasi penolakan anonim `401 UNAUTHENTICATED` serta skenario terautentikasi.
+
 ---
 
 ## [2026-11-27]

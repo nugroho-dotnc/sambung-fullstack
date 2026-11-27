@@ -1,11 +1,11 @@
 import { Router } from "express";
 import type { PrismaClient } from "@prisma/client";
 import { ApiError } from "../../shared/api-error.ts";
-import { isBuyerPro, resolveOptionalActor } from "../auth/session.ts";
+import { isBuyerPro, requireActiveActor } from "../auth/session.ts";
 import { forecastQuerySchema } from "./forecast.types.ts";
 import { getForecasts, getForecastMeta } from "./forecast.service.ts";
 
-export function forecastRouter(db?: PrismaClient) {
+export function forecastRouter(db: PrismaClient) {
   const router = Router();
 
   router.get("/forecasts/meta", async (_req, res) => {
@@ -14,6 +14,8 @@ export function forecastRouter(db?: PrismaClient) {
   });
 
   router.get("/forecasts", async (req, res) => {
+    res.set("Cache-Control", "no-store");
+    const actor = await requireActiveActor(db, req);
     const query = forecastQuerySchema.parse(req.query);
     if (db) {
       const actor = await resolveOptionalActor(db, req);
@@ -45,23 +47,22 @@ export function forecastRouter(db?: PrismaClient) {
           );
         }
 
-        const data = await getForecasts({
-          ...query,
-          province: allowedProvince,
-        });
-        res.json({
-          meta: {
-            ...data.meta,
-            restrictedPreview: true,
-            allowedProvince,
-          },
-          records: data.records.map((record) => ({
-            ...record,
-            shapContributions: [],
-          })),
-        });
-        return;
-      }
+      const data = await getForecasts({
+        ...query,
+        province: allowedProvince,
+      });
+      res.json({
+        meta: {
+          ...data.meta,
+          restrictedPreview: true,
+          allowedProvince,
+        },
+        records: data.records.map((record) => ({
+          ...record,
+          shapContributions: [],
+        })),
+      });
+      return;
     }
 
     const data = await getForecasts(query);

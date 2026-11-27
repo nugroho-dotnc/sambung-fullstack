@@ -90,6 +90,8 @@ export function aiRouter(db: PrismaClient) {
   });
 
   router.get("/price-history", async (req, res) => {
+    res.set("Cache-Control", "no-store");
+    const actor = await requireActiveActor(db, req);
     const query = priceHistoryQuerySchema.parse(req.query);
     const actor = await resolveOptionalActor(db, req);
     if (!actor) {

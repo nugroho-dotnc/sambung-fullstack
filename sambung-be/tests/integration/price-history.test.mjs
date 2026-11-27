@@ -164,9 +164,11 @@ test("Price History (PIHPS BI 2019-2026 All 35 Regions + AI Forecast + Admin Ing
 
   // Strict query validation -> 422
   const invalidQuery = await reqJson("/price-history?unknown=1", { cookie: adminCookie });
+  const invalidQuery = await reqJson("/price-history?unknown=1", { cookie: adminCookie });
   assert.equal(invalidQuery.status, 422);
 
   // 12w range auto-syncs +2w & +4w prediction rows -> 12 actual + 2 predicted = 14 rows
+  const res12w = await reqJson("/price-history?region=Jawa%20Timur&range=12w", { cookie: adminCookie });
   const res12w = await reqJson("/price-history?region=Jawa%20Timur&range=12w", { cookie: adminCookie });
   assert.equal(res12w.status, 200);
   assert.equal(res12w.data.actualCount, 411);
@@ -197,11 +199,13 @@ test("Price History (PIHPS BI 2019-2026 All 35 Regions + AI Forecast + Admin Ing
 
   // range=all returns all 413 rows (411 actual + 2 predicted) and years 2026..2019
   const resAll = await reqJson("/price-history?region=Jawa%20Timur&range=all", { cookie: adminCookie });
+  const resAll = await reqJson("/price-history?region=Jawa%20Timur&range=all", { cookie: adminCookie });
   assert.equal(resAll.status, 200);
   assert.equal(resAll.data.rows.length, 413);
   assert.deepEqual(resAll.data.availableYears, [2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019]);
 
   // Year filter (2025) & status=predicted filter
+  const res2025 = await reqJson("/price-history?region=Jawa%20Timur&range=2025", { cookie: adminCookie });
   const res2025 = await reqJson("/price-history?region=Jawa%20Timur&range=2025", { cookie: adminCookie });
   assert.equal(res2025.status, 200);
   assert.ok(res2025.data.rows.length >= 52);
@@ -210,11 +214,15 @@ test("Price History (PIHPS BI 2019-2026 All 35 Regions + AI Forecast + Admin Ing
   const resPredOnly = await reqJson("/price-history?region=Jawa%20Timur&range=all&status=predicted", {
     cookie: adminCookie,
   });
+  const resPredOnly = await reqJson("/price-history?region=Jawa%20Timur&range=all&status=predicted", {
+    cookie: adminCookie,
+  });
   assert.equal(resPredOnly.status, 200);
   assert.equal(resPredOnly.data.rows.length, 2);
   assert.equal(forecastCalls, 1);
 
   // Verify Nasional and non-producer province (DKI Jakarta) parity on latest week
+  const resNasional = await reqJson("/price-history?region=Nasional&range=12w", { cookie: adminCookie });
   const resNasional = await reqJson("/price-history?region=Nasional&range=12w", { cookie: adminCookie });
   assert.equal(resNasional.status, 200);
   assert.equal(resNasional.data.hasFullHistory, true);
@@ -225,6 +233,7 @@ test("Price History (PIHPS BI 2019-2026 All 35 Regions + AI Forecast + Admin Ing
   assert.equal(nasLatest.wholesalePrice, 15670);
   assert.equal(nasLatest.retailPrice, 16730);
 
+  const resJakarta = await reqJson("/price-history?region=DKI%20Jakarta&range=12w", { cookie: adminCookie });
   const resJakarta = await reqJson("/price-history?region=DKI%20Jakarta&range=12w", { cookie: adminCookie });
   assert.equal(resJakarta.status, 200);
   assert.equal(resJakarta.data.hasFullHistory, true);

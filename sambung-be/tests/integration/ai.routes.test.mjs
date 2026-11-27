@@ -188,8 +188,23 @@ test("rute publik AI, proxy endpoint v1, dan validasi ketat Zod 422", async (t) 
   process.env.AI_BASE_URL = upstream.baseUrl;
   process.env.AI_API_KEY = "mock-ai-key";
 
+  const authToken = randomBytes(32).toString("hex");
+  const authCookie = `sambung_session=${authToken}`;
   const fakeDb = {
     account: { findFirst: async () => null },
+    authSession: {
+      findFirst: async ({ where }) =>
+        where?.tokenHash === digest(authToken)
+          ? {
+              account: {
+                id: "u-test",
+                role: "petani",
+                province: "Jawa Timur",
+                proExpiresAt: null,
+              },
+            }
+          : null,
+    },
     systemParameter: {
       findUnique: async () => ({
         fairPriceToleranceDelta: 0.04,
@@ -241,8 +256,17 @@ test("rute publik AI, proxy endpoint v1, dan validasi ketat Zod 422", async (t) 
   assert.equal(pbBadPeriod.status, 422);
   assert.equal(pbBadPeriod.data.code, "INVALID_INPUT");
 
-  // GET /forecasts query asing ditolak 422 sebelum menyentuh upstream
-  const fcBad = await requestJson("/forecasts?unknownParam=1");
+  // GET /forecasts & GET /price-history tanpa sesi ditolak 401 UNAUTHENTICATED sebelum menyentuh upstream
+  const fcAnon = await requestJson("/forecasts?unknownParam=1");
+  assert.equal(fcAnon.status, 401);
+  assert.equal(fcAnon.data.code, "UNAUTHENTICATED");
+
+  const phAnon = await requestJson("/price-history?range=all");
+  assert.equal(phAnon.status, 401);
+  assert.equal(phAnon.data.code, "UNAUTHENTICATED");
+
+  // GET /forecasts dengan sesi aktif: query asing ditolak 422 sebelum menyentuh upstream
+  const fcBad = await requestJson("/forecasts?unknownParam=1", { cookie: authCookie });
   assert.equal(fcBad.status, 422);
   assert.equal(fcBad.data.code, "INVALID_INPUT");
 

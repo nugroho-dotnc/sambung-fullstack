@@ -34,6 +34,7 @@ interface PriceHistoryTableProps {
   statusFilter: PriceHistoryStatusFilter;
   onStatusFilterChange: (next: PriceHistoryStatusFilter) => void;
   canExportCsv?: boolean;
+  canUpgradeToPro?: boolean;
   data?: PriceHistoryResponse;
   isLoading: boolean;
   isError: boolean;
@@ -151,7 +152,8 @@ export const PriceHistoryTable = memo(function PriceHistoryTable({
   range,
   statusFilter,
   onStatusFilterChange,
-  canExportCsv = true,
+  canExportCsv = false,
+  canUpgradeToPro = false,
   data,
   isLoading,
   isError,
@@ -214,7 +216,7 @@ export const PriceHistoryTable = memo(function PriceHistoryTable({
   }
 
   function handleExportCsv() {
-    if (!filteredChronologicalRows.length) return;
+    if (!canExportCsv || !filteredChronologicalRows.length) return;
     const csv = generatePriceHistoryCsv(region, filteredChronologicalRows);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
