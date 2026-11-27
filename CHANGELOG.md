@@ -14,6 +14,11 @@ Semua perubahan penting pada proyek **SAMBUNG** (`sambung-be` dan `sambung-fe`) 
   - Menampilkan alur sekuensial lengkap: Pesanan Diajukan $\rightarrow$ Histori Tawar Balik $\rightarrow$ Harga Disepakati $\rightarrow$ Tanda Tangan Petani & Pembeli $\rightarrow$ Pengiriman $\rightarrow$ Penerimaan Selesai (atau status Pembatalan) dengan icon Lucide murni tanpa emotikon sesuai referensi visual.
 
 ### Changed
+- **Frontend (`sambung-fe`) — Navbar Kapsul Melayang Dinamis (Floating Capsule to Full Width)**:
+  - Mengubah `sambung-fe/components/layouts/Navbar.tsx` menjadi floating capsule navbar dinamis sesuai referensi visual:
+    - Default (paling atas): Mengambang elegan sebagai pill `rounded-full` dengan latar frosted glass `backdrop-blur-md`, brand SAMBUNG + tagline, tautan dengan titik pemisah `•`, dan tombol CTA kapsul kontras tinggi berikon `ArrowUpRight`.
+    - Saat di-scroll: Bertransisi otomatis memenuhi seluruh lebar layar (`w-full rounded-none` menempel di atas) menjadi bentuk navbar normal.
+  - Menyesuaikan padding atas pada `sambung-fe/app/(public)/_sections/hero.tsx` agar hamparan gambar latar sawah mengalir di bawah navbar tanpa menabrak judul teks.
 - **Frontend (`sambung-fe`) — Filter Komoditas Katalog Pasokan Menjadi Dropdown Select**:
   - Memperbarui `sambung-fe/app/(workspace)/pembeli/katalog/page.tsx` dari tab horizontal yang patah baris pada layar desktop menjadi `<Select>` dropdown universal yang rapi.
 - **Backend & Frontend — Penyesuaian Keterbukaan Kontak Mitra (BR-018)**:
