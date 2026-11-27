@@ -244,8 +244,8 @@ export function SignatureDialog({
               <span className="text-[10px] text-muted-foreground uppercase tracking-wider block">
                 Pratinjau Tanda Tangan
               </span>
-              <div className="min-h-12 flex items-center justify-center">
-                <span className="font-serif italic font-bold text-3xl text-foreground tracking-wide select-none">
+              <div className="min-h-14 flex items-center justify-center">
+                <span className="font-signature text-3xl sm:text-4xl text-foreground tracking-wide select-none">
                   {typedName || signerName || "Nama Anda"}
                 </span>
               </div>

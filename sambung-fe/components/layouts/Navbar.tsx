@@ -59,8 +59,8 @@ export default function PublicNavbar() {
         <div
           className={`pointer-events-auto w-full transition-all duration-300 ease-in-out flex items-center justify-between ${
             isScrolled
-              ? "max-w-full rounded-none bg-background/95 dark:bg-background/90 backdrop-blur-md border-b border-border/80 shadow-xs px-4 sm:px-6 lg:px-8 h-16"
-              : "max-w-5xl rounded-full bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border border-white/50 dark:border-zinc-800/80 shadow-lg shadow-black/5 px-4 sm:px-6 h-14 sm:h-16"
+              ? "max-w-full rounded-none bg-background/95 dark:bg-background/90 backdrop-blur-md border-b border-border/80 shadow-xs px-4 sm:px-6 lg:px-18 h-16"
+              : "max-w-6xl rounded-full bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border border-white/50 dark:border-zinc-800/80 shadow-lg shadow-black/5 px-4 sm:px-6 h-14 sm:h-16"
           }`}
         >
           <div className="w-full max-w-6xl mx-auto flex items-center justify-between gap-4">

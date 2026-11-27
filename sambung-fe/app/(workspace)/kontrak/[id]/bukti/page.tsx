@@ -218,7 +218,7 @@ export default function DigitalContractProofPage({
                     className="h-16 max-w-[180px] object-contain"
                   />
                 ) : (
-                  <span className="font-serif italic font-bold text-2xl text-foreground tracking-wide py-2">
+                  <span className="font-signature text-2xl sm:text-3xl text-foreground tracking-wide py-2">
                     {contract.farmerSignature}
                   </span>
                 )
@@ -270,7 +270,7 @@ export default function DigitalContractProofPage({
                     className="h-16 max-w-[180px] object-contain"
                   />
                 ) : (
-                  <span className="font-serif italic font-bold text-2xl text-foreground tracking-wide py-2">
+                  <span className="font-signature text-2xl sm:text-3xl text-foreground tracking-wide py-2">
                     {contract.buyerSignature}
                   </span>
                 )

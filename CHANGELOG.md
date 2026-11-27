@@ -9,6 +9,9 @@ Semua perubahan penting pada proyek **SAMBUNG** (`sambung-be` dan `sambung-fe`) 
 ## [Unreleased]
 
 ### Added
+- **Frontend (`sambung-fe`) — Tipografi Tanda Tangan Digital (Alex Brush Font)**:
+  - Mengonfigurasi font kaligrafi lokal `AlexBrush-Regular.ttf` pada `sambung-fe/app/fonts/`, `layout.tsx`, dan `globals.css` dengan token `--font-signature` serta utility class `font-signature`.
+  - Menerapkan font Alex Brush pada pratinjau ketik tanda tangan di dialog (`signature-dialog.tsx`) dan tampilan lembar kesepakatan digital / cetak PDF (`bukti/page.tsx`).
 - **Frontend (`sambung-fe`) — Komponen Perjalanan Kontrak Terpadu (`ContractTimeline`)**:
   - Menambahkan `sambung-fe/features/contracts/components/contract-timeline.tsx` dan mengintegrasikannya ke `negotiation-room.tsx` menggantikan riwayat chat statis.
   - Menampilkan alur sekuensial lengkap: Pesanan Diajukan $\rightarrow$ Histori Tawar Balik $\rightarrow$ Harga Disepakati $\rightarrow$ Tanda Tangan Petani & Pembeli $\rightarrow$ Pengiriman $\rightarrow$ Penerimaan Selesai (atau status Pembatalan) dengan icon Lucide murni tanpa emotikon sesuai referensi visual.

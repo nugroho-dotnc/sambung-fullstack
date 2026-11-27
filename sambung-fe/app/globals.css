@@ -186,6 +186,7 @@
   --font-sans: var(--font-inter);
   --font-heading: var(--font-jakarta);
   --font-display: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-signature: var(--font-alex-brush), cursive;
 
   /* Brand */
   --color-brand-forest: var(--brand-forest);
@@ -515,6 +516,10 @@
   height: 1.25rem;
   background: var(--foreground);
   opacity: 0.7;
+}
+
+.font-signature {
+  font-family: var(--font-alex-brush), "Alex Brush", cursive;
 }
 
 @media print {

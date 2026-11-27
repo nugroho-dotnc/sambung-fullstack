@@ -15,6 +15,13 @@ const jakarta = localFont({ src: "./fonts/jakarta-latin.woff2", weight: "200 800
   display: "swap",
 });
 
+const alexBrush = localFont({
+  src: "./fonts/AlexBrush-Regular.ttf",
+  weight: "400",
+  variable: "--font-alex-brush",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "Sambung",
 };
@@ -25,7 +32,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="id" className={`${inter.variable} ${jakarta.variable}`} suppressHydrationWarning>
+    <html
+      lang="id"
+      className={`${inter.variable} ${jakarta.variable} ${alexBrush.variable}`}
+      suppressHydrationWarning
+    >
       <body className="font-sans">
         <ThemeProvider
           attribute="class"
