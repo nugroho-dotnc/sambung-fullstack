@@ -17,9 +17,7 @@ jobs:
 
       - name: Trigger update on dev server
         run: |
-          ssh -p "${{ secrets.DEPLOY_PORT || 22 }}" "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" '
-            set -e
-            cd /home/"${{ secrets.DEPLOY_USER }}"/containers/sambung-dev
-            git pull --recurse-submodules || true
-            podman-compose up -d --build --no-cache
+          ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=3 \
+            -p "${{ secrets.DEPLOY_PORT || 22 }}" \
+            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}"
           '
