@@ -6,12 +6,27 @@ import type {
 } from "../schemas";
 
 export const authService = {
-  async requestOtp(phone: string): Promise<{ success: boolean; message: string; debugHint?: string }> {
+  async getOtpMode(): Promise<{ otpMode: "demo" | "live" }> {
+    try {
+      const res = (await apiClient("/auth/otp/mode", { method: "GET" })) as {
+        otpMode: "demo" | "live";
+      };
+      return res;
+    } catch {
+      return {
+        otpMode: (process.env.NEXT_PUBLIC_OTP_MODE as "demo" | "live") || "demo",
+      };
+    }
+  },
+
+  async requestOtp(
+    phone: string
+  ): Promise<{ success: boolean; message: string; otpMode?: "demo" | "live"; debugHint?: string }> {
     const res = await apiClient("/auth/otp/request", {
       method: "POST",
       json: { phone },
     });
-    return res as { success: boolean; message: string; debugHint?: string };
+    return res as { success: boolean; message: string; otpMode?: "demo" | "live"; debugHint?: string };
   },
 
   async verifyOtp(

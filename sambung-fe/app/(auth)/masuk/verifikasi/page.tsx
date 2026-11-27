@@ -3,11 +3,11 @@
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { KeyRound, ArrowRight, RefreshCw, CheckCircle2 } from "lucide-react";
+import { KeyRound, ArrowRight, RefreshCw, CheckCircle2, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useVerifyOtp, useRequestOtp } from "@/features/auth/hooks/use-auth";
+import { useVerifyOtp, useRequestOtp, useOtpMode } from "@/features/auth/hooks/use-auth";
 import { useRedirectAuthenticatedUser } from "@/features/auth/hooks/use-redirect-authenticated";
 import { resolvePostAuthPath } from "@/features/auth/domain/role-routes";
 
@@ -22,9 +22,11 @@ function VerificationContent() {
   const [errorMsg, setErrorMsg] = useState("");
   const [hint, setHint] = useState("");
   const [countdown, setCountdown] = useState(60);
+  const [activeOtpMode, setActiveOtpMode] = useState<"demo" | "live">("demo");
 
   const verifyMutation = useVerifyOtp();
   const requestOtpMutation = useRequestOtp();
+  const { data: otpConfig } = useOtpMode();
 
   useEffect(() => {
     if (!phone) {
@@ -33,9 +35,15 @@ function VerificationContent() {
     }
     const timer = window.setTimeout(() => {
       setHint(sessionStorage.getItem(`otp-hint:${phone}`) ?? "");
+      const storedMode = sessionStorage.getItem("otp-mode") as "demo" | "live" | null;
+      if (storedMode) {
+        setActiveOtpMode(storedMode);
+      } else if (otpConfig?.otpMode) {
+        setActiveOtpMode(otpConfig.otpMode);
+      }
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [phone, router]);
+  }, [phone, router, otpConfig?.otpMode]);
 
   useEffect(() => {
     if (countdown <= 0) return;
@@ -58,6 +66,9 @@ function VerificationContent() {
     setErrorMsg("");
     try {
       const result = await requestOtpMutation.mutateAsync(phone);
+      const nextMode = result.otpMode || otpConfig?.otpMode || "demo";
+      setActiveOtpMode(nextMode);
+      sessionStorage.setItem("otp-mode", nextMode);
       sessionStorage.setItem(`otp-hint:${phone}`, result.debugHint ?? "");
       setHint(result.debugHint ?? "");
       setCountdown(60);
@@ -101,14 +112,18 @@ function VerificationContent() {
     }
   };
 
+  const isLive = activeOtpMode === "live";
+
   return (
     <div className="w-full flex flex-col gap-8">
       <div className="space-y-3">
         <h1 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-          Verifikasi Nomor
+          {isLive ? "Verifikasi WhatsApp" : "Verifikasi Nomor"}
         </h1>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          Masukkan kode verifikasi untuk nomor:
+          {isLive
+            ? "Masukkan 4 digit kode verifikasi yang telah kami kirimkan ke WhatsApp:"
+            : "Masukkan kode verifikasi untuk nomor:"}
           <span className="block mt-1 font-semibold text-foreground tabular-nums text-base">{phone}</span>
         </p>
       </div>
@@ -181,15 +196,27 @@ function VerificationContent() {
         </Button>
       </form>
 
-      {hint && <div className="rounded-xl border border-primary/30 bg-primary/5 px-3.5 py-4 space-y-2">
-        <p className="text-xs font-semibold text-primary flex items-center gap-1.5">
-          <CheckCircle2 className="w-4 h-4" />
-          Verifikasi demo
-        </p>
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          {hint}
-        </p>
-      </div>}
+      {isLive ? (
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-3.5 py-4 space-y-1.5 text-xs">
+          <p className="font-semibold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+            <MessageSquare className="w-4 h-4 text-emerald-600" />
+            Pesan WhatsApp Terkirim
+          </p>
+          <p className="text-muted-foreground leading-relaxed">
+            Periksa notifikasi pesan WhatsApp di nomor ponsel Anda. Masukkan 4 digit angka yang diterima untuk melanjutkan.
+          </p>
+        </div>
+      ) : (
+        hint && (
+          <div className="rounded-xl border border-primary/30 bg-primary/5 px-3.5 py-4 space-y-2">
+            <p className="text-xs font-semibold text-primary flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4" />
+              Verifikasi demo
+            </p>
+            <p className="text-xs text-muted-foreground leading-relaxed">{hint}</p>
+          </div>
+        )
+      )}
     </div>
   );
 }

@@ -3,11 +3,11 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Phone, ArrowRight, UserCheck } from "lucide-react";
+import { Phone, ArrowRight, UserCheck, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useRequestOtp } from "@/features/auth/hooks/use-auth";
+import { useRequestOtp, useOtpMode } from "@/features/auth/hooks/use-auth";
 import { useRedirectAuthenticatedUser } from "@/features/auth/hooks/use-redirect-authenticated";
 
 function LoginContent() {
@@ -19,6 +19,8 @@ function LoginContent() {
   const [phone, setPhone] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const requestOtpMutation = useRequestOtp();
+  const { data: otpConfig } = useOtpMode();
+  const isLiveOtp = otpConfig?.otpMode === "live";
 
   if (isRedirecting) {
     return (
@@ -40,7 +42,10 @@ function LoginContent() {
 
     try {
       const result = await requestOtpMutation.mutateAsync(cleanPhone);
+      const activeMode = result.otpMode || otpConfig?.otpMode || "demo";
+      sessionStorage.setItem("otp-mode", activeMode);
       sessionStorage.setItem(`otp-hint:${cleanPhone}`, result.debugHint ?? "");
+
       const nextParams = new URLSearchParams({ phone: cleanPhone });
       if (redirect) nextParams.set("redirect", redirect);
       router.push(`/masuk/verifikasi?${nextParams.toString()}`);
@@ -65,7 +70,9 @@ function LoginContent() {
           Selamat datang kembali!
         </h1>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          Masuk sebagai Petani atau Pembeli tanpa kata sandi menggunakan nomor ponsel Anda.
+          {isLiveOtp
+            ? "Masuk sebagai Petani atau Pembeli tanpa kata sandi. Kode verifikasi akan dikirimkan langsung ke WhatsApp Anda."
+            : "Masuk sebagai Petani atau Pembeli tanpa kata sandi menggunakan nomor ponsel Anda."}
         </p>
       </div>
 
@@ -73,7 +80,7 @@ function LoginContent() {
         <div className="space-y-3">
           <div className="space-y-2">
             <Label htmlFor="phone" className="text-sm font-semibold">
-              Nomor Ponsel
+              Nomor Ponsel {isLiveOtp && "(WhatsApp)"}
             </Label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-muted-foreground">
@@ -82,7 +89,7 @@ function LoginContent() {
               <Input
                 id="phone"
                 type="tel"
-                placeholder="081234567890"
+                placeholder={isLiveOtp ? "Nomor WhatsApp (contoh: 081234567890)" : "081234567890"}
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 className="pl-10 min-h-11 text-base tabular-nums"
@@ -105,7 +112,11 @@ function LoginContent() {
             className="w-full min-h-11 text-base font-semibold"
             disabled={requestOtpMutation.isPending}
           >
-            {requestOtpMutation.isPending ? "Mengirim Kode..." : "Lanjutkan Verifikasi"}
+            {requestOtpMutation.isPending
+              ? "Mengirim Kode..."
+              : isLiveOtp
+              ? "Kirim Kode WhatsApp"
+              : "Lanjutkan Verifikasi (Demo)"}
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
 
@@ -117,35 +128,47 @@ function LoginContent() {
         </div>
       </form>
 
-      <div className="rounded-xl border border-border/60 bg-muted/40 px-3 py-4 space-y-3">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-          <UserCheck className="w-3.5 h-3.5 text-primary" />
-          Nomor Akun Terdaftar untuk Uji Coba:
-        </p>
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <button
-            type="button"
-            onClick={() => handleQuickFill("081234567890")}
-            className="text-left px-2 py-3 flex flex-col gap-0.5 rounded-lg bg-background border border-border/70 hover:border-primary transition-colors cursor-pointer"
-          >
-            <p className="font-semibold text-foreground">Akun petani</p>
-            <p className="text-xs text-muted-foreground">Untuk mencoba ruang petani</p>
-            <span className="text-xs tabular-nums text-primary">081234567890</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => handleQuickFill("081398765432")}
-            className="text-left px-2 py-3 flex flex-col gap-0.5 rounded-lg bg-background border border-border/70 hover:border-primary transition-colors cursor-pointer"
-          >
-            <p className="font-semibold text-foreground">Akun pembeli</p>
-            <p className="text-xs text-muted-foreground">Untuk mencoba ruang pembeli</p>
-            <span className="text-xs tabular-nums text-primary">081398765432</span>
-          </button>
+      {isLiveOtp ? (
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-3.5 py-4 space-y-2 text-xs">
+          <p className="font-semibold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+            <MessageSquare className="w-4 h-4 text-emerald-600" />
+            Layanan Pengiriman WhatsApp Aktif
+          </p>
+          <p className="text-muted-foreground leading-relaxed">
+            Sistem terhubung langsung ke gateway pengiriman pesan resmi. Pastikan nomor yang Anda masukkan aktif pada aplikasi WhatsApp.
+          </p>
         </div>
-        <p className="text-xs text-muted-foreground italic">
-          *Atau masukkan nomor baru untuk mencoba alur pendaftaran profil baru.
-        </p>
-      </div>
+      ) : (
+        <div className="rounded-xl border border-border/60 bg-muted/40 px-3 py-4 space-y-3">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <UserCheck className="w-3.5 h-3.5 text-primary" />
+            Nomor Akun Terdaftar untuk Uji Coba:
+          </p>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <button
+              type="button"
+              onClick={() => handleQuickFill("081234567890")}
+              className="text-left px-2 py-3 flex flex-col gap-0.5 rounded-lg bg-background border border-border/70 hover:border-primary transition-colors cursor-pointer"
+            >
+              <p className="font-semibold text-foreground">Akun petani</p>
+              <p className="text-xs text-muted-foreground">Untuk mencoba ruang petani</p>
+              <span className="text-xs tabular-nums text-primary">081234567890</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickFill("081398765432")}
+              className="text-left px-2 py-3 flex flex-col gap-0.5 rounded-lg bg-background border border-border/70 hover:border-primary transition-colors cursor-pointer"
+            >
+              <p className="font-semibold text-foreground">Akun pembeli</p>
+              <p className="text-xs text-muted-foreground">Untuk mencoba ruang pembeli</p>
+              <span className="text-xs tabular-nums text-primary">081398765432</span>
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground italic">
+            *Mode demo aktif. Masukkan nomor Anda atau klik akun demo di atas untuk mencoba.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

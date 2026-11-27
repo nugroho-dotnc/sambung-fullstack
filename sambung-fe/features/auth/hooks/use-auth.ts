@@ -19,6 +19,14 @@ export function useCurrentUser() {
   });
 }
 
+export function useOtpMode() {
+  return useQuery({
+    queryKey: ["auth", "otpMode"] as const,
+    queryFn: () => authService.getOtpMode(),
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
 export function useRequestOtp() {
   return useMutation({
     mutationFn: (phone: string) => authService.requestOtp(phone),
