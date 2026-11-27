@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -169,8 +168,8 @@ export default function BuyerCatalogPage() {
       {/* Filter and Search Bar */}
       <div className="space-y-4 mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          {/* Mobile Filter: Select Dropdown */}
-          <div className="sm:hidden w-full">
+          {/* Komoditas Select Dropdown */}
+          <div className="w-full sm:w-auto">
             <Select
               items={GRAIN_TAB_OPTIONS}
               value={selectedGrain}
@@ -178,7 +177,7 @@ export default function BuyerCatalogPage() {
                 if (val) setSelectedGrain(val as "ALL" | "GKP" | "GKG");
               }}
             >
-              <SelectTrigger className="w-full h-10 rounded-xl border border-input bg-background px-3 text-xs font-medium shadow-2xs">
+              <SelectTrigger className="w-full sm:w-64 h-10 rounded-xl border border-input bg-background px-3 text-xs font-medium shadow-2xs">
                 <SelectValue placeholder="Pilih komoditas" />
               </SelectTrigger>
               <SelectContent>
@@ -190,25 +189,6 @@ export default function BuyerCatalogPage() {
               </SelectContent>
             </Select>
           </div>
-
-          {/* Tablet & Desktop: Tabs */}
-          <Tabs
-            value={selectedGrain}
-            onValueChange={(val) => setSelectedGrain(val as "ALL" | "GKP" | "GKG")}
-            className="hidden sm:block w-full sm:w-auto"
-          >
-            <TabsList className="bg-muted/80 p-1 rounded-xl h-auto flex flex-wrap gap-1">
-              <TabsTrigger value="ALL" className="px-3 text-xs rounded-lg">
-                Semua Komoditas
-              </TabsTrigger>
-              <TabsTrigger value="GKP" className="px-3 text-xs rounded-lg">
-                Gabah Kering Panen (GKP)
-              </TabsTrigger>
-              <TabsTrigger value="GKG" className="px-3 text-xs rounded-lg">
-                Gabah Kering Giling (GKG)
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <Select
