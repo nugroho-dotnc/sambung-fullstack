@@ -30,7 +30,7 @@ import { useMobile } from "@/hooks/use-mobile";
 
 const DEFAULT_REGENCIES = ["Jember", "Subang", "Karawang"];
 
-const GRAIN_TAB_OPTIONS = [
+const COMMODITY_SELECT_OPTIONS = [
   { value: "ALL", label: "Semua Komoditas" },
   { value: "GKP", label: "Gabah Kering Panen (GKP)" },
   { value: "GKG", label: "Gabah Kering Giling (GKG)" },
@@ -171,7 +171,7 @@ export default function BuyerCatalogPage() {
           {/* Komoditas Select Dropdown */}
           <div className="w-full sm:w-auto">
             <Select
-              items={GRAIN_TAB_OPTIONS}
+              items={COMMODITY_SELECT_OPTIONS}
               value={selectedGrain}
               onValueChange={(val) => {
                 if (val) setSelectedGrain(val as "ALL" | "GKP" | "GKG");
@@ -181,7 +181,7 @@ export default function BuyerCatalogPage() {
                 <SelectValue placeholder="Pilih komoditas" />
               </SelectTrigger>
               <SelectContent>
-                {GRAIN_TAB_OPTIONS.map((opt) => (
+                {COMMODITY_SELECT_OPTIONS.map((opt) => (
                   <SelectItem key={opt.value} value={opt.value} className="text-xs">
                     {opt.label}
                   </SelectItem>
