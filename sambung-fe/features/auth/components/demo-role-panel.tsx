@@ -12,6 +12,7 @@ import {
 import { useSession } from "../hooks/use-session";
 import { roleSchema, type Role } from "../schemas";
 import { setDemoRole } from "@/mock/session";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const ROLE_OPTIONS = [
   { value: "petani", label: "Petani" },
@@ -35,12 +36,31 @@ export function DemoRolePanel({ children, requiredRole }: { children: ReactNode;
     finally { setSwitching(false); }
   }
   if (!isDemo) {
-    if (isPending) return <p role="status">Memuat akun Anda.</p>;
+    if (isPending) {
+      return (
+        <div role="status" aria-busy="true" className="space-y-4">
+          <span className="sr-only">Memuat akun Anda.</span>
+          <Skeleton className="h-8 w-56 rounded-lg" />
+          <Skeleton className="h-40 w-full rounded-2xl" />
+        </div>
+      );
+    }
     if (!user) return <a href="/masuk">Masuk untuk membuka halaman ini</a>;
     if (user.role !== requiredRole) return <p>Halaman ini tidak tersedia untuk peran akun Anda.</p>;
     return <div key={user.id}>{children}</div>;
   }
-  if (isPending) return <p role="status">Memuat identitas demo…</p>;
+  if (isPending) {
+    return (
+      <div role="status" aria-busy="true" className="mb-6 rounded-lg border bg-muted/40 p-4 flex items-center justify-between gap-4">
+        <span className="sr-only">Memuat identitas demo...</span>
+        <div className="space-y-1.5">
+          <Skeleton className="h-4 w-44 rounded-md" />
+          <Skeleton className="h-3.5 w-52 rounded-md" />
+        </div>
+        <Skeleton className="h-10 w-44 rounded-xl" />
+      </div>
+    );
+  }
   return <>
     <aside className="mb-6 flex flex-wrap items-center gap-4 rounded-lg border bg-muted p-4">
       <div className="mr-auto"><p className="font-medium">Identitas demo: {user?.name}</p><p className="text-sm">Data ilustrasi · bukan sesi login nyata</p></div>

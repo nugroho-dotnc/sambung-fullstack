@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { PageContainer } from "@/components/shared/page-container";
+import { ListCardsSkeleton } from "@/components/shared/page-skeletons";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -116,7 +117,7 @@ export default function AdminModerasiPage() {
       {/* Konten Utama Panel Moderasi */}
       <div className="space-y-4">
         {isLoading ? (
-          <p className="text-xs text-muted-foreground">Memuat data tawaran...</p>
+          <ListCardsSkeleton label="Memuat data tawaran..." />
         ) : (offers || []).length === 0 ? (
           <Card className="p-8 text-center text-xs text-muted-foreground bg-card border-border/80 rounded-2xl">
             Belum ada penawaran panen yang terdaftar di sistem.

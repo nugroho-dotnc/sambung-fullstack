@@ -6,10 +6,10 @@ export const actionSchema = z.enum([
   "accept",
   "reject",
   "cancel",
-  "confirm",
   "sign",
   "ship",
   "receive",
+  "dispute",
 ]);
 export type Action = z.infer<typeof actionSchema>;
 
@@ -25,7 +25,26 @@ export const shipSchema = z.object({
 });
 
 export const receiveSchema = z.object({
-  notes: z.string().max(300, "Catatan penerimaan maksimal 300 karakter.").optional(),
+  actualVolumeKg: z
+    .number({ message: "Berat timbang aktual harus berupa angka." })
+    .positive("Berat timbang aktual harus lebih besar dari 0 kg.")
+    .max(999999999999.99, "Berat timbang aktual melebihi batas maksimal.")
+    .multipleOf(0.01, "Berat timbang maksimal dua angka di belakang koma.")
+    .optional(),
+  actualMoisturePercent: z
+    .number({ message: "Kadar air aktual harus berupa angka." })
+    .min(5, "Kadar air aktual minimal 5%.")
+    .max(45, "Kadar air aktual maksimal 45%.")
+    .optional(),
+  notes: z.string().max(500, "Catatan penerimaan maksimal 500 karakter.").optional(),
+});
+
+export const disputeSchema = z.object({
+  reason: z
+    .string()
+    .trim()
+    .min(10, "Jelaskan kendala atau alasan sengketa minimal 10 karakter.")
+    .max(500, "Alasan sengketa maksimal 500 karakter."),
 });
 
 const price = z

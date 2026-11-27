@@ -1,6 +1,8 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
 import { ApiError } from "../../shared/api-error.ts";
 import { isBuyerPro } from "../auth/session.ts";
+import { SHIPPING_DEADLINE_MS } from "../contracts/contracts.constants.ts";
+import { present as presentOffer, include as offerInclude } from "../offers/offers.service.ts";
 import {
   cancelTransaction,
   createSnapTransaction,
@@ -339,6 +341,16 @@ export async function applyMidtransStatusTransition(
       }
 
       if (current.contract.status === "cancelled" || current.contract.status === "expired") {
+        await tx.contract.updateMany({
+          where: { id: current.contract.id, disputeStatus: "none" },
+          data: {
+            disputeStatus: "open",
+            disputeByRole: "sistem",
+            disputeReason:
+              "Pembayaran masuk terlambat setelah kontrak berstatus batal/kedaluwarsa. Memerlukan pengembalian dana oleh pengawas.",
+            disputedAt: now,
+          },
+        });
         await tx.auditLog.create({
           data: {
             actorRole: "sistem",
@@ -346,7 +358,14 @@ export async function applyMidtransStatusTransition(
             action: "PAYMENT_ON_CANCELLED_CONTRACT_ALERT",
             targetType: "contract",
             targetId: current.contract.id,
-            details: `Pembayaran ${current.orderId} terkonfirmasi lunas saat kontrak sudah berstatus ${current.contract.status}.`,
+            details: `Pembayaran ${current.orderId} terkonfirmasi lunas saat kontrak sudah berstatus ${current.contract.status}. Ditandai untuk pengembalian dana pengawas.`,
+          },
+        });
+      } else if (current.contract.status === "signed") {
+        await tx.contract.update({
+          where: { id: current.contract.id },
+          data: {
+            shippingDeadlineAt: new Date(now.getTime() + SHIPPING_DEADLINE_MS),
           },
         });
       }
@@ -1082,4 +1101,184 @@ export async function cancelUnpaidSignedContracts(
   }
 
   return cancelledCount;
+}
+
+/**
+ * Resolves an open escrow dispute or late-paid cancelled contract via Admin governance (release or refund).
+ */
+export async function resolveContractDisputeEscrow(
+  db: PrismaClient,
+  adminName: string,
+  contractId: string,
+  decision: "release_to_farmer" | "refund_to_buyer",
+  note: string
+) {
+  const cleanNote = note.trim();
+  const now = new Date();
+
+  return db.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "Contract" WHERE id = ${contractId}::uuid FOR UPDATE`;
+
+    const contract = await tx.contract.findUnique({
+      where: { id: contractId },
+      include: {
+        offer: { include: offerInclude },
+        payments: { where: { status: "paid" }, orderBy: { attempt: "desc" } },
+      },
+    });
+    if (!contract) {
+      throw new ApiError(404, "NOT_FOUND", "Kontrak tidak ditemukan.");
+    }
+
+    const heldPayment = contract.payments.find((p) => p.escrowStatus === "held");
+    if (!heldPayment) {
+      throw new ApiError(
+        409,
+        "NO_HELD_ESCROW",
+        "Kontrak ini tidak memiliki dana escrow aktif yang sedang ditahan."
+      );
+    }
+
+    const canResolve =
+      contract.disputeStatus === "open" ||
+      contract.status === "cancelled" ||
+      contract.status === "expired" ||
+      contract.status === "signed" ||
+      contract.status === "shipping";
+    if (!canResolve) {
+      throw new ApiError(409, "INVALID_STATUS", "Status kontrak tidak dapat diselesaikan oleh pengawas.");
+    }
+
+    if (decision === "release_to_farmer") {
+      if (contract.status === "cancelled" || contract.status === "expired") {
+        const offerSummary = presentOffer(contract.offer);
+        if (offerSummary.availableVolumeKg < Number(contract.volumeKg)) {
+          throw new ApiError(
+            409,
+            "INSUFFICIENT_STOCK",
+            "Stok tawaran sudah dialokasikan ke pesanan lain karena kontrak sempat dibatalkan. Gunakan pengembalian dana ke pembeli."
+          );
+        }
+      }
+
+      const released = await tx.payment.updateMany({
+        where: { id: heldPayment.id, status: "paid", escrowStatus: "held" },
+        data: { escrowStatus: "released", releasedAt: now, lastSyncedAt: now },
+      });
+      if (released.count === 0) {
+        throw new ApiError(409, "ESCROW_ALREADY_SETTLED", "Status dana escrow telah berubah.");
+      }
+
+      await tx.contract.update({
+        where: { id: contract.id },
+        data: {
+          status: "completed",
+          completedAt: contract.completedAt ?? now,
+          farmerConfirmed: true,
+          buyerConfirmed: true,
+          disputeStatus: "resolved_released",
+          disputeResolutionNote: cleanNote,
+          disputeResolvedAt: now,
+          disputeResolvedBy: adminName,
+        },
+      });
+
+      await tx.notification.createMany({
+        data: [
+          {
+            accountId: contract.offer.ownerId,
+            type: "kontrak",
+            title: "Sengketa Selesai — Dana Escrow Dicairkan",
+            description: `Pengawas sistem memutuskan pencairan dana bersih ${formatIdr(heldPayment.contractAmount)} kepada petani. Catatan: ${cleanNote}`,
+            linkHref: `/kontrak/${contract.id}/bukti`,
+            contractId: contract.id,
+          },
+          {
+            accountId: contract.buyerId,
+            type: "kontrak",
+            title: "Sengketa Selesai — Dana Escrow Dicairkan ke Petani",
+            description: `Pengawas sistem menyelesaikan penanganan sengketa dengan mencairkan escrow ke petani. Catatan: ${cleanNote}`,
+            linkHref: `/kontrak/${contract.id}/bukti`,
+            contractId: contract.id,
+          },
+        ],
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorRole: "admin",
+          actorName: adminName,
+          action: "ADMIN_ESCROW_RELEASED",
+          targetType: "contract",
+          targetId: contract.id,
+          details: `Pengawas mencairkan escrow ${heldPayment.orderId} (${formatIdr(heldPayment.contractAmount)}) ke petani. Catatan: ${cleanNote}`,
+        },
+      });
+    } else {
+      const refunded = await tx.payment.updateMany({
+        where: { id: heldPayment.id, status: "paid", escrowStatus: "held" },
+        data: {
+          status: "refunded",
+          escrowStatus: "refunded",
+          releasedAt: now,
+          lastSyncedAt: now,
+        },
+      });
+      if (refunded.count === 0) {
+        throw new ApiError(409, "ESCROW_ALREADY_SETTLED", "Status dana escrow telah berubah.");
+      }
+
+      const nextStatus = contract.status === "expired" ? "expired" : "cancelled";
+      await tx.contract.update({
+        where: { id: contract.id },
+        data: {
+          status: nextStatus,
+          cancelReason: contract.cancelReason || `Dana escrow dikembalikan oleh pengawas: ${cleanNote}`,
+          disputeStatus: "resolved_refunded",
+          disputeResolutionNote: cleanNote,
+          disputeResolvedAt: now,
+          disputeResolvedBy: adminName,
+        },
+      });
+
+      await tx.notification.createMany({
+        data: [
+          {
+            accountId: contract.buyerId,
+            type: "kontrak",
+            title: "Pengembalian Dana Escrow Disetujui",
+            description: `Pengawas sistem memproses pengembalian dana escrow (${formatIdr(heldPayment.grossAmount)}) kepada pembeli. Catatan: ${cleanNote}`,
+            linkHref: `/kontrak/${contract.id}`,
+            contractId: contract.id,
+          },
+          {
+            accountId: contract.offer.ownerId,
+            type: "kontrak",
+            title: "Kontrak Ditutup — Dana Escrow Dikembalikan ke Pembeli",
+            description: `Pengawas sistem menutup sengketa dengan pengembalian dana kepada pembeli dan memulihkan stok tawaran Anda. Catatan: ${cleanNote}`,
+            linkHref: `/kontrak/${contract.id}`,
+            contractId: contract.id,
+          },
+        ],
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorRole: "admin",
+          actorName: adminName,
+          action: "ADMIN_ESCROW_REFUNDED",
+          targetType: "contract",
+          targetId: contract.id,
+          details: `Pengawas mengembalikan escrow ${heldPayment.orderId} (${formatIdr(heldPayment.grossAmount)}) kepada pembeli. Catatan: ${cleanNote}`,
+        },
+      });
+    }
+
+    const updatedPayment = await tx.payment.findUniqueOrThrow({ where: { id: heldPayment.id } });
+    return {
+      contractId: contract.id,
+      decision,
+      payment: presentPayment(updatedPayment),
+    };
+  });
 }

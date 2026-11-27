@@ -1,6 +1,7 @@
 "use client";
 
 import { offerRequestId } from "../services/request-id";
+import { IS_MOCK_DATA } from "@/lib/config/fe-mode";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useMemo } from "react";
@@ -108,7 +109,7 @@ export function OffersWorkspace({
   }, [offers, activeTab, searchQuery]);
 
   async function handlePublish(offer: HarvestOffer) {
-    if(process.env.NEXT_PUBLIC_USE_MOCK !== "true") {router.push("/petani/jual?draft="+encodeURIComponent(offer.id));return;}
+    if(!IS_MOCK_DATA) {router.push("/petani/jual?draft="+encodeURIComponent(offer.id));return;}
     try {
       setPublishingId(offer.id);
       await mutation.mutateAsync({

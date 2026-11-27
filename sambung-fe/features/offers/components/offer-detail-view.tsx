@@ -1,6 +1,7 @@
 "use client";
 
 import { offerRequestId } from "../services/request-id";
+import { IS_MOCK_DATA } from "@/lib/config/fe-mode";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -21,6 +22,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageContainer } from "@/components/shared/page-container";
+import { DetailSplitSkeleton } from "@/components/shared/page-skeletons";
 import { PageHeader } from "@/components/shared/page-header";
 import { AsyncBoundary } from "@/components/shared/async-boundary";
 import { useOffers, useOfferCommand } from "../hooks/use-offers";
@@ -85,7 +87,7 @@ export function OfferDetailView({ offerId }: { offerId: string }) {
 
   async function handlePublish() {
     if (!offer) return;
-    if(process.env.NEXT_PUBLIC_USE_MOCK !== "true") {router.push("/petani/jual?draft="+encodeURIComponent(offer.id));return;}
+    if(!IS_MOCK_DATA) {router.push("/petani/jual?draft="+encodeURIComponent(offer.id));return;}
     try {
       await mutation.mutateAsync({
         command: {
@@ -126,7 +128,7 @@ export function OfferDetailView({ offerId }: { offerId: string }) {
   if (isLoading) {
     return (
       <PageContainer>
-        <p className="text-xs text-muted-foreground">Memuat rincian tawaran...</p>
+        <DetailSplitSkeleton label="Memuat rincian tawaran..." />
       </PageContainer>
     );
   }
@@ -286,7 +288,7 @@ export function OfferDetailView({ offerId }: { offerId: string }) {
                   variant="outline"
                   className="text-xs"
                   onClick={() => {
-                    if(process.env.NEXT_PUBLIC_USE_MOCK !== "true") {router.push("/petani/jual?draft="+encodeURIComponent(offer.id));return;}
+                    if(!IS_MOCK_DATA) {router.push("/petani/jual?draft="+encodeURIComponent(offer.id));return;}
                       setNewPrice(offer.askPrice);
                     setIsEditingPrice(true);
                   }}

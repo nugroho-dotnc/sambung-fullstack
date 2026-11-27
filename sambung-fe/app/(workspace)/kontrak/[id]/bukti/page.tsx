@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Printer, ShieldCheck, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageContainer } from "@/components/shared/page-container";
+import { DocumentSheetSkeleton } from "@/components/shared/page-skeletons";
 import { useContract } from "@/features/contracts/hooks/use-contracts";
 import {
   computeContractPaymentBreakdown,
@@ -28,7 +29,7 @@ export default function DigitalContractProofPage({
   if (isLoading) {
     return (
       <PageContainer>
-        <p className="text-xs text-muted-foreground">Menyiapkan surat kesepakatan...</p>
+        <DocumentSheetSkeleton label="Menyiapkan surat kesepakatan..." />
       </PageContainer>
     );
   }

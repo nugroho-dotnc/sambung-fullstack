@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
+import { ActivityRowsSkeleton } from "@/components/shared/page-skeletons";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -57,7 +59,13 @@ export default function AdminDashboardPage() {
               variant="outline"
               className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-xs font-semibold"
             >
-              {stats?.dataFreshnessStatus ? "Aktif & Valid" : "Memuat..."}
+              {statsLoading ? (
+                <Skeleton className="h-3.5 w-16 rounded-sm" />
+              ) : stats?.dataFreshnessStatus ? (
+                "Aktif & Valid"
+              ) : (
+                "Perlu Cek"
+              )}
             </Badge>
           </CardHeader>
           <CardContent className="p-5 pt-0 space-y-2.5">
@@ -112,13 +120,19 @@ export default function AdminDashboardPage() {
               Pasokan Gabah Terdaftar
             </span>
             <span className="text-xs text-muted-foreground tabular-nums">
-              {statsLoading ? "..." : `${stats?.totalOffers || 0} tawaran`}
+              {statsLoading ? <Skeleton className="h-3.5 w-16 rounded-sm" /> : `${stats?.totalOffers || 0} tawaran`}
             </span>
           </CardHeader>
           <CardContent className="p-5 pt-0">
             <div className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tabular-nums">
-              {(stats?.totalVolumeKg || 0).toLocaleString("id-ID")}{" "}
-              <span className="text-base font-normal text-muted-foreground font-sans">kg</span>
+              {statsLoading ? (
+                <Skeleton className="h-8 w-28 rounded-md" />
+              ) : (
+                <>
+                  {(stats?.totalVolumeKg || 0).toLocaleString("id-ID")}{" "}
+                  <span className="text-base font-normal text-muted-foreground font-sans">kg</span>
+                </>
+              )}
             </div>
             <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5 tabular-nums">
               <ScrollText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
@@ -152,10 +166,16 @@ export default function AdminDashboardPage() {
                   : "text-foreground"
               }`}
             >
-              {statsLoading ? "..." : stats?.flaggedOffers || 0}{" "}
-              <span className="text-base font-normal text-muted-foreground font-sans">
-                tawaran
-              </span>
+              {statsLoading ? (
+                <Skeleton className="h-8 w-20 rounded-md" />
+              ) : (
+                <>
+                  {stats?.flaggedOffers || 0}{" "}
+                  <span className="text-base font-normal text-muted-foreground font-sans">
+                    tawaran
+                  </span>
+                </>
+              )}
             </div>
             <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
               <AlertTriangle
@@ -244,9 +264,7 @@ export default function AdminDashboardPage() {
 
         <div className="divide-y divide-border/60">
           {logsLoading ? (
-            <p className="text-xs text-muted-foreground py-4 text-center">
-              Memuat aktivitas transaksi...
-            </p>
+            <ActivityRowsSkeleton label="Memuat aktivitas transaksi..." />
           ) : !logs || logs.length === 0 ? (
             <div className="py-8 text-center text-xs text-muted-foreground space-y-1">
               <CheckCircle2 className="w-6 h-6 text-muted-foreground mx-auto mb-1 opacity-60" />

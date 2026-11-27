@@ -19,6 +19,31 @@ const resultSchema = z.object({
   ricePrice: z.number().positive(),
 });
 
+async function requestRegionCalculation(
+  grainType: "GKP" | "GKG",
+  regionQuery: string,
+  moisturePercent: number | undefined,
+  overrides?: CalculatePriceOverrides
+) {
+  const raw = await calculateAiFairPrice({
+    grainType,
+    region: regionQuery,
+    moisturePercent,
+    rendemen: resolveValidRendemen(overrides?.rendemen),
+    hppGovernment: resolveValidHpp(overrides?.hppGovernment),
+  });
+
+  const parsed = resultSchema.safeParse(raw);
+  if (!parsed.success) {
+    return null;
+  }
+  const result = parsed.data;
+  if (result.grainType !== grainType || result.upperBound < result.lowerBound) {
+    return null;
+  }
+  return result;
+}
+
 export async function calculate(
   grainType: "GKP" | "GKG",
   province: string,
@@ -30,35 +55,65 @@ export async function calculate(
       ? quality
       : undefined;
 
-  const raw = await calculateAiFairPrice({
-    grainType,
-    region: province,
-    moisturePercent,
-    rendemen: resolveValidRendemen(overrides?.rendemen),
-    hppGovernment: resolveValidHpp(overrides?.hppGovernment),
-  });
+  let shouldTryNationalFallback = false;
 
-  const parsed = resultSchema.safeParse(raw);
-  if (!parsed.success) {
-    throw new ApiError(
-      503,
-      "PRICE_UNAVAILABLE",
-      "Acuan harga belum tersedia. Simpan draf atau coba lagi."
-    );
+  try {
+    const primary = await requestRegionCalculation(grainType, province, moisturePercent, overrides);
+    if (primary && primary.region === province) {
+      return {
+        ...primary,
+        sourceMode: "live" as const,
+        isNationalFallback: false,
+        fallbackRegion: null as string | null,
+        sourceDate: null as string | null,
+      };
+    }
+    if (primary && primary.region === "Nasional" && province !== "Nasional") {
+      return {
+        ...primary,
+        region: province,
+        referenceSource: primary.referenceSource.includes("Fallback Nasional")
+          ? primary.referenceSource
+          : `${primary.referenceSource} (Fallback Nasional)`,
+        sourceMode: "fallback" as const,
+        isNationalFallback: true,
+        fallbackRegion: "Nasional" as string | null,
+        sourceDate: null as string | null,
+      };
+    }
+    shouldTryNationalFallback = province !== "Nasional";
+  } catch (err) {
+    if (
+      err instanceof ApiError &&
+      (err.status === 404 || err.status === 422) &&
+      province !== "Nasional"
+    ) {
+      shouldTryNationalFallback = true;
+    } else {
+      throw err;
+    }
   }
 
-  const result = parsed.data;
-  if (
-    result.region !== province ||
-    result.grainType !== grainType ||
-    result.upperBound < result.lowerBound
-  ) {
-    throw new ApiError(
-      503,
-      "PRICE_UNAVAILABLE",
-      "Acuan harga belum tersedia. Simpan draf atau coba lagi."
-    );
+  if (shouldTryNationalFallback) {
+    const fallback = await requestRegionCalculation(grainType, "Nasional", moisturePercent, overrides);
+    if (fallback && (fallback.region === "Nasional" || fallback.region === province)) {
+      return {
+        ...fallback,
+        region: province,
+        referenceSource: fallback.referenceSource.includes("Fallback Nasional")
+          ? fallback.referenceSource
+          : `${fallback.referenceSource} (Fallback Nasional)`,
+        sourceMode: "fallback" as const,
+        isNationalFallback: true,
+        fallbackRegion: "Nasional" as string | null,
+        sourceDate: null as string | null,
+      };
+    }
   }
 
-  return { ...result, sourceMode: "live" as const, sourceDate: null as string | null };
+  throw new ApiError(
+    503,
+    "PRICE_UNAVAILABLE",
+    "Acuan harga belum tersedia. Simpan draf atau coba lagi."
+  );
 }

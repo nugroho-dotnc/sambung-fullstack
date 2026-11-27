@@ -4,7 +4,11 @@ import {ApiError} from "../../shared/api-error.ts";
 import {digest, isBuyerPro, maskPhone} from "../auth/session.ts";
 import {include as offerInclude,present} from "../offers/offers.service.ts";
 import {preview} from "../pricing/pricing.service.ts";
-import {orderSchema,counterSchema,acceptSchema,reasonSchema,signSchema,shipSchema,receiveSchema,type Action} from "./contracts.schemas.ts";
+import {orderSchema,counterSchema,acceptSchema,reasonSchema,signSchema,shipSchema,receiveSchema,disputeSchema,type Action} from "./contracts.schemas.ts";
+import {
+  RECEIPT_AUTO_RELEASE_MS,
+  SIGN_DEADLINE_MS,
+} from "./contracts.constants.ts";
 import {
   BUYER_FEE_RATE,
   PAYMENT_DUE_MS,
@@ -20,7 +24,10 @@ type Row=Prisma.ContractGetPayload<{include:typeof include}>;
 function fail(code:string,message:string):never {throw new ApiError(409,code,message);}
 function missing():never {throw new ApiError(404,"NOT_FOUND","Kontrak tidak ditemukan.");}
 function resolveContractContacts(row: Row, actorRole: string) {
-  if (!["signed", "shipping", "completed"].includes(row.status)) {
+  const hasSettledPayment = row.payments.some((p) => p.status === "paid");
+  const canRevealContacts =
+    hasSettledPayment || row.status === "shipping" || row.status === "completed";
+  if (!canRevealContacts) {
     return {};
   }
   if (actorRole === "admin") {
@@ -53,6 +60,16 @@ function view(row: Row, actorRole: string) {
       : BUYER_FEE_RATE;
   return {
     ...contract,
+    signDeadlineAt: contract.signDeadlineAt ? contract.signDeadlineAt.toISOString() : null,
+    shippingDeadlineAt: contract.shippingDeadlineAt ? contract.shippingDeadlineAt.toISOString() : null,
+    shippingReminderSentAt: contract.shippingReminderSentAt ? contract.shippingReminderSentAt.toISOString() : null,
+    receiptDeadlineAt: contract.receiptDeadlineAt ? contract.receiptDeadlineAt.toISOString() : null,
+    disputedAt: contract.disputedAt ? contract.disputedAt.toISOString() : null,
+    disputeResolvedAt: contract.disputeResolvedAt ? contract.disputeResolvedAt.toISOString() : null,
+    actualVolumeKg:
+      contract.actualVolumeKg !== null && contract.actualVolumeKg !== undefined
+        ? Number(contract.actualVolumeKg)
+        : null,
     paymentDueAt: contract.paymentDueAt ? contract.paymentDueAt.toISOString() : null,
     paymentGraceEndsAt: contract.paymentGraceEndsAt ? contract.paymentGraceEndsAt.toISOString() : null,
     paymentReminderSentAt: contract.paymentReminderSentAt ? contract.paymentReminderSentAt.toISOString() : null,
@@ -97,8 +114,9 @@ export async function command(db:PrismaClient,actor:Actor,action:Action,id:strin
   const sign=action==="sign"?signSchema.parse(body):undefined;
   const ship=action==="ship"?shipSchema.parse(body):undefined;
   const receive=action==="receive"?receiveSchema.parse(body):undefined;
+  const dispute=action==="dispute"?disputeSchema.parse(body):undefined;
   const reason=action==="cancel"||action==="reject"?reasonSchema.parse(body).reason:undefined;
-  const fingerprint=digest(JSON.stringify(["contract",action,id,order,counter,acceptance,sign,ship,receive,reason]));
+  const fingerprint=digest(JSON.stringify(["contract",action,id,order,counter,acceptance,sign,ship,receive,dispute,reason]));
   const where={ownerId_key:{ownerId:actor.id,key}};
   // Store only the resource ID. Every replay must apply the current contact visibility.
   async function replay(tx:Prisma.TransactionClient,receipt:{fingerprint:string,response:Prisma.JsonValue}) {
@@ -159,17 +177,19 @@ export async function command(db:PrismaClient,actor:Actor,action:Action,id:strin
             description:`Mitra transaksi mengajukan harga penyesuaian Rp${counter.proposedPrice.toLocaleString("id-ID")}/kg.`,linkHref:`/kontrak/${c.id}`,contractId:c.id}});
         } else {
           update.status="approved";
+          update.signDeadlineAt=new Date(Date.now() + SIGN_DEADLINE_MS);
           const activePrice={contractId_version:{contractId:c.id,version:c.priceOfferVersion}};
           const proposal=await tx.contractPrice.findUniqueOrThrow({where:activePrice});
           await tx.contractPrice.update({where:activePrice,data:{priceCheck:{proposal:proposal.priceCheck,
             acceptance:{...check,redConfirmed:!!acceptance?.redConfirmed}}}});
           await tx.notification.createMany({data:[
-            {accountId:locked.ownerId,type:"kontrak",title:"Harga Disepakati",description:`Harga kesepakatan Rp${c.currentPrice.toLocaleString("id-ID")}/kg telah disetujui. Silakan tanda tangani lembar kesepakatan.`,linkHref:`/kontrak/${c.id}`,contractId:c.id},
-            {accountId:c.buyerId,type:"kontrak",title:"Harga Disepakati",description:`Harga kesepakatan Rp${c.currentPrice.toLocaleString("id-ID")}/kg telah disetujui. Silakan tanda tangani lembar kesepakatan.`,linkHref:`/kontrak/${c.id}`,contractId:c.id},
+            {accountId:locked.ownerId,type:"kontrak",title:"Harga Disepakati",description:`Harga kesepakatan Rp${c.currentPrice.toLocaleString("id-ID")}/kg telah disetujui. Silakan tanda tangani lembar kesepakatan dalam 48 jam.`,linkHref:`/kontrak/${c.id}`,contractId:c.id},
+            {accountId:c.buyerId,type:"kontrak",title:"Harga Disepakati",description:`Harga kesepakatan Rp${c.currentPrice.toLocaleString("id-ID")}/kg telah disetujui. Silakan tanda tangani lembar kesepakatan dalam 48 jam.`,linkHref:`/kontrak/${c.id}`,contractId:c.id},
           ]});
         }
       } else if(action==="sign") {
         if(c.status!=="approved") fail("INVALID_STATUS","Tanda tangan kontrak hanya dapat dilakukan setelah harga disepakati bersama.");
+        if(c.signDeadlineAt && Date.now() >= c.signDeadlineAt.getTime()) fail("EXPIRED","Batas waktu tanda tangan 48 jam untuk kesepakatan ini telah berakhir.");
         if(actor.role==="petani") {
           if(actor.id!==locked.ownerId) fail("FORBIDDEN","Hanya petani pemilik tawaran yang dapat menandatangani sebagai pihak petani.");
           if(c.farmerSignature) fail("ALREADY_SIGNED","Anda sudah menandatangani kontrak kesepakatan ini.");
@@ -208,22 +228,30 @@ export async function command(db:PrismaClient,actor:Actor,action:Action,id:strin
       } else if(action==="ship") {
         if(c.status!=="signed") fail("INVALID_STATUS","Pengiriman gabah hanya dapat dikonfirmasi setelah kedua belah pihak menandatangani kontrak.");
         if(actor.role!=="petani" || actor.id!==locked.ownerId) fail("FORBIDDEN","Hanya petani pemilik komoditas yang dapat mengonfirmasi pengiriman gabah.");
+        if(c.disputeStatus==="open") fail("DISPUTE_OPEN","Kontrak sedang dalam peninjauan sengketa oleh pengawas sistem.");
+        if(c.shippingDeadlineAt && Date.now()>=c.shippingDeadlineAt.getTime()) fail("SHIPPING_DEADLINE_PASSED","Batas waktu pengiriman 7 hari telah terlewati. Menunggu penanganan pengawas.");
         const settledPayment=await tx.payment.findFirst({where:{contractId:c.id,status:"paid"},select:{id:true}});
         if(!settledPayment) {
           fail("PAYMENT_REQUIRED","Pembeli belum menyelesaikan pembayaran escrow. Pengiriman gabah baru dapat dikonfirmasi setelah pembayaran terverifikasi.");
         }
+        const shippedNow = new Date();
         update.status="shipping";
-        update.shippedAt=new Date();
+        update.shippedAt=shippedNow;
+        update.receiptDeadlineAt=new Date(shippedNow.getTime() + RECEIPT_AUTO_RELEASE_MS);
         await tx.notification.create({data:{accountId:c.buyerId,type:"kontrak",title:"Gabah Sedang Dikirim",
-          description:`Petani telah mengonfirmasi bahwa gabah sedang dikirim ke lokasi Anda.${ship?.notes?` Catatan: ${ship.notes}`:""}`,linkHref:`/kontrak/${c.id}`,contractId:c.id}});
+          description:`Petani telah mengonfirmasi bahwa gabah sedang dikirim ke lokasi Anda. Konfirmasi penerimaan atau laporkan kendala dalam 5 hari sebelum dana escrow dicairkan otomatis.${ship?.notes?` Catatan: ${ship.notes}`:""}`,linkHref:`/kontrak/${c.id}`,contractId:c.id}});
         await tx.auditLog.create({data:{actorRole:actor.role,actorName:actor.id,action:"CONTRACT_SHIPPED",
           targetType:"contract",targetId:c.id,details:`Petani mengonfirmasi pengiriman gabah. Catatan: ${ship?.notes || "-"}`}});
       } else if(action==="receive") {
         if(c.status!=="shipping") fail("INVALID_STATUS","Penerimaan barang hanya dapat dikonfirmasi setelah gabah berstatus sedang dikirim.");
         if(actor.role!=="pembeli" || actor.id!==c.buyerId) fail("FORBIDDEN","Hanya pembeli yang dapat mengonfirmasi penerimaan gabah.");
+        if(c.disputeStatus==="open") fail("DISPUTE_OPEN","Kontrak sedang dalam peninjauan sengketa oleh pengawas sistem.");
         const releasedAt = new Date();
         update.status="completed";
         update.completedAt=releasedAt;
+        if(receive?.actualVolumeKg !== undefined) update.actualVolumeKg=receive.actualVolumeKg;
+        if(receive?.actualMoisturePercent !== undefined) update.actualMoisturePercent=receive.actualMoisturePercent;
+        if(receive?.notes?.trim()) update.handoverNotes=receive.notes.trim();
         const heldPayment = await tx.payment.findFirst({
           where:{contractId:c.id,status:"paid",escrowStatus:"held"},
           select:{id:true,orderId:true,contractAmount:true},
@@ -257,23 +285,21 @@ export async function command(db:PrismaClient,actor:Actor,action:Action,id:strin
           {accountId:c.buyerId,type:"kontrak",title:"Transaksi Selesai",description:"Anda telah mengonfirmasi penerimaan gabah. Lembar bukti kesepakatan tuntas dapat diunduh.",linkHref:`/kontrak/${c.id}/bukti`,contractId:c.id},
         ]});
         await tx.auditLog.create({data:{actorRole:actor.role,actorName:actor.id,action:"CONTRACT_COMPLETED",
-          targetType:"contract",targetId:c.id,details:`Pembeli mengonfirmasi penerimaan gabah dan menyelesaikan kontrak. Catatan: ${receive?.notes || "-"}`}});
-      } else if(action==="confirm") {
-        if(c.status!=="approved") fail("INVALID_STATUS","Kontrak belum disetujui atau sudah ditutup.");
-        if(actor.role==="petani") update.farmerConfirmed=true; else update.buyerConfirmed=true;
-        const bothDone=(c.farmerConfirmed||update.farmerConfirmed)&&(c.buyerConfirmed||update.buyerConfirmed);
-        if(bothDone) {
-          update.status="completed";
-          await tx.notification.createMany({data:[
-            {accountId:locked.ownerId,type:"kontrak",title:"Kesepakatan Selesai Bersama",description:"Kedua belah pihak telah mengonfirmasi penyelesaian. Lembar bukti kesepakatan dapat diunduh.",linkHref:`/kontrak/${c.id}/bukti`,contractId:c.id},
-            {accountId:c.buyerId,type:"kontrak",title:"Kesepakatan Selesai Bersama",description:"Kedua belah pihak telah mengonfirmasi penyelesaian. Lembar bukti kesepakatan dapat diunduh.",linkHref:`/kontrak/${c.id}/bukti`,contractId:c.id},
-          ]});
-          await tx.auditLog.create({data:{actorRole:"sistem",actorName:"Sistem Transaksi",action:"CONTRACT_COMPLETED",
-            targetType:"contract",targetId:c.id,details:"Kedua belah pihak mengonfirmasi penyelesaian transaksi."}});
-        } else {
-          await tx.notification.create({data:{accountId:partnerId,type:"kontrak",title:"Konfirmasi Mitra Diterima",
-            description:"Mitra transaksi Anda telah mengonfirmasi penyelesaian. Mohon lakukan konfirmasi dari akun Anda.",linkHref:`/kontrak/${c.id}`,contractId:c.id}});
-        }
+          targetType:"contract",targetId:c.id,details:`Pembeli mengonfirmasi penerimaan gabah (timbang aktual: ${receive?.actualVolumeKg ?? "-"} kg, kadar air: ${receive?.actualMoisturePercent ?? "-"}%). Catatan: ${receive?.notes || "-"}`}});
+      } else if(action==="dispute") {
+        const paidPayment=await tx.payment.findFirst({where:{contractId:c.id,status:"paid",escrowStatus:"held"},select:{id:true}});
+        const disputeAllowed=(c.status==="shipping") || (c.status==="signed" && Boolean(paidPayment));
+        if(!disputeAllowed) fail("INVALID_STATUS","Laporan sengketa hanya dapat diajukan setelah pembayaran escrow lunas pada tahap persiapan kirim atau pengiriman.");
+        if(actor.role!=="petani" && actor.role!=="pembeli") fail("FORBIDDEN","Hanya pihak petani atau pembeli terkait yang dapat mengajukan sengketa.");
+        if(c.disputeStatus!=="none") fail("DISPUTE_ALREADY_EXISTS","Sengketa untuk kontrak ini sudah tercatat dan sedang/telah ditangani pengawas.");
+        update.disputeStatus="open";
+        update.disputeReason=dispute!.reason;
+        update.disputeByRole=actor.role;
+        update.disputedAt=new Date();
+        await tx.notification.create({data:{accountId:partnerId,type:"kontrak",title:"Kendala / Sengketa Transaksi Dilaporkan",
+          description:`Mitra melaporkan kendala pada kontrak ini untuk ditinjau pengawas (pencairan otomatis ditahan). Alasan: ${dispute!.reason}`,linkHref:`/kontrak/${c.id}`,contractId:c.id}});
+        await tx.auditLog.create({data:{actorRole:actor.role,actorName:actor.id,action:"CONTRACT_DISPUTE_OPENED",
+          targetType:"contract",targetId:c.id,details:`Sengketa dibuka oleh ${actor.role}: ${dispute!.reason}`}});
       } else if(action==="reject") {
         if(c.status!=="pending" || actor.role!=="petani") fail("INVALID_STATUS","Penolakan hanya dapat dilakukan oleh petani saat status penawaran masih berlangsung.");
         update.status="rejected";

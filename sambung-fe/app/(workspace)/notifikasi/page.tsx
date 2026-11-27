@@ -7,6 +7,7 @@ import { AsyncBoundary } from "@/components/shared/async-boundary";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useMobile } from "@/hooks/use-mobile";
+import { IS_MOCK_DATA } from "@/lib/config/fe-mode";
 import {
   Bell,
   CheckCircle2,
@@ -71,8 +72,6 @@ const MOCK_NOTIFICATIONS: NotificationItem[] = [
   },
 ];
 
-const IS_MOCK_MODE = process.env.NEXT_PUBLIC_USE_MOCK === "true";
-
 export default function NotificationsPage() {
   const isMobile = useMobile();
   const { data: remoteNotifications, isLoading, isError, error, refetch } = useNotifications();
@@ -83,14 +82,14 @@ export default function NotificationsPage() {
   const [filter, setFilter] = useState<string>("semua");
 
   const notifications = useMemo(() => {
-    if (IS_MOCK_MODE) return mockList;
+    if (IS_MOCK_DATA) return mockList;
     return remoteNotifications ?? [];
   }, [remoteNotifications, mockList]);
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   const handleMarkAllRead = () => {
-    if (IS_MOCK_MODE) {
+    if (IS_MOCK_DATA) {
       setMockList((prev) => prev.map((n) => ({ ...n, isRead: true })));
       return;
     }
@@ -98,7 +97,7 @@ export default function NotificationsPage() {
   };
 
   const handleMarkRead = (id: string) => {
-    if (IS_MOCK_MODE) {
+    if (IS_MOCK_DATA) {
       setMockList((prev) =>
         prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
       );
@@ -198,8 +197,8 @@ export default function NotificationsPage() {
 
       {/* Notifications List */}
       <AsyncBoundary
-        isLoading={!IS_MOCK_MODE && isLoading}
-        isError={!IS_MOCK_MODE && isError}
+        isLoading={!IS_MOCK_DATA && isLoading}
+        isError={!IS_MOCK_DATA && isError}
         error={error}
         onRetry={() => void refetch()}
         isEmpty={filteredNotifications.length === 0}
