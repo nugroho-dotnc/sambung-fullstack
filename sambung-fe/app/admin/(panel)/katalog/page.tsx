@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import Link from "next/link";
 import { PageContainer } from "@/components/shared/page-container";
+import { AdminPageHeader } from "@/features/admin/components/admin-page-header";
+import { AdminTableScroll } from "@/features/admin/components/admin-table-scroll";
 import { TableRowsSkeleton } from "@/components/shared/page-skeletons";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { formatRupiah } from "@/features/offers/components/offer-summary";
 import { useOffers } from "@/features/offers/hooks/use-offers";
-import { Search, ShoppingBag } from "lucide-react";
+import { Search } from "lucide-react";
 
 const COMMODITY_FILTER_OPTIONS = [
   { value: "all", label: "Semua Komoditas" },
@@ -50,51 +51,23 @@ export default function AdminCatalogPage() {
   }, [offers, commodityFilter, searchQuery]);
 
   return (
-    <PageContainer className="py-7 sm:py-9 space-y-7 sm:space-y-8">
-      {/* Header & Breadcrumb */}
-      <header className="border-b border-border pb-6">
-        <nav
-          aria-label="Breadcrumb"
-          className="flex items-center gap-2 text-xs text-muted-foreground mb-2.5"
-        >
-          <Link href="/admin" className="admin-breadcrumb-link font-semibold">
-            Pengawas Sistem
-          </Link>
-          <span className="text-muted-foreground/60" aria-hidden="true">/</span>
-          <span aria-current="page" className="font-medium text-foreground">
-            Pemantauan Pasokan
-          </span>
-        </nav>
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="font-display text-2xl sm:text-[28px] font-bold tracking-tight text-foreground">
-              Pemantauan Pasokan Gabah Terdaftar
-            </h1>
-            <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed max-w-3xl">
-              Daftar seluruh pasokan panen yang terdaftar di SAMBUNG beserta volume yang sedang dicadangkan otomatis agar tidak dipesan ganda dan harga minta petani.
-            </p>
-          </div>
-
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md admin-brand-pill text-xs font-semibold shrink-0 self-start sm:self-auto">
-            <ShoppingBag className="w-4 h-4 shrink-0 text-white" aria-hidden="true" />
-            <span className="tabular-nums font-bold">
-              {filteredOffers.length} Tawaran Aktif
-            </span>
-          </div>
-        </div>
-      </header>
+    <PageContainer>
+      <AdminPageHeader
+        section="Pemantauan Pasokan"
+        title="Pemantauan Pasokan Gabah Terdaftar"
+        description="Daftar seluruh pasokan panen yang terdaftar di SAMBUNG beserta volume yang sedang dicadangkan otomatis agar tidak dipesan ganda dan harga minta petani."
+      />
 
       {/* Table Container with Integrated Toolbar (Gestalt Common Region) */}
-      <Card className="admin-surface p-0 gap-0 overflow-hidden">
-        <div className="px-6 py-5 border-b border-border flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <Card className="rounded-2xl p-0 gap-0 overflow-hidden">
+        <div className="px-4 sm:px-6 py-5 border-b border-border flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <h2 className="font-display text-base font-bold text-foreground">
               Daftar Pasokan Gabah Terdaftar
             </h2>
             <span
               aria-live="polite"
-              className="text-xs font-semibold text-[var(--admin-gold-text)] tabular-nums"
+              className="text-xs font-semibold text-price-caution tabular-nums"
             >
               Total {filteredOffers.length} entri
             </span>
@@ -115,7 +88,7 @@ export default function AdminCatalogPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Cari petani, kabupaten, atau ID..."
-                className="w-full h-10 pl-9 pr-3 rounded-lg border border-input bg-background text-[13px] text-foreground placeholder:text-muted-foreground focus-visible:outline-none"
+                className="w-full h-10 pl-9 pr-3 rounded-xl border border-input bg-background text-[13px] text-foreground placeholder:text-muted-foreground focus-visible:outline-none"
               />
             </div>
 
@@ -128,7 +101,7 @@ export default function AdminCatalogPage() {
             >
               <SelectTrigger
                 aria-label="Filter jenis komoditas"
-                className="h-10 min-w-48 px-3 rounded-lg border border-input bg-background text-xs font-semibold text-foreground"
+                className="h-10 min-w-48 px-3 rounded-xl border border-input bg-background text-xs font-semibold text-foreground"
               >
                 <SelectValue placeholder="Pilih komoditas" />
               </SelectTrigger>
@@ -143,7 +116,7 @@ export default function AdminCatalogPage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <AdminTableScroll label="Daftar pasokan gabah">
           <table className="admin-table w-full text-left border-collapse text-[13px]">
             <caption className="sr-only">
               Daftar pasokan gabah terdaftar beserta volume kuota, volume tersedia, volume dicadangkan, dan harga minta
@@ -195,10 +168,10 @@ export default function AdminCatalogPage() {
                     <td className="py-4 px-5 first:pl-6 last:pr-6 text-right font-semibold text-foreground whitespace-nowrap tabular-nums">
                       {(offer.totalVolumeKg || 0).toLocaleString("id-ID")} kg
                     </td>
-                    <td className="py-4 px-5 first:pl-6 last:pr-6 text-right font-bold text-[var(--admin-positive-text)] whitespace-nowrap tabular-nums">
+                    <td className="py-4 px-5 first:pl-6 last:pr-6 text-right font-bold text-primary whitespace-nowrap tabular-nums">
                       {(offer.availableVolumeKg || 0).toLocaleString("id-ID")} kg
                     </td>
-                    <td className="py-4 px-5 first:pl-6 last:pr-6 text-right font-bold text-[var(--admin-gold-text)] whitespace-nowrap tabular-nums">
+                    <td className="py-4 px-5 first:pl-6 last:pr-6 text-right font-bold text-price-caution whitespace-nowrap tabular-nums">
                       {(offer.reservedVolumeKg || 0).toLocaleString("id-ID")} kg
                     </td>
                     <td className="py-4 px-5 first:pl-6 last:pr-6 text-right font-bold text-foreground whitespace-nowrap tabular-nums">
@@ -207,7 +180,7 @@ export default function AdminCatalogPage() {
                     <td className="py-4 px-5 first:pl-6 last:pr-6 text-center whitespace-nowrap">
                       <Badge
                         variant="outline"
-                        className={`rounded-md px-2 py-0.5 text-xs font-semibold uppercase ${
+                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                           offer.status === "published"
                             ? "status-success"
                             : "bg-muted text-foreground border-transparent"
@@ -221,7 +194,7 @@ export default function AdminCatalogPage() {
               )}
             </tbody>
           </table>
-        </div>
+        </AdminTableScroll>
       </Card>
     </PageContainer>
   );

@@ -30,6 +30,7 @@ import { ListPagination, paginateItems } from "@/components/shared/list-paginati
 import { useCurrentUser } from "@/features/auth/hooks/use-auth";
 import { useContracts } from "@/features/contracts/hooks/use-contracts";
 import { formatRupiah } from "@/features/offers/components/offer-summary";
+import { contractBadgeStyles } from "@/features/contracts/components/contract-status-badge-styles";
 import { CONTRACT_STATUS_LABELS } from "@/features/contracts/domain/state-machine";
 import {
   getPaymentDeadlineInfo,
@@ -38,21 +39,6 @@ import {
 } from "@/features/contracts/domain/payment-helpers";
 import { ProBadge } from "@/features/subscription/components/pro-badge";
 import { useMobile } from "@/hooks/use-mobile";
-
-function getPaymentBadgeClasses(tone: "emerald" | "blue" | "amber" | "danger" | "neutral"): string {
-  switch (tone) {
-    case "emerald":
-      return "bg-primary/15 text-primary border border-primary/30";
-    case "blue":
-      return "bg-blue-100 text-blue-800 dark:bg-blue-950/70 dark:text-blue-300 border border-blue-300/70 dark:border-blue-800/60";
-    case "amber":
-      return "bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-300/70 dark:border-amber-800/60";
-    case "danger":
-      return "bg-destructive/15 text-destructive border border-destructive/40";
-    default:
-      return "bg-muted text-muted-foreground border border-border/60";
-  }
-}
 
 export default function ContractsListPage() {
   const isMobile = useMobile();
@@ -215,13 +201,7 @@ export default function ContractsListPage() {
 
                         <span
                           className={`text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${
-                            contract.status === "signed" || contract.status === "completed"
-                              ? "bg-primary/15 text-primary"
-                              : contract.status === "shipping"
-                              ? "bg-blue-100 text-blue-800 dark:bg-blue-950/70 dark:text-blue-300"
-                              : contract.status === "approved" || contract.status === "pending"
-                              ? "bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300"
-                              : "bg-muted text-muted-foreground"
+                            contractBadgeStyles[statusMeta.tone]
                           }`}
                         >
                           {statusMeta.label}
@@ -276,9 +256,7 @@ export default function ContractsListPage() {
                           Pembayaran Escrow:
                         </span>
                         <span
-                          className={`font-semibold px-2.5 py-0.5 rounded-full ${getPaymentBadgeClasses(
-                            paymentMeta.tone
-                          )}`}
+                          className={`font-semibold px-2.5 py-0.5 rounded-full ${contractBadgeStyles[paymentMeta.tone]}`}
                         >
                           {paymentMeta.shortLabel}
                         </span>

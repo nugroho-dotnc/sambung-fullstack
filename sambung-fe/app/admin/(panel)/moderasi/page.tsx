@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { PageContainer } from "@/components/shared/page-container";
+import { AdminPageHeader } from "@/features/admin/components/admin-page-header";
 import { ListCardsSkeleton } from "@/components/shared/page-skeletons";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,6 @@ import { useModerateOffer } from "@/features/admin/hooks/use-admin";
 import {
   AlertCircle,
   CheckCircle,
-  ShieldAlert,
 } from "lucide-react";
 
 export default function AdminModerasiPage() {
@@ -68,39 +67,12 @@ export default function AdminModerasiPage() {
   };
 
   return (
-    <PageContainer className="py-7 sm:py-9 space-y-7 sm:space-y-8">
-      {/* Header & Breadcrumb */}
-      <header className="border-b border-border pb-6">
-        <nav
-          aria-label="Breadcrumb"
-          className="flex items-center gap-2 text-xs text-muted-foreground mb-2.5"
-        >
-          <Link href="/admin" className="admin-breadcrumb-link font-semibold">
-            Pengawas Sistem
-          </Link>
-          <span className="text-muted-foreground/60" aria-hidden="true">/</span>
-          <span aria-current="page" className="font-medium text-foreground">
-            Moderasi Tawaran Panen
-          </span>
-        </nav>
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="font-display text-2xl sm:text-[28px] font-bold tracking-tight text-foreground">
-              Moderasi &amp; Pengawasan Penawaran
-            </h1>
-            <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed max-w-3xl">
-              Beri catatan perbaikan informasi kepada petani tanpa menyembunyikan tawaran
-              atau membatalkan pesanan yang sedang bernegosiasi secara sepihak.
-            </p>
-          </div>
-
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md admin-brand-pill text-xs font-semibold shrink-0 self-start sm:self-auto">
-            <ShieldAlert className="w-4 h-4 shrink-0 text-white" aria-hidden="true" />
-            <span>Pengawasan Non-Destruktif</span>
-          </div>
-        </div>
-      </header>
+    <PageContainer>
+      <AdminPageHeader
+        section="Moderasi Tawaran Panen"
+        title="Moderasi & Pengawasan Penawaran"
+        description="Beri catatan perbaikan informasi kepada petani tanpa menyembunyikan tawaran atau membatalkan pesanan yang sedang bernegosiasi secara sepihak."
+      />
 
       {successMessage && (
         <div
@@ -124,12 +96,12 @@ export default function AdminModerasiPage() {
       )}
 
       {/* Daftar Moderasi Terpadu (Gestalt Common Region) */}
-      <Card className="admin-surface p-0 gap-0 overflow-hidden">
-        <div className="px-6 py-5 border-b border-border flex items-center justify-between gap-3">
+      <Card className="rounded-2xl p-0 gap-0 overflow-hidden">
+        <div className="px-4 sm:px-6 py-5 border-b border-border flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-base font-bold text-foreground">
             Daftar Penawaran Panen Terdaftar
           </h2>
-          <span className="text-xs font-semibold text-[var(--admin-gold-text)] tabular-nums">
+          <span className="text-xs font-semibold text-price-caution tabular-nums">
             {(offers || []).length} tawaran
           </span>
         </div>
@@ -172,7 +144,7 @@ export default function AdminModerasiPage() {
                       <div>
                         <h3 className="font-display font-bold text-foreground text-base">
                           {offer.farmerName} ·{" "}
-                          <span className="font-bold text-[var(--admin-positive-text)] tabular-nums">
+                          <span className="font-bold text-primary tabular-nums">
                             {formatRupiah(offer.askPrice)}/kg
                           </span>
                         </h3>
@@ -196,7 +168,7 @@ export default function AdminModerasiPage() {
                           size="sm"
                           disabled={moderateOfferMutation.isPending}
                           onClick={() => handleResolveIssue(offer.id)}
-                          className="admin-cta min-h-9 rounded-lg px-4 gap-1.5 font-semibold text-xs cursor-pointer"
+                          className="min-h-10 rounded-md px-4 gap-1.5 font-semibold text-xs cursor-pointer"
                         >
                           <CheckCircle className="w-4 h-4" aria-hidden="true" />
                           <span>Tutup Temuan (Bersih)</span>
@@ -212,7 +184,7 @@ export default function AdminModerasiPage() {
                             setIssueNote("");
                             setFormError(null);
                           }}
-                          className="min-h-9 rounded-lg px-4 gap-1.5 font-semibold text-[var(--admin-gold-text)] border-border hover:border-[#C08809] hover:bg-muted active:scale-[0.985] transition-all text-xs cursor-pointer"
+                          className="min-h-9 rounded-lg px-4 gap-1.5 font-semibold text-price-caution border-border hover:border-ring hover:bg-muted active:scale-[0.985] transition-all text-xs cursor-pointer"
                         >
                           <AlertCircle className="w-4 h-4" aria-hidden="true" />
                           <span>Minta Perbaikan Informasi</span>
@@ -236,7 +208,7 @@ export default function AdminModerasiPage() {
                         value={issueNote}
                         onChange={(e) => setIssueNote(e.target.value)}
                         placeholder="Contoh: Keterangan akses jalan truk penggilingan perlu diperjelas, kadar air tampak melebihi batas toleransi..."
-                        className="w-full rounded-lg border border-input bg-background p-3.5 text-[13px] text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="w-full rounded-xl border border-input bg-background p-3.5 text-[13px] text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       />
                       <div className="flex justify-end gap-2.5 pt-1">
                         <Button
@@ -256,7 +228,7 @@ export default function AdminModerasiPage() {
                           size="sm"
                           disabled={moderateOfferMutation.isPending}
                           onClick={() => handleApplyIssue(offer.id)}
-                          className="admin-cta min-h-9 rounded-lg px-4 font-semibold text-xs cursor-pointer"
+                          className="min-h-10 rounded-md px-4 font-semibold text-xs cursor-pointer"
                         >
                           {moderateOfferMutation.isPending ? "Mengirim..." : "Kirim Catatan ke Petani"}
                         </Button>

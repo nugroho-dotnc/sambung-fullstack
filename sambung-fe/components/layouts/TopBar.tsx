@@ -34,7 +34,7 @@ export default function TopBar() {
         return (
           <Badge
             variant="outline"
-            className="admin-brand-pill rounded-md px-2 py-0.5 text-xs font-semibold"
+            className="rounded-full border-primary/30 bg-primary/10 text-primary"
           >
             Pengawas Data
           </Badge>
@@ -52,15 +52,9 @@ export default function TopBar() {
       : name.slice(0, 2).toUpperCase();
   };
 
-  const isAdmin = user?.role === "admin";
-
   return (
     <header
-      className={`sticky top-0 z-40 w-full h-16 border-b transition-colors print:hidden ${
-        isAdmin
-          ? "border-border bg-card/95 backdrop-blur-sm"
-          : "border-border/80 bg-card/90 backdrop-blur-md shadow-2xs"
-      }`}
+      className="sticky top-0 z-40 w-full h-16 border-b border-border/80 bg-card/90 backdrop-blur-md shadow-2xs transition-colors print:hidden"
     >
       <div className="h-full px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -88,24 +82,18 @@ export default function TopBar() {
             <Bell className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" aria-hidden="true" />
             <span
               aria-hidden="true"
-              className={`absolute top-2 right-2 w-2 h-2 rounded-full ${
-                isAdmin ? "admin-live-dot bg-[#78B000]" : "bg-primary animate-pulse"
-              }`}
+              className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary animate-pulse"
             />
           </ButtonLink>
 
           {/* User Profile Dropdown Menu (Tanpa Role Switcher!) */}
           <DropdownMenu>
             <DropdownMenuTrigger
-              className={`flex items-center gap-2.5 p-1.5 rounded-full hover:bg-muted/70 active:scale-[0.98] transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                isAdmin ? "hover:ring-2 hover:ring-[#C08809]/60" : ""
-              }`}
+              className="flex items-center gap-2.5 p-1.5 rounded-full hover:bg-muted/70 active:scale-[0.98] transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Avatar className="w-9 h-9 border border-border">
                 <AvatarFallback
-                  className={`font-bold text-xs ${
-                    isAdmin ? "bg-[#0D5907] text-white" : "bg-primary/10 text-primary"
-                  }`}
+                  className="font-bold text-xs bg-primary/10 text-primary"
                 >
                   {getInitials(user?.name)}
                 </AvatarFallback>

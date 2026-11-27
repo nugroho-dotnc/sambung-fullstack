@@ -234,11 +234,11 @@ export function WeeklyIngestPanel() {
 
   return (
     <div className="space-y-6">
-      <Card className="admin-surface p-6 sm:p-7 space-y-6">
+      <Card className="rounded-2xl p-6 sm:p-7 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-[var(--admin-gold-text)]">
+              <span className="text-xs font-bold uppercase tracking-wider text-price-caution">
                 Pembaruan State Pasar AI
               </span>
               <Badge
@@ -262,14 +262,14 @@ export function WeeklyIngestPanel() {
               size="sm"
               variant="outline"
               onClick={() => setShowCsvBox(!showCsvBox)}
-              className="min-h-9 rounded-lg px-3.5 gap-1.5 text-xs font-semibold hover:border-[#C08809] hover:bg-muted active:scale-[0.985] transition-all cursor-pointer"
+              className="min-h-9 rounded-lg px-3.5 gap-1.5 text-xs font-semibold hover:border-ring hover:bg-muted active:scale-[0.985] transition-all cursor-pointer"
             >
               <FileSpreadsheet className="w-3.5 h-3.5" aria-hidden="true" />
               <span>{showCsvBox ? "Tutup Paste CSV" : "Tempel CSV"}</span>
             </Button>
 
-            <label className="inline-flex items-center gap-1.5 min-h-9 px-3.5 rounded-lg border border-input bg-background hover:border-[#C08809] hover:bg-muted active:scale-[0.985] text-xs font-semibold text-foreground cursor-pointer transition-all">
-              <Upload className="w-3.5 h-3.5 text-[var(--admin-positive-text)]" aria-hidden="true" />
+            <label className="inline-flex items-center gap-1.5 min-h-9 px-3.5 rounded-xl border border-input bg-background hover:border-ring hover:bg-muted active:scale-[0.985] text-xs font-semibold text-foreground cursor-pointer transition-all">
+              <Upload className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
               <span>Unggah File CSV</span>
               <input
                 type="file"
@@ -300,7 +300,7 @@ export function WeeklyIngestPanel() {
                 size="sm"
                 variant="outline"
                 onClick={() => parseCsvString(csvText)}
-                className="min-h-9 rounded-lg px-4 text-xs font-semibold hover:border-[#C08809] active:scale-[0.985] transition-all cursor-pointer"
+                className="min-h-9 rounded-lg px-4 text-xs font-semibold hover:border-ring active:scale-[0.985] transition-all cursor-pointer"
               >
                 Terapkan Baris CSV
               </Button>
@@ -332,7 +332,7 @@ export function WeeklyIngestPanel() {
               size="sm"
               variant="outline"
               onClick={addRow}
-              className="min-h-9 rounded-lg px-3.5 gap-1.5 text-xs font-semibold hover:border-[#C08809] hover:bg-muted active:scale-[0.985] transition-all cursor-pointer"
+              className="min-h-9 rounded-lg px-3.5 gap-1.5 text-xs font-semibold hover:border-ring hover:bg-muted active:scale-[0.985] transition-all cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" aria-hidden="true" />
               <span>Tambah Provinsi</span>
@@ -361,7 +361,7 @@ export function WeeklyIngestPanel() {
                     Baris {idx + 1} Provinsi
                   </label>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold tabular-nums text-[var(--admin-gold-text)] w-6 shrink-0">
+                    <span className="text-xs font-bold tabular-nums text-price-caution w-6 shrink-0">
                       #{idx + 1}
                     </span>
                     <Input
@@ -451,7 +451,7 @@ export function WeeklyIngestPanel() {
                     disabled={rows.length <= 1}
                     onClick={() => removeRow(row.key)}
                     aria-label={`Hapus baris ${idx + 1}`}
-                    className="size-9 rounded-lg text-muted-foreground hover:text-[var(--admin-error-text)] hover:bg-muted active:scale-95 transition-all cursor-pointer"
+                    className="size-9 rounded-lg text-muted-foreground hover:text-destructive hover:bg-muted active:scale-95 transition-all cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" aria-hidden="true" />
                   </Button>
@@ -512,7 +512,7 @@ export function WeeklyIngestPanel() {
             variant="outline"
             disabled={ingestMutation.isPending}
             onClick={() => void submitIngest(false)}
-            className="min-h-10 rounded-lg px-4 gap-1.5 text-xs font-semibold hover:border-[#C08809] hover:bg-muted active:scale-[0.985] transition-all cursor-pointer"
+            className="min-h-10 rounded-lg px-4 gap-1.5 text-xs font-semibold hover:border-ring hover:bg-muted active:scale-[0.985] transition-all cursor-pointer"
           >
             {ingestMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />}
             <span>Uji Kering (Dry-Run)</span>
@@ -523,7 +523,7 @@ export function WeeklyIngestPanel() {
             onClick={() => {
               if (buildValidatedPayload()) setConfirmPersist(true);
             }}
-            className="admin-cta min-h-10 rounded-lg px-5 gap-2 text-xs font-semibold cursor-pointer"
+            className="min-h-11 rounded-md px-5 gap-2 text-sm font-semibold cursor-pointer"
           >
             <DatabaseBackup className="w-4 h-4" aria-hidden="true" />
             <span>Simpan &amp; Hitung Ulang AI</span>

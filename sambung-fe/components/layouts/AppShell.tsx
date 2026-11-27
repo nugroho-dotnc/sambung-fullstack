@@ -99,7 +99,7 @@ function AppShellInner({ children, allowedRoles }: AppShellProps) {
       >
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2.5 focus:rounded-lg focus:bg-[#0D5907] focus:text-white focus:text-xs focus:font-semibold"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2.5 focus:rounded-lg focus:bg-primary focus:text-primary-foreground focus:text-xs focus:font-semibold"
         >
           Lewati ke konten utama
         </a>
@@ -113,11 +113,7 @@ function AppShellInner({ children, allowedRoles }: AppShellProps) {
           <main
             id="main-content"
             tabIndex={-1}
-            className={`flex-1 min-w-0 transition-colors focus:outline-none print:bg-white print:p-0 print:m-0 ${
-              isAdmin
-                ? "bg-[var(--admin-canvas)]"
-                : "bg-slate-50/70 dark:bg-[#070D09]"
-            }`}
+            className="flex-1 min-w-0 bg-slate-50/70 transition-colors focus:outline-none dark:bg-[#070D09] print:bg-white print:p-0 print:m-0"
           >
             {children}
           </main>

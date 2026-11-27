@@ -1,8 +1,10 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useState, useMemo } from "react";
-import Link from "next/link";
 import { PageContainer } from "@/components/shared/page-container";
+import { AdminPageHeader } from "@/features/admin/components/admin-page-header";
+import { AdminTableScroll } from "@/features/admin/components/admin-table-scroll";
 import { TableRowsSkeleton } from "@/components/shared/page-skeletons";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,25 +13,9 @@ import {
   formatPaymentChannel,
   getPaymentStatusMeta,
 } from "@/features/contracts/domain/payment-helpers";
+import { contractBadgeStyles } from "@/features/contracts/components/contract-status-badge-styles";
+import { CONTRACT_STATUS_LABELS } from "@/features/contracts/domain/state-machine";
 import { useContracts } from "@/features/contracts/hooks/use-contracts";
-import { Lock } from "lucide-react";
-
-function getAdminPaymentBadgeClasses(
-  tone: "emerald" | "blue" | "amber" | "danger" | "neutral"
-): string {
-  switch (tone) {
-    case "emerald":
-      return "status-success";
-    case "blue":
-      return "status-info";
-    case "amber":
-      return "status-warning";
-    case "danger":
-      return "status-error";
-    default:
-      return "bg-muted text-foreground";
-  }
-}
 
 export default function AdminContractsPage() {
   const { data: contracts, isLoading } = useContracts();
@@ -62,56 +48,22 @@ export default function AdminContractsPage() {
     return "0812-****-7890";
   }
 
-  const getContractStatusClass = (status: string): string => {
-    if (status === "completed") return "status-success";
-    if (status === "signed" || status === "shipping") return "status-info";
-    if (status === "pending" || status === "approved") return "status-warning";
-    return "status-error";
-  };
-
   return (
-    <PageContainer className="py-7 sm:py-9 space-y-7 sm:space-y-8">
-      {/* Header & Breadcrumb */}
-      <header className="border-b border-border pb-6">
-        <nav
-          aria-label="Breadcrumb"
-          className="flex items-center gap-2 text-xs text-muted-foreground mb-2.5"
-        >
-          <Link href="/admin" className="admin-breadcrumb-link font-semibold">
-            Pengawas Sistem
-          </Link>
-          <span className="text-muted-foreground/60" aria-hidden="true">/</span>
-          <span aria-current="page" className="font-medium text-foreground">
-            Pemantauan Kontrak
-          </span>
-        </nav>
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="font-display text-2xl sm:text-[28px] font-bold tracking-tight text-foreground">
-              Pemantauan Kesepakatan &amp; Kontrak Digital
-            </h1>
-            <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed max-w-3xl">
-              Pengawasan status negosiasi dua pihak, kepatuhan batas waktu, dan verifikasi
-              serah terima fisik bertahap. Kontak pengguna tetap tersamar demi privasi.
-            </p>
-          </div>
-
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md admin-brand-pill text-xs font-semibold shrink-0 self-start sm:self-auto">
-            <Lock className="w-4 h-4 shrink-0 text-white" aria-hidden="true" />
-            <span>Kontak Pengguna Tersamar</span>
-          </div>
-        </div>
-      </header>
+    <PageContainer>
+      <AdminPageHeader
+        section="Pemantauan Kontrak"
+        title="Pemantauan Kesepakatan & Kontrak Digital"
+        description="Pengawasan status negosiasi dua pihak, kepatuhan batas waktu, dan verifikasi serah terima fisik bertahap. Kontak pengguna tetap tersamar demi privasi."
+      />
 
       {/* Table Card with Integrated Filter Toolbar */}
-      <Card className="admin-surface p-0 gap-0 overflow-hidden">
-        <div className="px-6 py-5 border-b border-border flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <Card className="rounded-2xl p-0 gap-0 overflow-hidden">
+        <div className="px-4 sm:px-6 py-5 border-b border-border flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <h2 className="font-display text-base font-bold text-foreground">
               Daftar Kesepakatan Berjalan
             </h2>
-            <span aria-live="polite" className="text-xs font-semibold text-[var(--admin-gold-text)] tabular-nums">
+            <span aria-live="polite" className="text-xs font-semibold text-price-caution tabular-nums">
               {filteredContracts.length} kesepakatan
             </span>
           </div>
@@ -146,21 +98,22 @@ export default function AdminContractsPage() {
             ].map((tab) => {
               const active = statusFilter === tab.id;
               return (
-                <button
+                <Button
                   key={tab.id}
                   type="button"
+                  variant={active ? "default" : "outline"}
                   aria-pressed={active}
                   onClick={() => setStatusFilter(tab.id)}
-                  className="admin-filter-btn min-h-9 px-3.5 rounded-lg font-semibold cursor-pointer"
+                  className="min-h-10 px-3.5 rounded-xl font-semibold cursor-pointer"
                 >
                   {tab.label}
-                </button>
+                </Button>
               );
             })}
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <AdminTableScroll label="Daftar kesepakatan">
           <table className="admin-table w-full text-left border-collapse text-[13px]">
             <caption className="sr-only">
               Daftar kontrak dan kesepakatan pasokan antara petani dan produsen dengan kontak tersamar
@@ -222,7 +175,7 @@ export default function AdminContractsPage() {
                           {(contract.volumeKg || 0).toLocaleString("id-ID")} kg
                         </span>
                       </td>
-                      <td className="py-4 px-5 first:pl-6 last:pr-6 text-right font-bold text-[var(--admin-positive-text)] whitespace-nowrap tabular-nums">
+                      <td className="py-4 px-5 first:pl-6 last:pr-6 text-right font-bold text-primary whitespace-nowrap tabular-nums">
                         {formatRupiah(contract.currentPrice)}/kg
                       </td>
                       <td className="py-4 px-5 first:pl-6 last:pr-6 text-right font-bold text-foreground whitespace-nowrap tabular-nums">
@@ -231,9 +184,7 @@ export default function AdminContractsPage() {
                       <td className="py-4 px-5 first:pl-6 last:pr-6 text-center whitespace-nowrap">
                         <Badge
                           variant="outline"
-                          className={`rounded-md px-2 py-0.5 text-xs font-semibold uppercase ${getContractStatusClass(
-                            contract.status
-                          )}`}
+                          className={`rounded-full px-2 py-0.5 text-xs font-semibold ${contractBadgeStyles[CONTRACT_STATUS_LABELS[contract.status].tone]}`}
                         >
                           {contract.status === "pending"
                             ? "Menunggu"
@@ -256,9 +207,7 @@ export default function AdminContractsPage() {
                       </td>
                       <td className="py-4 px-5 first:pl-6 last:pr-6 whitespace-nowrap">
                         <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold ${getAdminPaymentBadgeClasses(
-                            paymentMeta.tone
-                          )}`}
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${contractBadgeStyles[paymentMeta.tone]}`}
                         >
                           {paymentMeta.shortLabel}
                         </span>
@@ -274,7 +223,7 @@ export default function AdminContractsPage() {
                       </td>
                       <td className="py-4 px-5 first:pl-6 last:pr-6 text-center whitespace-nowrap">
                         <span
-                          className={`inline-block px-2.5 py-0.5 rounded-md text-xs font-semibold tabular-nums ${
+                          className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold tabular-nums ${
                             deliveryCount === 2
                               ? "status-success"
                               : deliveryCount === 1
@@ -291,7 +240,7 @@ export default function AdminContractsPage() {
               )}
             </tbody>
           </table>
-        </div>
+        </AdminTableScroll>
       </Card>
     </PageContainer>
   );
