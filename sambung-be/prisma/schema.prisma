@@ -106,6 +106,14 @@ model Contract {
   currentTurnRole String @default("petani")
   farmerConfirmed Boolean @default(false)
   buyerConfirmed Boolean @default(false)
+  farmerSignature String?
+  farmerSignatureType String?
+  farmerSignedAt DateTime? @db.Timestamptz(6)
+  buyerSignature String?
+  buyerSignatureType String?
+  buyerSignedAt DateTime? @db.Timestamptz(6)
+  shippedAt DateTime? @db.Timestamptz(6)
+  completedAt DateTime? @db.Timestamptz(6)
   expiresAt DateTime @db.Timestamptz(6)
   cancelReason String?
   createdAt DateTime @default(now())

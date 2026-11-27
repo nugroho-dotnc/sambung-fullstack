@@ -26,7 +26,7 @@ export default function DigitalContractProofPage({
     );
   }
 
-  if (isError || !contract || !["approved","completed"].includes(contract.status)) {
+  if (isError || !contract || !["approved", "signed", "shipping", "completed"].includes(contract.status)) {
     return (
       <PageContainer>
         <div className="rounded-2xl border border-dashed p-12 text-center space-y-3">
@@ -64,7 +64,7 @@ export default function DigitalContractProofPage({
       </div>
 
       {/* Official Agreement Sheet (Print-optimized) */}
-      <div className="rounded-2xl border border-border/90 bg-card p-8 sm:p-12 shadow-sm space-y-8 text-foreground print:border-none print:shadow-none print:p-4">
+      <div className="rounded-2xl border border-border/90 bg-card p-8 sm:p-12 shadow-sm space-y-8 text-foreground print:border-none print:shadow-none print:p-0 print:m-0 print:space-y-4">
         {/* Document Header */}
         <div className="flex flex-col sm:flex-row sm:items-start justify-between border-b-2 border-foreground/20 pb-6 gap-4">
           <div className="space-y-1">
@@ -205,28 +205,95 @@ export default function DigitalContractProofPage({
 
         {/* Digital Signatures and QR Code Mockup */}
         <div className="pt-6 border-t border-border/60 grid grid-cols-1 sm:grid-cols-3 print:grid-cols-3 gap-6 items-end text-center text-xs">
-          <div className="space-y-6 sm:space-y-12 order-1 sm:order-none">
-            <span className="text-muted-foreground text-xs">Pihak Pertama</span>
+          {/* Pihak Pertama (Petani) */}
+          <div className="space-y-3 order-1 sm:order-none">
+            <span className="text-muted-foreground text-xs font-semibold block">Pihak Pertama</span>
+            <div className="min-h-16 flex flex-col items-center justify-center">
+              {contract.farmerSignature ? (
+                contract.farmerSignatureType === "draw" ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={contract.farmerSignature}
+                    alt={`Tanda tangan ${contract.farmerName}`}
+                    className="h-16 max-w-[180px] object-contain"
+                  />
+                ) : (
+                  <span className="font-serif italic font-bold text-2xl text-foreground tracking-wide py-2">
+                    {contract.farmerSignature}
+                  </span>
+                )
+              ) : (
+                <span className="text-xs text-muted-foreground italic border border-dashed border-border px-3 py-2 rounded-lg">
+                  Menunggu Tanda Tangan
+                </span>
+              )}
+            </div>
             <div className="border-t border-foreground/30 pt-1">
-              <p className="font-bold">{contract.farmerName}</p>
+              <p className="font-bold text-foreground">{contract.farmerName}</p>
               <p className="text-xs text-muted-foreground">Petani / Poktan</p>
+              {contract.farmerSignedAt && (
+                <span className="text-[10px] text-muted-foreground block mt-0.5">
+                  Ditandatangani: {new Date(contract.farmerSignedAt).toLocaleDateString("id-ID", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              )}
             </div>
           </div>
 
+          {/* Status QR Code Verification */}
           <div className="space-y-2 flex flex-col items-center order-3 sm:order-none pt-2 sm:pt-0">
             <div className="w-16 h-16 rounded-xl border border-border/80 bg-muted/40 flex items-center justify-center text-muted-foreground">
               <QrCode className="w-10 h-10 text-foreground/80" />
             </div>
-            <span className="text-xs text-muted-foreground block ">
-              Terverifikasi Digital
+            <span className="text-xs text-muted-foreground block font-medium">
+              {contract.status === "signed" || contract.status === "shipping" || contract.status === "completed"
+                ? "Terverifikasi Sah Digital"
+                : "Draf Kesepakatan"}
             </span>
           </div>
 
-          <div className="space-y-6 sm:space-y-12 order-2 sm:order-none">
-            <span className="text-muted-foreground text-xs">Pihak Kedua</span>
+          {/* Pihak Kedua (Pembeli) */}
+          <div className="space-y-3 order-2 sm:order-none">
+            <span className="text-muted-foreground text-xs font-semibold block">Pihak Kedua</span>
+            <div className="min-h-16 flex flex-col items-center justify-center">
+              {contract.buyerSignature ? (
+                contract.buyerSignatureType === "draw" ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={contract.buyerSignature}
+                    alt={`Tanda tangan ${contract.buyerName}`}
+                    className="h-16 max-w-[180px] object-contain"
+                  />
+                ) : (
+                  <span className="font-serif italic font-bold text-2xl text-foreground tracking-wide py-2">
+                    {contract.buyerSignature}
+                  </span>
+                )
+              ) : (
+                <span className="text-xs text-muted-foreground italic border border-dashed border-border px-3 py-2 rounded-lg">
+                  Menunggu Tanda Tangan
+                </span>
+              )}
+            </div>
             <div className="border-t border-foreground/30 pt-1">
-              <p className="font-bold">{contract.buyerName}</p>
+              <p className="font-bold text-foreground">{contract.buyerName}</p>
               <p className="text-xs text-muted-foreground">Pembeli / Penggilingan</p>
+              {contract.buyerSignedAt && (
+                <span className="text-[10px] text-muted-foreground block mt-0.5">
+                  Ditandatangani: {new Date(contract.buyerSignedAt).toLocaleDateString("id-ID", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              )}
             </div>
           </div>
         </div>

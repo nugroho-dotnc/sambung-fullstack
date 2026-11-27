@@ -527,7 +527,7 @@ function WizardForm({
             <div className="grid items-start gap-6 lg:grid-cols-12">
               {/* Left Column: Harvest & Location Fields */}
               <div className="lg:col-span-7 space-y-6">
-                <section className="rounded-2xl border border-border/80 bg-card p-6 sm:p-7 space-y-5">
+                <section className="rounded-2xl border border-border/80 bg-card p-6 sm:p-7 space-y-8">
                   <div className="border-b border-border/60 pb-3">
                     <h2 className="text-base font-semibold text-foreground">
                       1. Rincian Komoditas & Volume
@@ -580,15 +580,12 @@ function WizardForm({
                         placeholder="Contoh: 5000"
                         className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-primary"
                       />
-                      <span className="text-xs text-muted-foreground block">
-                        ≈ {(volumeNum / 1000).toLocaleString("id-ID", { maximumFractionDigits: 2 })} ton
-                      </span>
                     </label>
 
                     {/* Tanggal Panen */}
                     <label className="block space-y-1.5">
                       <span className="text-xs font-medium text-foreground">
-                        Tanggal Panen / Siap Angkut
+                        Tanggal Panen / Siap Angkut (opsional)
                       </span>
                       <input
                         type="date"
@@ -596,9 +593,6 @@ function WizardForm({
                         onChange={(e) => updateField("availableOn", e.target.value)}
                         className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                       />
-                      <span className="text-xs text-muted-foreground block">
-                        Opsional jika gabah sudah siap diangkut
-                      </span>
                     </label>
 
                     {/* Opsi Kadar Air / Mutu Gabah */}
@@ -631,11 +625,11 @@ function WizardForm({
                       </div>
 
                       {fields.hasQuality && (
-                        <label className="block space-y-1.5 sm:max-w-xs pt-1">
+                        <label className="space-y-1.5 sm:max-w-xs md:max-w-max w-full pt-1 col-span-2">
                           <span className="text-xs font-medium text-foreground">
                             Estimasi Kadar Air (%) <span className="text-destructive">*</span>
                           </span>
-                          <div className="relative">
+                          <div className="relative w-full">
                             <input
                               type="text"
                               inputMode="decimal"
@@ -678,9 +672,6 @@ function WizardForm({
                           ))}
                         </SelectContent>
                       </Select>
-                      <span className="text-[11px] text-muted-foreground block">
-                        Untuk menghitung batas harga wajar dan zonasi pasar pembeli.
-                      </span>
                     </div>
 
                     {/* Lokasi Fisik Pengambilan (Manual Input) */}
@@ -697,9 +688,6 @@ function WizardForm({
                           placeholder="Contoh: Dusun Sukamaju RT 02/01, Desa Sukamulya"
                           className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         />
-                        <span className="text-[11px] text-muted-foreground block">
-                          Tuliskan alamat dusun, desa, atau patokan gudang penjemputan.
-                        </span>
                       </label>
                     </div>
 

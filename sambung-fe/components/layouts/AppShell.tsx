@@ -90,11 +90,15 @@ function AppShellInner({ children, allowedRoles }: AppShellProps) {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen w-full bg-background flex flex-col lg:flex-row">
-        <AppSidebar role={user.role} />
-        <div className="flex-1 flex flex-col min-w-0">
-          <TopBar />
-          <main className="flex-1 min-w-0 bg-slate-50/70 dark:bg-[#070D09] transition-colors">
+      <div className="min-h-screen w-full bg-background flex flex-col lg:flex-row print:block print:bg-white">
+        <div className="print:hidden">
+          <AppSidebar role={user.role} />
+        </div>
+        <div className="flex-1 flex flex-col min-w-0 print:block">
+          <div className="print:hidden">
+            <TopBar />
+          </div>
+          <main className="flex-1 min-w-0 bg-slate-50/70 dark:bg-[#070D09] transition-colors print:bg-white print:p-0 print:m-0">
             {children}
           </main>
         </div>

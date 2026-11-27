@@ -36,7 +36,7 @@ export default function AppSidebar({ role }: { role: string }) {
   const navGroups = GET_NAVIGATION_GROUPS(role);
 
   return (
-    <Sidebar className="border-r border-border/80 bg-card select-none">
+    <Sidebar className="border-r border-border/80 bg-card select-none print:hidden">
       <SidebarHeader className="py-5 px-4 border-b border-border/60">
         <Link href="/" className="flex items-center gap-2.5 group">
           <div className="w-9 h-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-xs transition-transform group-hover:scale-105">

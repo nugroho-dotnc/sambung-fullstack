@@ -5,8 +5,10 @@
 
 export type ContractStatus =
   | "pending"    // Menunggu kesepakatan harga / respons negosiasi
-  | "approved"   // Harga disepakati kedua belah pihak (Kontak dibuka)
-  | "completed"  // Serah terima gabah fisik telah dikonfirmasi tuntas oleh kedua pihak
+  | "approved"   // Harga disepakati kedua belah pihak (Menunggu tanda tangan)
+  | "signed"     // Ditandatangani kedua belah pihak (Kontrak mengikat)
+  | "shipping"   // Petani sedang mengirimkan gabah
+  | "completed"  // Gabah diterima & transaksi tuntas
   | "rejected"   // Tawaran ditolak oleh salah satu pihak
   | "cancelled"  // Pesanan dibatalkan
   | "expired";   // Batas waktu 24 jam terlewati tanpa kesepakatan
@@ -20,8 +22,10 @@ export interface ContractTransitionRule {
 
 export const CONTRACT_STATUS_LABELS: Record<ContractStatus, { label: string; tone: "amber" | "emerald" | "blue" | "neutral" | "danger" }> = {
   pending: { label: "Menunggu Kesepakatan", tone: "amber" },
-  approved: { label: "Disetujui Bersama", tone: "emerald" },
-  completed: { label: "Transaksi Selesai", tone: "blue" },
+  approved: { label: "Menunggu Tanda Tangan", tone: "amber" },
+  signed: { label: "Kontrak Mengikat", tone: "emerald" },
+  shipping: { label: "Gabah Sedang Dikirim", tone: "blue" },
+  completed: { label: "Transaksi Selesai", tone: "emerald" },
   rejected: { label: "Ditolak", tone: "danger" },
   cancelled: { label: "Dibatalkan", tone: "neutral" },
   expired: { label: "Kedaluwarsa", tone: "neutral" },
@@ -29,10 +33,10 @@ export const CONTRACT_STATUS_LABELS: Record<ContractStatus, { label: string; ton
 
 /**
  * Checks if counterparty contact details (phone, WhatsApp, exact address) should be revealed.
- * STRICT RULE (BR-018): Contact details are completely hidden until status is "approved" or "completed".
+ * STRICT RULE (BR-018): Contact details are opened once price is agreed or later stages.
  */
 export function isContactRevealed(status: ContractStatus): boolean {
-  return status === "approved";
+  return ["approved", "signed", "shipping", "completed"].includes(status);
 }
 
 /**
@@ -48,7 +52,11 @@ export function canTransitionContract(
     case "pending":
       return to === "approved" || to === "rejected" || to === "cancelled" || to === "expired";
     case "approved":
-      return to === "completed" || to === "cancelled";
+      return to === "signed" || to === "cancelled";
+    case "signed":
+      return to === "shipping";
+    case "shipping":
+      return to === "completed";
     case "completed":
     case "rejected":
     case "cancelled":

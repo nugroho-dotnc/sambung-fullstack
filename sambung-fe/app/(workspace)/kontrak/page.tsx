@@ -12,6 +12,8 @@ import {
   MapPin,
   AlertCircle,
   CheckCheck,
+  PenTool,
+  Truck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -53,7 +55,11 @@ export default function ContractsListPage() {
   const filteredContracts = useMemo(() => {
     if (activeTab === "all") return contracts;
     if (activeTab === "pending") return contracts.filter((c) => c.status === "pending");
-    if (activeTab === "approved") return contracts.filter((c) => c.status === "approved");
+    if (activeTab === "approved") {
+      return contracts.filter(
+        (c) => c.status === "approved" || c.status === "signed" || c.status === "shipping"
+      );
+    }
     if (activeTab === "completed") return contracts.filter((c) => c.status === "completed");
     if (activeTab === "cancelled") {
       return contracts.filter(
@@ -176,12 +182,12 @@ export default function ContractsListPage() {
 
                       <span
                         className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                          contract.status === "approved"
+                          contract.status === "signed" || contract.status === "completed"
                             ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300"
-                            : contract.status === "pending"
-                            ? "bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300"
-                            : contract.status === "completed"
+                            : contract.status === "shipping"
                             ? "bg-blue-100 text-blue-800 dark:bg-blue-950/70 dark:text-blue-300"
+                            : contract.status === "approved" || contract.status === "pending"
+                            ? "bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300"
                             : "bg-muted text-muted-foreground"
                         }`}
                       >
@@ -238,10 +244,28 @@ export default function ContractsListPage() {
                     )}
 
                     {contract.status === "approved" && (
+                      <div className="flex items-center gap-1.5 text-xs text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-900/60">
+                        <PenTool className="w-3.5 h-3.5 shrink-0" />
+                        <span>
+                          Harga disepakati. Menunggu kelengkapan tanda tangan digital.
+                        </span>
+                      </div>
+                    )}
+
+                    {contract.status === "signed" && (
                       <div className="flex items-center gap-1.5 text-xs text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-900/60">
                         <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                         <span>
-                          Harga disepakati. Kontak terbuka untuk koordinasi pengiriman.
+                          Kontrak mengikat secara hukum. Siap untuk pengiriman.
+                        </span>
+                      </div>
+                    )}
+
+                    {contract.status === "shipping" && (
+                      <div className="flex items-center gap-1.5 text-xs text-blue-800 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 px-3 py-1.5 rounded-lg border border-blue-200 dark:border-blue-900/60">
+                        <Truck className="w-3.5 h-3.5 shrink-0" />
+                        <span>
+                          Gabah sedang dalam proses pengiriman armada.
                         </span>
                       </div>
                     )}

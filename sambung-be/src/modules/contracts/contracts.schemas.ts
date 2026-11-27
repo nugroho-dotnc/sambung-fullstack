@@ -1,7 +1,32 @@
 import { z } from "zod";
 
-export const actionSchema = z.enum(["order", "counter", "accept", "reject", "cancel", "confirm"]);
+export const actionSchema = z.enum([
+  "order",
+  "counter",
+  "accept",
+  "reject",
+  "cancel",
+  "confirm",
+  "sign",
+  "ship",
+  "receive",
+]);
 export type Action = z.infer<typeof actionSchema>;
+
+export const signSchema = z.object({
+  type: z.enum(["draw", "type"], {
+    message: "Tipe tanda tangan harus berupa goresan ('draw') atau ketikan ('type').",
+  }),
+  signature: z.string().min(1, "Data tanda tangan wajib diisi."),
+});
+
+export const shipSchema = z.object({
+  notes: z.string().max(300, "Catatan pengiriman maksimal 300 karakter.").optional(),
+});
+
+export const receiveSchema = z.object({
+  notes: z.string().max(300, "Catatan penerimaan maksimal 300 karakter.").optional(),
+});
 
 const price = z
   .number({ message: "Nominal harga harus berupa angka." })

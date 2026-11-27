@@ -44,7 +44,7 @@ export default function TopBar() {
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full h-16 border-b border-border/80 bg-card/90 backdrop-blur-md transition-colors shadow-2xs">
+    <header className="sticky top-0 z-40 w-full h-16 border-b border-border/80 bg-card/90 backdrop-blur-md transition-colors shadow-2xs print:hidden">
       <div className="h-full px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <SidebarTrigger size="lg" />

@@ -14,6 +14,8 @@ import {
   Copy,
   CheckCheck,
   AlertCircle,
+  PenTool,
+  Truck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -41,6 +43,8 @@ import {
 import { ContractService } from "../services/contract.service";
 import { useMobile } from "@/hooks/use-mobile";
 import type { Contract } from "../schemas";
+import { SignatureDialog } from "./signature-dialog";
+import { ShipConfirmDialog, ReceiveConfirmDialog } from "./fulfillment-dialogs";
 
 interface PendingRedAction {
   action: "accept" | "counter";
@@ -58,6 +62,9 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
 
   const [counterModalOpen, setCounterModalOpen] = useState(false);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [signModalOpen, setSignModalOpen] = useState(false);
+  const [shipModalOpen, setShipModalOpen] = useState(false);
+  const [receiveModalOpen, setReceiveModalOpen] = useState(false);
   const [proposedPrice, setProposedPrice] = useState(contract.currentPrice);
   const [counterNote, setCounterNote] = useState("");
   const [cancelReason, setCancelReason] = useState("");
@@ -75,8 +82,9 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
 
   const contactRevealed = isContactRevealed(contract.status);
   const isMyTurn = contract.status === "pending" && contract.currentTurnRole === user?.role;
-  const hasUserConfirmed = isFarmer ? contract.farmerConfirmed : contract.buyerConfirmed;
-  const hasPartnerConfirmed = isFarmer ? contract.buyerConfirmed : contract.farmerConfirmed;
+  const hasUserSigned = isFarmer ? Boolean(contract.farmerSignature) : Boolean(contract.buyerSignature);
+  const hasPartnerSigned = isFarmer ? Boolean(contract.buyerSignature) : Boolean(contract.farmerSignature);
+  const bothSigned = Boolean(contract.farmerSignature && contract.buyerSignature);
 
   const saved=contract.priceReference;
   const priceRef=process.env.NEXT_PUBLIC_USE_MOCK==="true"?PriceReferenceService.getReference(contract.grainType,contract.regency):
@@ -209,8 +217,43 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
     }
   }
 
-  async function handleConfirmPhysical() {
-    await mutation.mutateAsync({path:path+"confirm",body:{}});
+  async function handleSignContract(data: { type: "draw" | "type"; signature: string }) {
+    setModalError(null);
+    try {
+      await mutation.mutateAsync({
+        path: path + "sign",
+        body: data,
+      });
+      setSignModalOpen(false);
+    } catch (err) {
+      setModalError(err instanceof Error ? err.message : "Gagal menyimpan tanda tangan kontrak.");
+    }
+  }
+
+  async function handleShipContract(notes?: string) {
+    setModalError(null);
+    try {
+      await mutation.mutateAsync({
+        path: path + "ship",
+        body: { notes },
+      });
+      setShipModalOpen(false);
+    } catch (err) {
+      setModalError(err instanceof Error ? err.message : "Gagal mengonfirmasi pengiriman gabah.");
+    }
+  }
+
+  async function handleReceiveContract(notes?: string) {
+    setModalError(null);
+    try {
+      await mutation.mutateAsync({
+        path: path + "receive",
+        body: { notes },
+      });
+      setReceiveModalOpen(false);
+    } catch (err) {
+      setModalError(err instanceof Error ? err.message : "Gagal mengonfirmasi penerimaan gabah.");
+    }
   }
 
   function handleCopyPhone() {
@@ -276,16 +319,61 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
       )}
 
       {contract.status === "approved" && (
-        <div className="rounded-2xl border border-emerald-300/70 bg-emerald-50/80 dark:border-emerald-900/60 dark:bg-emerald-950/30 p-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs text-emerald-950 dark:text-emerald-200">
+        <div className="rounded-2xl border border-amber-300/80 bg-amber-50/90 dark:border-amber-900/60 dark:bg-amber-950/30 p-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs text-amber-950 dark:text-amber-200">
           <div className="flex items-center gap-2.5">
+            <PenTool className="w-4 h-4 text-amber-600 shrink-0" />
             <span>
-              <strong>Kesepakatan Sah & Terikat:</strong> Harga telah disetujui bersama. Silakan hubungi mitra melalui nomor kontak yang telah terbuka di bawah ini.
+              <strong>Harga Disepakati:</strong> Lembar kesepakatan telah terbit. Silakan bubuhkan tanda tangan digital Anda agar kontrak ini sah dan mengikat.
             </span>
           </div>
           <Button
             size="sm"
             variant="outline"
-            className="min-h-8 text-xs border-emerald-400 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100"
+            className="min-h-8 text-xs border-amber-400 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40"
+            render={
+              <Link href={`/kontrak/${contract.id}/bukti`}>
+                <FileText className="w-3.5 h-3.5 mr-1.5" />
+                {isMobile ? "Draf Kesepakatan" : "Lihat Draf Lembar Kesepakatan"}
+              </Link>
+            }
+          />
+        </div>
+      )}
+
+      {contract.status === "signed" && (
+        <div className="rounded-2xl border border-emerald-300/80 bg-emerald-50/90 dark:border-emerald-900/60 dark:bg-emerald-950/30 p-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs text-emerald-950 dark:text-emerald-200">
+          <div className="flex items-center gap-2.5">
+            <CheckCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>
+              <strong>Kontrak Sah & Mengikat:</strong> Kedua belah pihak telah menandatangani kesepakatan. Kontrak tidak dapat dibatalkan.
+            </span>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="min-h-8 text-xs border-emerald-400 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40"
+            render={
+              <Link href={`/kontrak/${contract.id}/bukti`}>
+                <FileText className="w-3.5 h-3.5 mr-1.5" />
+                {isMobile ? "Surat Kesepakatan" : "Surat Kesepakatan Digital"}
+              </Link>
+            }
+          />
+        </div>
+      )}
+
+      {contract.status === "shipping" && (
+        <div className="rounded-2xl border border-blue-300/80 bg-blue-50/90 dark:border-blue-900/60 dark:bg-blue-950/30 p-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs text-blue-950 dark:text-blue-200">
+          <div className="flex items-center gap-2.5">
+            <Truck className="w-4 h-4 text-blue-600 shrink-0" />
+            <span>
+              <strong>Gabah Sedang Dikirim:</strong> Petani telah memberangkatkan pasokan gabah menuju lokasi penerimaan pembeli.
+            </span>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="min-h-8 text-xs border-blue-400 text-blue-800 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40"
             render={
               <Link href={`/kontrak/${contract.id}/bukti`}>
                 <FileText className="w-3.5 h-3.5 mr-1.5" />
@@ -297,11 +385,11 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
       )}
 
       {contract.status === "completed" && (
-        <div className="rounded-2xl border border-blue-300/70 bg-blue-50/80 dark:border-blue-900/60 dark:bg-blue-950/30 p-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs text-blue-950 dark:text-blue-200">
+        <div className="rounded-2xl border border-emerald-300/70 bg-emerald-50/80 dark:border-emerald-900/60 dark:bg-emerald-950/30 p-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs text-emerald-950 dark:text-emerald-200">
           <div className="flex items-center gap-2.5">
-            <CheckCheck className="w-5 h-5 text-blue-600 shrink-0" />
+            <CheckCheck className="w-5 h-5 text-emerald-600 shrink-0" />
             <span>
-              <strong>Transaksi Selesai:</strong> Kedua belah pihak telah mengonfirmasi bahwa serah terima fisik gabah dan transaksi di lapangan telah tuntas.
+              <strong>Transaksi Selesai:</strong> Pembeli telah mengonfirmasi penerimaan gabah. Seluruh komitmen transaksi telah tuntas dilaksanakan.
             </span>
           </div>
           <Button
@@ -553,40 +641,51 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
               </div>
             )}
 
-            {/* When Approved: Dual Party Physical Confirmation */}
+            {/* When Approved: Waiting for Digital Signatures */}
             {contract.status === "approved" && (
-              <div className="space-y-3.5">
-                <div className="rounded-xl text-xs mb-6 space-y-2">
-                  <div className="flex justify-between font-semibold text-foreground">
-                    <span>Status Serah Terima Gabah:</span>
-                    <span className="text-emerald-700 dark:text-emerald-400">
-                      {hasUserConfirmed && hasPartnerConfirmed
+              <div className="space-y-4">
+                <div className="rounded-xl bg-muted/30 border border-border/70 p-3.5 space-y-2 text-xs">
+                  <div className="flex justify-between font-semibold text-foreground border-b border-border/60 pb-2">
+                    <span>Status Tanda Tangan:</span>
+                    <span className="text-amber-700 dark:text-amber-400">
+                      {bothSigned
                         ? "Lengkap (2/2)"
-                        : hasUserConfirmed || hasPartnerConfirmed
-                        ? "Menunggu Mitra (1/2)"
-                        : "Belum Dikonfirmasi (0/2)"}
+                        : hasUserSigned || hasPartnerSigned
+                        ? "1 dari 2 Pihak"
+                        : "Menunggu (0/2)"}
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Setelah gabah fisik diangkut dan pembayaran diselesaikan secara mandiri di lapangan, kedua pihak wajib menekan tombol konfirmasi.
-                  </p>
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Pihak Petani:</span>
+                      <span className={contract.farmerSignature ? "text-emerald-700 dark:text-emerald-400 font-medium" : "text-amber-700 dark:text-amber-400 font-medium"}>
+                        {contract.farmerSignature ? "✓ Sudah Tanda Tangan" : "Belum Tanda Tangan"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Pihak Pembeli:</span>
+                      <span className={contract.buyerSignature ? "text-emerald-700 dark:text-emerald-400 font-medium" : "text-amber-700 dark:text-amber-400 font-medium"}>
+                        {contract.buyerSignature ? "✓ Sudah Tanda Tangan" : "Belum Tanda Tangan"}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                {!hasUserConfirmed ? (
+
+                {!hasUserSigned ? (
                   <Button
                     className="w-full min-h-11 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
                     disabled={mutation.isPending}
-                    onClick={() => void handleConfirmPhysical().catch(()=>undefined)}
+                    onClick={() => {
+                      setModalError(null);
+                      setSignModalOpen(true);
+                    }}
                   >
-                    <CheckCheck className="w-4 h-4 mr-2" />
-                    {mutation.isPending
-                      ? "Menyimpan Konfirmasi…"
-                      : isMobile
-                      ? "Konfirmasi Selesai"
-                      : "Konfirmasi Gabah Diterima / Transaksi Selesai"}
+                    <PenTool className="w-4 h-4 mr-2" />
+                    {isMobile ? "Tandatangani Kontrak" : "Tandatangani Surat Kesepakatan"}
                   </Button>
                 ) : (
-                  <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 text-xs text-emerald-800 dark:text-emerald-200 text-center font-medium">
-                    ✓ Anda telah mengonfirmasi penyelesaian fisik. Menunggu konfirmasi dari {partnerRole}.
+                  <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 text-xs text-emerald-800 dark:text-emerald-200 text-center font-medium">
+                    ✓ Anda telah membubuhkan tanda tangan. Menunggu tanda tangan dari {partnerRole}.
                   </div>
                 )}
 
@@ -596,11 +695,12 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
                   render={
                     <Link href={`/kontrak/${contract.id}/bukti`}>
                       <FileText className="w-3.5 h-3.5 mr-2" />
-                      {isMobile ? "Bukti Kesepakatan" : "Buka Surat Bukti Kesepakatan"}
+                      {isMobile ? "Draf Kesepakatan" : "Lihat Draf Surat Kesepakatan"}
                     </Link>
                   }
                 />
 
+                {/* Cancel allowed ONLY if NOT both signed */}
                 <div className="pt-2 border-t border-border/60">
                   <Button
                     type="button"
@@ -619,18 +719,108 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
               </div>
             )}
 
+            {/* When Signed: Locked and Ready for Shipping */}
+            {contract.status === "signed" && (
+              <div className="space-y-4">
+                <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 text-xs text-emerald-900 dark:text-emerald-200 space-y-1.5">
+                  <p className="font-bold flex items-center gap-1.5">
+                    <CheckCheck className="w-4 h-4 text-emerald-600" />
+                    Kontrak Sah & Mengikat
+                  </p>
+                  <p className="text-xs leading-relaxed opacity-90">
+                    Kedua belah pihak telah melengkapi tanda tangan. Sesuai ketentuan, kesepakatan ini mengikat dan tidak dapat dibatalkan.
+                  </p>
+                </div>
+
+                {isFarmer ? (
+                  <Button
+                    className="w-full min-h-11 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white"
+                    disabled={mutation.isPending}
+                    onClick={() => setShipModalOpen(true)}
+                  >
+                    <Truck className="w-4 h-4 mr-2" />
+                    {isMobile ? "Kirim Gabah" : "Konfirmasi Pengiriman Gabah"}
+                  </Button>
+                ) : (
+                  <div className="p-3.5 rounded-xl bg-muted/40 border border-border/70 text-xs text-muted-foreground text-center space-y-1">
+                    <Truck className="w-5 h-5 text-muted-foreground mx-auto mb-1" />
+                    <p className="font-medium text-foreground">Menunggu Pengiriman dari Petani</p>
+                    <p className="text-[11px] leading-relaxed">
+                      Petani sedang menyiapkan armada angkut. Anda akan diberi tahu setelah armada diberangkatkan.
+                    </p>
+                  </div>
+                )}
+
+                <Button
+                  variant="outline"
+                  className="w-full min-h-10 text-xs"
+                  render={
+                    <Link href={`/kontrak/${contract.id}/bukti`}>
+                      <FileText className="w-3.5 h-3.5 mr-2" />
+                      {isMobile ? "Surat Kesepakatan" : "Buka Surat Kesepakatan Digital"}
+                    </Link>
+                  }
+                />
+              </div>
+            )}
+
+            {/* When Shipping: Sequential Fulfillment Step 2 */}
+            {contract.status === "shipping" && (
+              <div className="space-y-4">
+                <div className="p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-300 text-xs text-blue-900 dark:text-blue-200 space-y-1.5">
+                  <p className="font-bold flex items-center gap-1.5">
+                    <Truck className="w-4 h-4 text-blue-600" />
+                    Gabah Sedang Dikirim
+                  </p>
+                  <p className="text-xs leading-relaxed opacity-90">
+                    Armada pengangkut sedang menuju lokasi penerima. Silakan lakukan pemeriksaan fisik mutu dan timbangan setibanya di lokasi.
+                  </p>
+                </div>
+
+                {!isFarmer ? (
+                  <Button
+                    className="w-full min-h-11 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+                    disabled={mutation.isPending}
+                    onClick={() => setReceiveModalOpen(true)}
+                  >
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                    {isMobile ? "Konfirmasi Terima" : "Konfirmasi Penerimaan Gabah (Selesai)"}
+                  </Button>
+                ) : (
+                  <div className="p-3.5 rounded-xl bg-muted/40 border border-border/70 text-xs text-muted-foreground text-center space-y-1">
+                    <CheckCircle2 className="w-5 h-5 text-muted-foreground mx-auto mb-1" />
+                    <p className="font-medium text-foreground">Menunggu Penerimaan dari Pembeli</p>
+                    <p className="text-[11px] leading-relaxed">
+                      Gabah sedang dalam perjalanan. Menunggu pembeli menerima dan memeriksa kondisi barang di lokasi.
+                    </p>
+                  </div>
+                )}
+
+                <Button
+                  variant="outline"
+                  className="w-full min-h-10 text-xs"
+                  render={
+                    <Link href={`/kontrak/${contract.id}/bukti`}>
+                      <FileText className="w-3.5 h-3.5 mr-2" />
+                      {isMobile ? "Surat Kesepakatan" : "Buka Surat Kesepakatan Digital"}
+                    </Link>
+                  }
+                />
+              </div>
+            )}
+
             {/* When Completed */}
             {contract.status === "completed" && (
               <div className="space-y-3">
-                <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-300 text-xs text-blue-900 dark:text-blue-200 text-center space-y-1">
-                  <p className="font-bold">Transaksi Tuntas</p>
+                <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 text-xs text-emerald-900 dark:text-emerald-200 text-center space-y-1">
+                  <p className="font-bold">Transaksi Selesai Bersama</p>
                   <p className="text-xs opacity-90">
-                    Kedua belah pihak telah menyelesaikan komitmen pasokan ini dengan sukses.
+                    Kedua belah pihak telah menyelesaikan komitmen pasokan ini dengan sukses dan tuntas.
                   </p>
                 </div>
 
                 <Button
-                  className="w-full min-h-10 text-xs font-semibold"
+                  className="w-full min-h-10 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
                   render={
                     <Link href={`/kontrak/${contract.id}/bukti`}>
                       <FileText className="w-3.5 h-3.5 mr-2" />
@@ -855,6 +1045,31 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
             }
           });
         }}
+      />
+
+      <SignatureDialog
+        open={signModalOpen}
+        onOpenChange={setSignModalOpen}
+        signerName={user?.name || ""}
+        roleTitle={isFarmer ? "Petani" : "Pembeli"}
+        onConfirm={handleSignContract}
+        isSubmitting={mutation.isPending}
+      />
+
+      <ShipConfirmDialog
+        open={shipModalOpen}
+        onOpenChange={setShipModalOpen}
+        contract={contract}
+        onConfirm={handleShipContract}
+        isSubmitting={mutation.isPending}
+      />
+
+      <ReceiveConfirmDialog
+        open={receiveModalOpen}
+        onOpenChange={setReceiveModalOpen}
+        contract={contract}
+        onConfirm={handleReceiveContract}
+        isSubmitting={mutation.isPending}
       />
     </PageContainer>
   );
