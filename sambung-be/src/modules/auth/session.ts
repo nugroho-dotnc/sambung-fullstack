@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import type { Prisma } from "@prisma/client";
+import type { Prisma, PrismaClient } from "@prisma/client";
 import type { Request } from "express";
 
 export const digest = (value: string) => createHash("sha256").update(value).digest("hex");
@@ -17,10 +17,61 @@ export async function createSession(tx: Prisma.TransactionClient, phone: string,
 }
 export const profileFields = {
   id: true, phone: true, name: true, role: true, province: true, regency: true,
-  district: true, status: true, businessName: true,
+  district: true, status: true, businessName: true, proExpiresAt: true,
 } as const;
-export function publicProfile<T extends { businessName: string | null }>(user: T) {
-  return { ...user, businessName: user.businessName ?? undefined };
+
+/**
+ * Returns true when an account is a buyer with an unexpired Pembeli Pro period.
+ */
+export function isBuyerPro(
+  user: { role?: string | null; proExpiresAt?: Date | string | null } | null | undefined,
+  now: Date = new Date()
+): boolean {
+  if (!user || user.role !== "pembeli" || !user.proExpiresAt) return false;
+  const expiresMs =
+    user.proExpiresAt instanceof Date
+      ? user.proExpiresAt.getTime()
+      : Date.parse(user.proExpiresAt);
+  return Number.isFinite(expiresMs) && expiresMs > now.getTime();
+}
+
+export function publicProfile<
+  T extends { businessName: string | null; role?: string; proExpiresAt?: Date | null }
+>(user: T) {
+  const activePro = isBuyerPro(user);
+  return {
+    ...user,
+    businessName: user.businessName ?? undefined,
+    proExpiresAt: user.proExpiresAt ? user.proExpiresAt.toISOString() : null,
+    isPro: activePro,
+    subscriptionPlan: activePro ? ("pro" as const) : ("free" as const),
+  };
+}
+
+/**
+ * Resolves the active account from the session cookie without throwing when unauthenticated.
+ */
+export async function resolveOptionalActor(db: PrismaClient, req: Request) {
+  const hash = sessionHash(req);
+  if (!hash) return null;
+  const session = await db.authSession.findFirst({
+    where: {
+      tokenHash: hash,
+      expiresAt: { gt: new Date() },
+      account: { status: "active" },
+    },
+    select: {
+      account: {
+        select: {
+          id: true,
+          role: true,
+          province: true,
+          proExpiresAt: true,
+        },
+      },
+    },
+  });
+  return session?.account ?? null;
 }
 
 /**

@@ -64,7 +64,48 @@ export async function mutate(db:PrismaClient, ownerId:string, action:string, id:
         throw new ApiError(409,"LOCATION_LOCKED","Jenis dan lokasi terkunci sejak pesanan pertama.");
       if(input && Math.round(input.totalVolumeKg*100)<Math.round((stock.reservedVolumeKg+stock.approvedVolumeKg+stock.completedVolumeKg)*100))
         throw new ApiError(409,"VOLUME_COMMITTED","Volume sudah terikat pada kontrak.");
-      if(action==="withdraw") await tx.contract.updateMany({where:{offerId:id,status:"pending"},data:{status:"cancelled",cancelReason:"Tawaran ditarik petani."}});
+      if (action === "withdraw") {
+        const pendingContracts = await tx.contract.findMany({
+          where: { offerId: id, status: "pending" },
+          select: { id: true, buyerId: true, volumeKg: true },
+        });
+        if (pendingContracts.length > 0) {
+          await tx.contract.updateMany({
+            where: { offerId: id, status: "pending" },
+            data: { status: "cancelled", cancelReason: "Tawaran ditarik petani." },
+          });
+          await tx.notification.createMany({
+            data: pendingContracts.map((pending) => ({
+              accountId: pending.buyerId,
+              type: "kontrak",
+              title: "Pesanan Dibatalkan — Tawaran Ditarik",
+              description: `Petani menarik penawaran gabah untuk pesanan ${Number(pending.volumeKg).toLocaleString("id-ID")} kg Anda sebelum kesepakatan disetujui.`,
+              linkHref: `/kontrak/${pending.id}`,
+              contractId: pending.id,
+            })),
+          });
+          await tx.auditLog.createMany({
+            data: pendingContracts.map((pending) => ({
+              actorRole: "petani",
+              actorName: locked.owner.name,
+              action: "OFFER_WITHDRAWN_CANCELLED_PENDING",
+              targetType: "contract",
+              targetId: pending.id,
+              details: `Pesanan ${pending.id} (${Number(pending.volumeKg)} kg) otomatis dibatalkan karena tawaran ${id} ditarik petani.`,
+            })),
+          });
+        }
+        await tx.auditLog.create({
+          data: {
+            actorRole: "petani",
+            actorName: locked.owner.name,
+            action: "OFFER_WITHDRAWN",
+            targetType: "offer",
+            targetId: id!,
+            details: `Petani menarik tawaran panen ${locked.grainType} (${pendingContracts.length} pesanan tertunda dibatalkan).`,
+          },
+        });
+      }
       const nextInput = input ? { ...input, notes: preserveModerationMarker(locked.notes, input.notes) } : undefined;
       const changed=await tx.offer.updateMany({where:{id,ownerId,version:control!.version},
         data:{...nextInput,version:{increment:1},status:action==="publish"?"published":action==="withdraw"?"withdrawn":existing!.status,

@@ -1,8 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Download, Sprout, Building2, Truck, Store, Info } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Info } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import {
   Popover,
@@ -21,33 +20,80 @@ import {
 import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { AsyncBoundary } from "@/components/shared/async-boundary";
+import { useCurrentUser } from "@/features/auth/hooks/use-auth";
+import { ProUpgradeBanner } from "@/features/subscription/components/pro-upgrade-banner";
 import {
-  PRICE_BOARD_PERIOD_OPTIONS,
-  type PriceBoardPeriod,
+  PRICE_HISTORY_RANGE_OPTIONS,
+  mapHistoryRangeToBoardPeriod,
+  type PriceHistoryRange,
+  type PriceHistoryStatusFilter,
 } from "@/features/price-board/services/price-board.service";
-import { usePriceBoard } from "@/features/price-board/hooks/use-price-board";
-import { generateSupplyChainCsv } from "@/features/price-board/domain/price-chain";
+import {
+  usePriceBoard,
+  usePriceHistory,
+} from "@/features/price-board/hooks/use-price-board";
+import type { HistoricalTrendPoint } from "@/features/price-board/domain/price-chain";
 import { PriceChainChart } from "@/features/price-board/components/price-chain-chart";
-import { formatRupiah } from "@/features/offers/components/offer-summary";
-import { useMobile } from "@/hooks/use-mobile";
+import { PriceHistoryTable } from "@/features/price-board/components/price-history-table";
 
-const LEVEL_ICONS: Record<string, typeof Sprout> = {
-  petani: Sprout,
-  penggilingan: Building2,
-  grosir: Truck,
-  konsumen: Store,
-};
+const FREE_BUYER_HISTORY_RANGES = new Set<PriceHistoryRange>(["4w", "8w", "12w"]);
 
 export default function PriceBoardPage() {
-  const isMobile = useMobile();
-  const [region, setRegion] = useState<string>("Jawa Timur");
-  const [period, setPeriod] = useState<PriceBoardPeriod>("12 Pekan Terakhir");
+  const { data: user } = useCurrentUser();
+  const isFreeBuyer = user?.role === "pembeli" && !user?.isPro;
 
-  const boardQuery = usePriceBoard(region, period);
+  const [region, setRegion] = useState<string>("Jawa Timur");
+  const [range, setRange] = useState<PriceHistoryRange>("12w");
+  const [statusFilter, setStatusFilter] = useState<PriceHistoryStatusFilter>("all");
+  const [showProUpgradeNotice, setShowProUpgradeNotice] = useState(false);
+
+  const effectiveRange: PriceHistoryRange =
+    isFreeBuyer && !FREE_BUYER_HISTORY_RANGES.has(range) ? "12w" : range;
+
+  const boardPeriod = mapHistoryRangeToBoardPeriod(effectiveRange);
+  const boardQuery = usePriceBoard(region, boardPeriod);
+  const historyQuery = usePriceHistory(region, effectiveRange, "all");
   const data = boardQuery.data;
-  const availableRegions = data?.availableRegions;
-  const comparison = data?.comparison;
-  const trends = data?.historicalTrends ?? [];
+  const availableRegions = data?.availableRegions?.length
+    ? data.availableRegions
+    : historyQuery.data?.coveredRegions;
+
+  const rangeOptions = useMemo(
+    () =>
+      PRICE_HISTORY_RANGE_OPTIONS.map((opt) => ({
+        value: opt.value,
+        label:
+          isFreeBuyer && !FREE_BUYER_HISTORY_RANGES.has(opt.value)
+            ? `${opt.label} (Pro)`
+            : opt.label,
+      })),
+    [isFreeBuyer],
+  );
+
+  const activeRangeLabel = useMemo(
+    () =>
+      PRICE_HISTORY_RANGE_OPTIONS.find((opt) => opt.value === effectiveRange)?.label ??
+      boardPeriod,
+    [effectiveRange, boardPeriod],
+  );
+
+  const chartData: HistoricalTrendPoint[] = useMemo(() => {
+    const historyRows = historyQuery.data?.rows ?? [];
+    if (historyRows.length > 0) {
+      return historyRows.map((row) => ({
+        week: row.weekLabel,
+        weekStart: row.weekStart,
+        farmerPrice: row.farmerPrice,
+        millerPrice: row.millerPrice,
+        wholesalePrice: row.wholesalePrice,
+        retailPrice: row.retailPrice,
+        predictedFarmerPrice: row.predictedFarmerPrice,
+        predictedMillerPrice: row.predictedMillerPrice,
+        rowStatus: row.rowStatus,
+      }));
+    }
+    return data?.historicalTrends ?? [];
+  }, [historyQuery.data?.rows, data?.historicalTrends]);
 
   const regionOptions = useMemo(() => {
     const rawRegions = availableRegions?.length ? availableRegions : [region];
@@ -62,39 +108,11 @@ export default function PriceBoardPage() {
     }));
   }, [availableRegions, region]);
 
-  function handleExportCsv() {
-    if (!comparison) return;
-    const csvContent = generateSupplyChainCsv(comparison);
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute(
-      "download",
-      `SAMBUNG_Papan_Rantai_Harga_Beras_Medium_I_${new Date().toISOString().slice(0, 10)}.csv`,
-    );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  }
-
   return (
     <PageContainer>
       <PageHeader
         title="Papan Rantai Harga 2 Sisi"
         description={`Ikuti pembentukan nilai komoditas Beras Medium I dari petani gabah hingga pasar konsumen eceran di 34 provinsi + Nasional (data PIHPS BI${data?.updatedAt ? ` per ${data.updatedAt}` : ""}).`}
-        actions={
-          <Button
-            variant="outline"
-            className="min-h-10 text-xs font-semibold gap-1.5 shadow-2xs cursor-pointer"
-            onClick={handleExportCsv}
-            disabled={!comparison}
-          >
-            <Download className="w-3.5 h-3.5 text-primary" />
-            {isMobile ? "Unduh CSV" : "Unduh Ringkasan (CSV)"}
-          </Button>
-        }
       />
 
       {/* Filter Bar (3 Columns) */}
@@ -139,17 +157,24 @@ export default function PriceBoardPage() {
               Rentang Pengamatan
             </label>
             <Select
-              items={PRICE_BOARD_PERIOD_OPTIONS}
-              value={period}
+              items={rangeOptions}
+              value={effectiveRange}
               onValueChange={(val) => {
-                if (val) setPeriod(val as PriceBoardPeriod);
+                if (!val) return;
+                const next = val as PriceHistoryRange;
+                if (isFreeBuyer && !FREE_BUYER_HISTORY_RANGES.has(next)) {
+                  setShowProUpgradeNotice(true);
+                  return;
+                }
+                setShowProUpgradeNotice(false);
+                setRange(next);
               }}
             >
               <SelectTrigger className="w-full h-11 rounded-lg bg-background px-3 text-xs font-semibold text-foreground">
                 <SelectValue placeholder="Pilih rentang" />
               </SelectTrigger>
               <SelectContent>
-                {PRICE_BOARD_PERIOD_OPTIONS.map((opt) => (
+                {rangeOptions.map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>
                     {opt.label}
                   </SelectItem>
@@ -160,194 +185,80 @@ export default function PriceBoardPage() {
         </div>
       </Card>
 
+      {isFreeBuyer && showProUpgradeNotice && (
+        <div className="mb-8">
+          <ProUpgradeBanner
+            title="Rentang Riwayat Lengkap 2019–Sekarang &amp; Ekspor CSV Khusus Pembeli Pro"
+            description="Paket Pembeli Gratis mencakup data 4, 8, dan 12 pekan terakhir. Aktifkan Pembeli Pro (Rp99.000/30 hari) untuk membuka pilihan 1 tahun, arsip 2019–sekarang di 35 wilayah, serta unduhan CSV."
+          />
+        </div>
+      )}
+
       <AsyncBoundary
-        isLoading={boardQuery.isLoading}
-        isError={boardQuery.isError}
-        error={boardQuery.error}
-        isEmpty={!boardQuery.isLoading && !boardQuery.isError && !comparison}
-        onRetry={() => void boardQuery.refetch()}
+        isLoading={historyQuery.isLoading || (chartData.length === 0 && boardQuery.isLoading)}
+        isError={historyQuery.isError && chartData.length === 0}
+        error={historyQuery.error}
+        isEmpty={!historyQuery.isLoading && !boardQuery.isLoading && chartData.length === 0}
+        onRetry={() => {
+          void historyQuery.refetch();
+          void boardQuery.refetch();
+        }}
       >
-        {comparison && (
-          <>
-            {/* Main 2-Column Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start mb-8">
-              {/* Left Column: Dari Petani ke Pembeli */}
-              <Card className="lg:col-span-7 p-6 sm:p-7 space-y-5 rounded-2xl bg-card">
-                <div className="border-b border-border/60 pb-3.5 flex items-start justify-between gap-3">
-                  <div>
-                    <span className="text-xs font-semibold text-primary">
-                      Rantai Pasok Gabah &amp; Beras
-                    </span>
-                    <h2 className="type-subheading text-foreground font-bold mt-0.5">
-                      Pembentukan Harga dari Petani ke Konsumen
-                    </h2>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Harga per kilogram di wilayah {comparison.region} per {comparison.updatedAt}.
-                    </p>
-                  </div>
-                  <Popover>
-                    <PopoverTrigger
-                      className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer shrink-0"
-                      aria-label="Penjelasan Tahapan Rantai Pasok"
-                    >
-                      <Info className="w-4 h-4" />
-                    </PopoverTrigger>
-                    <PopoverContent align="end" className="w-80 text-xs space-y-2 p-3.5">
-                      <PopoverTitle className="font-bold text-foreground text-xs flex items-center gap-1.5">
-                        <Info className="w-3.5 h-3.5 text-primary shrink-0" />
-                        Tahapan Rantai Pasok
-                      </PopoverTitle>
-                      <PopoverDescription className="text-muted-foreground text-xs leading-relaxed">
-                        Menampilkan runutan harga aktual PIHPS BI dari nilai setara petani, produsen penggilingan, pedagang besar/grosir, hingga pasar tradisional konsumen.
-                      </PopoverDescription>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div className="overflow-x-auto rounded-lg border border-border/70">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-muted/40 border-b border-border/70 text-xs font-semibold text-muted-foreground">
-                      <tr>
-                        <th className="py-3 px-4">Tingkat Rantai</th>
-                        <th className="py-3 px-4">Keterangan Nilai</th>
-                        <th className="py-3 px-4 text-right">Harga Acuan</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/60">
-                      {comparison.levels.map((item) => {
-                        const Icon = LEVEL_ICONS[item.category] || Sprout;
-                        return (
-                          <tr key={item.id} className="hover:bg-muted/30 transition-colors">
-                            <td className="py-3.5 px-4 font-semibold text-foreground">
-                              <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
-                                  <Icon className="w-4 h-4" />
-                                </div>
-                                <div>
-                                  <span className="block font-bold">{item.level}</span>
-                                  <span className="text-xs text-muted-foreground font-normal sm:hidden">
-                                    {item.note}
-                                  </span>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="py-3.5 px-4 text-muted-foreground text-xs hidden sm:table-cell">
-                              {item.note}
-                            </td>
-                            <td className="py-3.5 px-4 text-right font-bold tabular-nums text-foreground">
-                              {formatRupiah(item.price)} / kg
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
-
-              {/* Right Column: Indikator Farmer's Share */}
-              <Card className="lg:col-span-5 p-6 sm:p-7 space-y-5 rounded-2xl bg-card">
-                <div className="border-b border-border/60 pb-3.5 flex items-start justify-between gap-3">
-                  <div>
-                    <span className="text-xs font-semibold text-primary">
-                      Keadilan Distribusi
-                    </span>
-                    <h2 className="type-subheading text-foreground font-bold mt-0.5">
-                      Porsi Nilai untuk Petani
-                    </h2>
-                  </div>
-                  <Popover>
-                    <PopoverTrigger
-                      className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer shrink-0"
-                      aria-label="Penjelasan Porsi Nilai & Marjin"
-                    >
-                      <Info className="w-4 h-4" />
-                    </PopoverTrigger>
-                    <PopoverContent align="end" className="w-80 text-xs space-y-2.5 p-3.5">
-                      <PopoverTitle className="font-bold text-foreground text-xs flex items-center gap-1.5">
-                        <Info className="w-3.5 h-3.5 text-primary shrink-0" />
-                        Porsi Nilai &amp; Marjin Rantai Pasok
-                      </PopoverTitle>
-                      <PopoverDescription className="text-muted-foreground text-xs leading-relaxed space-y-1.5">
-                        <p>
-                          Selisih nilai sebesar {formatRupiah(comparison.marginAmount)}/kg mencerminkan selisih pengolahan gabah ke beras, susut mutu alami, dan marjin perdagangan antartingkat pasar.
-                        </p>
-                        <p className="pt-1.5 border-t border-border/50 text-[11px]">
-                          Persentase bagian petani dihitung dari perbandingan nilai petani setara beras terhadap harga beras eceran: (Harga Petani ÷ Harga Konsumen) × 100%.
-                        </p>
-                      </PopoverDescription>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                {/* Farmer's Share Percentage Box */}
-                <div className="space-y-1.5 p-4.5 rounded-lg flex bg-muted/30 border border-border/50 items-center gap-4">
-                  <div>
-                    <p className="text-2xl sm:text-3xl font-extrabold font-display tabular-nums text-emerald-700 dark:text-emerald-400">
-                      {comparison.farmerSharePercent}%
-                    </p>
-                    <p className="text-xs font-medium text-muted-foreground">
-                      Bagian Petani (Farmer&apos;s Share)
-                    </p>
-                  </div>
-                </div>
-
-                {/* Total Margin Spread */}
-                <div className="space-y-1.5 p-4 rounded-lg bg-muted/30 border border-border/50">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Total Selisih (Petani → Konsumen)
-                  </p>
-                  <p className="text-2xl sm:text-3xl font-extrabold font-display tabular-nums text-foreground">
-                    {formatRupiah(comparison.marginAmount)}{" "}
-                    <span className="text-xs font-normal text-muted-foreground font-sans">/ kg</span>
-                  </p>
-                  <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-                    +{comparison.marginPercent}% marjin kumulatif rantai pasok
-                  </p>
-                </div>
-              </Card>
+        {chartData.length > 0 && (
+          <Card className="p-6 sm:p-7 space-y-4 rounded-2xl bg-card mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-3.5">
+              <div>
+                <h2 className="type-subheading text-foreground font-bold">
+                  Pergerakan Harga Rantai Pasok ({activeRangeLabel})
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Transmisi pergerakan harga aktual PIHPS dari tingkat setara petani, penggilingan padi, hingga pasar konsumen di {region} beserta lanjutan garis putus-putus Prediksi AI.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                <span className="text-xs px-3 py-1 rounded-full bg-primary/10 text-primary tabular-nums font-semibold">
+                  {chartData.length.toLocaleString("id-ID")} pekan
+                </span>
+                <span className="text-xs px-3 py-1 rounded-full bg-muted text-muted-foreground tabular-nums font-semibold">
+                  Satuan: Rp/kg
+                </span>
+                <Popover>
+                  <PopoverTrigger
+                    className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
+                    aria-label="Penjelasan Tren Rantai Pasok"
+                  >
+                    <Info className="w-4 h-4" />
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-80 text-xs space-y-2 p-3.5">
+                    <PopoverTitle className="font-bold text-foreground text-xs flex items-center gap-1.5">
+                      <Info className="w-3.5 h-3.5 text-primary shrink-0" />
+                      Tentang Data Historis &amp; Prediksi
+                    </PopoverTitle>
+                    <PopoverDescription className="text-muted-foreground text-xs leading-relaxed">
+                      Grafik memanjang otomatis mengikuti rentang pengamatan yang dipilih (hingga seluruh riwayat 2019–sekarang). Garis putus-putus menandakan titik prakiraan resmi model Sambung Predict.
+                    </PopoverDescription>
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
 
-            {/* Historical Price Transmission Trend Chart */}
-            <Card className="p-6 sm:p-7 space-y-4 rounded-2xl bg-card mb-8">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-3.5">
-                <div>
-                  <h2 className="type-subheading text-foreground font-bold">
-                    Pergerakan Harga Rantai Pasok ({period})
-                  </h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Transmisi pergerakan harga aktual PIHPS dari tingkat setara petani, penggilingan padi, hingga pasar konsumen di {comparison.region}.
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 self-start sm:self-auto">
-                  <span className="text-xs px-3 py-1 rounded-full bg-muted text-muted-foreground tabular-nums font-semibold">
-                    Satuan: Rp/kg
-                  </span>
-                  <Popover>
-                    <PopoverTrigger
-                      className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
-                      aria-label="Penjelasan Tren Rantai Pasok"
-                    >
-                      <Info className="w-4 h-4" />
-                    </PopoverTrigger>
-                    <PopoverContent align="end" className="w-80 text-xs space-y-2 p-3.5">
-                      <PopoverTitle className="font-bold text-foreground text-xs flex items-center gap-1.5">
-                        <Info className="w-3.5 h-3.5 text-primary shrink-0" />
-                        Tentang Data Historis
-                      </PopoverTitle>
-                      <PopoverDescription className="text-muted-foreground text-xs leading-relaxed">
-                        Grafik ini memantau transmisi pergerakan harga mingguan PIHPS BI di {comparison.region} pada rentang pengamatan yang dipilih.
-                      </PopoverDescription>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </div>
-
-              <PriceChainChart data={trends} />
-            </Card>
-          </>
+            <PriceChainChart data={chartData} />
+          </Card>
         )}
       </AsyncBoundary>
+
+      <PriceHistoryTable
+        region={region}
+        range={effectiveRange}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        canExportCsv={!isFreeBuyer}
+        data={historyQuery.data}
+        isLoading={historyQuery.isLoading}
+        isError={historyQuery.isError}
+        error={historyQuery.error}
+        onRetry={() => void historyQuery.refetch()}
+      />
     </PageContainer>
   );
 }

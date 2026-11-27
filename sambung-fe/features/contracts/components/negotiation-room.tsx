@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { IS_MOCK_DATA } from "@/lib/config/fe-mode";
 import {
   ArrowLeft,
   Clock,
+  Check,
   CheckCircle2,
   Lock,
   Phone,
@@ -46,6 +48,9 @@ import type { Contract } from "../schemas";
 import { SignatureDialog } from "./signature-dialog";
 import { ShipConfirmDialog, ReceiveConfirmDialog } from "./fulfillment-dialogs";
 import { ContractTimeline } from "./contract-timeline";
+import { ContractPaymentCard } from "./contract-payment-card";
+import { isContractPaid } from "../domain/payment-helpers";
+import { ProBadge } from "@/features/subscription/components/pro-badge";
 
 interface PendingRedAction {
   action: "accept" | "counter";
@@ -104,14 +109,16 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
     return {action,price,regionId:contract.district,quality:contract.quality,grainType:contract.grainType};
   }
   const totalValue = contract.volumeKg * contract.currentPrice;
+  const isPaid = isContractPaid(contract);
 
-  // Calculate remaining deadline hours
-  const [now,setNow]=useState(()=>Date.now());
-  useEffect(()=>{
-    if(contract.status!=="pending") return;
-    const timer=setInterval(()=>setNow(Date.now()),10000);
-    return ()=>clearInterval(timer);
-  },[contract.status]);
+  // Calculate remaining deadline hours (negotiation & escrow payment deadlines)
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (contract.status !== "pending" && contract.status !== "signed") return;
+    const intervalMs = contract.status === "signed" ? 60_000 : 10_000;
+    const timer = setInterval(() => setNow(Date.now()), intervalMs);
+    return () => clearInterval(timer);
+  }, [contract.status]);
   const hoursLeft=Math.max(0, Math.ceil((Date.parse(contract.expiresAt)-now)/3600000));
 
   async function executeConfirmedPriceAction(
@@ -149,7 +156,7 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
     setModalError(null);
     mutation.reset();
 
-    if (process.env.NEXT_PUBLIC_USE_MOCK === "true") {
+    if (IS_MOCK_DATA) {
       await executeConfirmedPriceAction(action, {});
       return;
     }
@@ -211,7 +218,7 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
           path +
           (isFarmer &&
           contract.status === "pending" &&
-          process.env.NEXT_PUBLIC_USE_MOCK !== "true"
+          !IS_MOCK_DATA
             ? "reject"
             : "cancel"),
         body: {
@@ -289,11 +296,11 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
         badge={
           <span
             className={`text-xs font-semibold px-3 py-1 rounded-full ${
-              contract.status === "approved"
+              contract.status === "approved" || contract.status === "signed"
                 ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300"
                 : contract.status === "pending"
                 ? "bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300"
-                : contract.status === "completed"
+                : contract.status === "shipping" || contract.status === "completed"
                 ? "bg-blue-100 text-blue-800 dark:bg-blue-950/70 dark:text-blue-300"
                 : "bg-muted text-muted-foreground"
             }`}
@@ -351,17 +358,39 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
       )}
 
       {contract.status === "signed" && (
-        <div className="rounded-2xl border border-emerald-300/80 bg-emerald-50/90 dark:border-emerald-900/60 dark:bg-emerald-950/30 p-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs text-emerald-950 dark:text-emerald-200">
+        <div
+          className={`rounded-2xl p-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs border ${
+            isPaid
+              ? "border-emerald-300/80 bg-emerald-50/90 dark:border-emerald-900/60 dark:bg-emerald-950/30 text-emerald-950 dark:text-emerald-200"
+              : "border-amber-300/80 bg-amber-50/90 dark:border-amber-900/60 dark:bg-amber-950/30 text-amber-950 dark:text-amber-200"
+          }`}
+        >
           <div className="flex items-center gap-2.5">
-            <CheckCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+            {isPaid ? (
+              <CheckCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+            ) : (
+              <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+            )}
             <span>
-              <strong>Kontrak Sah & Mengikat:</strong> Kedua belah pihak telah menandatangani kesepakatan. Kontrak tidak dapat dibatalkan.
+              {isPaid ? (
+                <>
+                  <strong>Pembayaran Escrow Terverifikasi — Siap Kirim Gabah:</strong> Dana ditahan aman di escrow SAMBUNG. Petani kini dapat mengonfirmasi pengiriman gabah.
+                </>
+              ) : (
+                <>
+                  <strong>Kontrak Sah — Menunggu Pembayaran Escrow:</strong> Kedua belah pihak telah menandatangani kesepakatan. Menunggu pembeli melunasi pembayaran escrow sebelum pengiriman gabah.
+                </>
+              )}
             </span>
           </div>
           <Button
             size="sm"
             variant="outline"
-            className="min-h-8 text-xs border-emerald-400 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40"
+            className={`min-h-8 text-xs ${
+              isPaid
+                ? "border-emerald-400 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40"
+                : "border-amber-400 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40"
+            }`}
             render={
               <Link href={`/kontrak/${contract.id}/bukti`}>
                 <FileText className="w-3.5 h-3.5 mr-1.5" />
@@ -399,7 +428,10 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
           <div className="flex items-center gap-2.5">
             <CheckCheck className="w-5 h-5 text-emerald-600 shrink-0" />
             <span>
-              <strong>Transaksi Selesai:</strong> Pembeli telah mengonfirmasi penerimaan gabah. Seluruh komitmen transaksi telah tuntas dilaksanakan.
+              <strong>Transaksi Selesai:</strong> Pembeli telah mengonfirmasi penerimaan gabah.{" "}
+              {contract.payment?.escrowStatus === "released"
+                ? `Dana bersih sebesar ${formatRupiah(contract.payment.contractAmount)} telah dicairkan ke pihak petani.`
+                : "Seluruh komitmen transaksi telah tuntas dilaksanakan."}
             </span>
           </div>
           <Button
@@ -421,9 +453,12 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
         <div className="lg:col-span-7 space-y-6">
           {/* Summary Metric Cards */}
           <Card className="rounded-2xl border-border/80 bg-card p-6 space-y-4">
-            <h3 className="text-sm font-semibold text-foreground border-b border-border/60 pb-3">
-              Rincian Komitmen Pasokan Gabah
-            </h3>
+            <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-3">
+              <h3 className="text-sm font-semibold text-foreground">
+                Rincian Komitmen Pasokan Gabah
+              </h3>
+              {isFarmer && contract.buyerIsPro && <ProBadge size="xs" />}
+            </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 text-xs">
               <div className="p-3 rounded-xl bg-muted/40 border border-border/60">
@@ -457,14 +492,14 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
           </Card>
 
           {/* Unified Contract Journey Timeline */}
-          <ContractTimeline contract={contract} />
+          <ContractTimeline contract={contract} nowMs={now} />
         </div>
 
         {/* Right Column: Contact Details (BR-018) & Actions */}
         <div className="lg:col-span-5 space-y-6">
           {/* Contact Details Card (Strict BR-018 Masking) */}
           <Card className="rounded-2xl border-border/80 bg-card p-6 space-y-4">
-            <div className="border-b border-border/60 pb-3 flex items-center justify-between">
+            <div className="border-b border-border/60 pb-3 flex items-center justify-between gap-2">
               <div>
                 <h3 className="text-sm font-semibold text-foreground">
                   Informasi Kontak Mitra
@@ -473,6 +508,7 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
                   Pihak {partnerRole} dalam kesepakatan ini.
                 </p>
               </div>
+              {isFarmer && contract.buyerIsPro && <ProBadge size="xs" />}
             </div>
 
             {!contactRevealed || !partnerPhone ? (
@@ -493,7 +529,10 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
               <div className="space-y-3 text-xs">
                 <div>
                   <span className="text-muted-foreground text-xs block">Nama / Poktan</span>
-                  <span className="text-sm font-bold text-foreground">{partnerName}</span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-bold text-foreground">{partnerName}</span>
+                    {isFarmer && contract.buyerIsPro && <ProBadge size="xs" />}
+                  </div>
                 </div>
 
                 <div>
@@ -529,6 +568,13 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
               </div>
             )}
           </Card>
+
+          {/* Escrow Payment Card */}
+          <ContractPaymentCard
+            contract={contract}
+            userRole={user?.role}
+            nowMs={now}
+          />
 
           {/* Action Controller Card */}
           <Card className="rounded-2xl border-border/80 bg-card p-6 space-y-4">
@@ -617,18 +663,30 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
                     </span>
                   </div>
                   <div className="space-y-1.5 pt-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">Pihak Petani:</span>
-                      <span className={contract.farmerSignature ? "text-emerald-700 dark:text-emerald-400 font-medium" : "text-amber-700 dark:text-amber-400 font-medium"}>
-                        {contract.farmerSignature ? "✓ Sudah Tanda Tangan" : "Belum Tanda Tangan"}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">Pihak Pembeli:</span>
-                      <span className={contract.buyerSignature ? "text-emerald-700 dark:text-emerald-400 font-medium" : "text-amber-700 dark:text-amber-400 font-medium"}>
-                        {contract.buyerSignature ? "✓ Sudah Tanda Tangan" : "Belum Tanda Tangan"}
-                      </span>
-                    </div>
+                    {[
+                      { label: "Pihak Petani:", signed: Boolean(contract.farmerSignature) },
+                      { label: "Pihak Pembeli:", signed: Boolean(contract.buyerSignature) },
+                    ].map((party) => (
+                      <div key={party.label} className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">{party.label}</span>
+                        <span
+                          className={
+                            party.signed
+                              ? "inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-medium"
+                              : "text-amber-700 dark:text-amber-400 font-medium"
+                          }
+                        >
+                          {party.signed ? (
+                            <>
+                              <Check className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                              <span>Sudah Tanda Tangan</span>
+                            </>
+                          ) : (
+                            "Belum Tanda Tangan"
+                          )}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
@@ -645,8 +703,11 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
                     {isMobile ? "Tandatangani Kontrak" : "Tandatangani Surat Kesepakatan"}
                   </Button>
                 ) : (
-                  <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 text-xs text-emerald-800 dark:text-emerald-200 text-center font-medium">
-                    ✓ Anda telah membubuhkan tanda tangan. Menunggu tanda tangan dari {partnerRole}.
+                  <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 text-xs text-emerald-800 dark:text-emerald-200 font-medium flex items-center justify-center gap-1.5 text-center">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" aria-hidden="true" />
+                    <span>
+                      Anda telah membubuhkan tanda tangan. Menunggu tanda tangan dari {partnerRole}.
+                    </span>
                   </div>
                 )}
 
@@ -680,34 +741,73 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
               </div>
             )}
 
-            {/* When Signed: Locked and Ready for Shipping */}
+            {/* When Signed: Escrow Payment Gate & Ready for Shipping */}
             {contract.status === "signed" && (
               <div className="space-y-4">
-                <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 text-xs text-emerald-900 dark:text-emerald-200 space-y-1.5">
+                <div
+                  className={`p-3.5 rounded-xl text-xs space-y-1.5 border ${
+                    isPaid
+                      ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 text-emerald-900 dark:text-emerald-200"
+                      : "bg-amber-50 dark:bg-amber-950/40 border-amber-300 text-amber-950 dark:text-amber-200"
+                  }`}
+                >
                   <p className="font-bold flex items-center gap-1.5">
-                    <CheckCheck className="w-4 h-4 text-emerald-600" />
-                    Kontrak Sah & Mengikat
+                    {isPaid ? (
+                      <CheckCheck className="w-4 h-4 text-emerald-600" />
+                    ) : (
+                      <Lock className="w-4 h-4 text-amber-600" />
+                    )}
+                    {isPaid
+                      ? "Pembayaran Escrow Lunas — Siap Dikirim"
+                      : "Kontrak Mengikat — Menunggu Pelunasan Escrow"}
                   </p>
                   <p className="text-xs leading-relaxed opacity-90">
-                    Kedua belah pihak telah melengkapi tanda tangan. Sesuai ketentuan, kesepakatan ini mengikat dan tidak dapat dibatalkan.
+                    {isPaid
+                      ? "Dana escrow telah terverifikasi dan ditahan aman oleh sistem. Kesepakatan mengikat dan siap menuju tahap pengiriman."
+                      : "Kedua belah pihak telah melengkapi tanda tangan. Pembeli perlu menyelesaikan pembayaran escrow melalui Midtrans Sandbox sebelum pengiriman gabah dapat dikonfirmasi."}
                   </p>
                 </div>
 
                 {isFarmer ? (
-                  <Button
-                    className="w-full min-h-11 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white"
-                    disabled={mutation.isPending}
-                    onClick={() => setShipModalOpen(true)}
-                  >
-                    <Truck className="w-4 h-4 mr-2" />
-                    {isMobile ? "Kirim Gabah" : "Konfirmasi Pengiriman Gabah"}
-                  </Button>
+                  <div className="space-y-2">
+                    <Button
+                      className={`w-full min-h-11 text-xs font-semibold ${
+                        isPaid
+                          ? "bg-blue-600 hover:bg-blue-700 text-white"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                      disabled={mutation.isPending || !isPaid}
+                      onClick={() => setShipModalOpen(true)}
+                    >
+                      {isPaid ? (
+                        <Truck className="w-4 h-4 mr-2" />
+                      ) : (
+                        <Lock className="w-4 h-4 mr-2" />
+                      )}
+                      {isMobile ? "Kirim Gabah" : "Konfirmasi Pengiriman Gabah"}
+                    </Button>
+                    {!isPaid && (
+                      <p className="text-[11px] text-muted-foreground leading-relaxed text-center">
+                        Tombol pengiriman akan terbuka otomatis setelah pembayaran escrow pembeli terverifikasi lunas.
+                      </p>
+                    )}
+                  </div>
+                ) : !isPaid ? (
+                  <div className="p-3.5 rounded-xl bg-muted/40 border border-border/70 text-xs text-muted-foreground text-center space-y-1">
+                    <Clock className="w-5 h-5 text-amber-600 mx-auto mb-1" />
+                    <p className="font-medium text-foreground">
+                      Selesaikan Pembayaran Escrow
+                    </p>
+                    <p className="text-[11px] leading-relaxed">
+                      Gunakan kartu <strong>Pembayaran Escrow (Midtrans Sandbox)</strong> di atas untuk melunasi tagihan agar petani dapat segera memberangkatkan gabah.
+                    </p>
+                  </div>
                 ) : (
                   <div className="p-3.5 rounded-xl bg-muted/40 border border-border/70 text-xs text-muted-foreground text-center space-y-1">
                     <Truck className="w-5 h-5 text-muted-foreground mx-auto mb-1" />
                     <p className="font-medium text-foreground">Menunggu Pengiriman dari Petani</p>
                     <p className="text-[11px] leading-relaxed">
-                      Petani sedang menyiapkan armada angkut. Anda akan diberi tahu setelah armada diberangkatkan.
+                      Dana escrow Anda sudah ditahan aman. Petani sedang menyiapkan armada angkut dan akan mengonfirmasi saat gabah diberangkatkan.
                     </p>
                   </div>
                 )}

@@ -1,5 +1,6 @@
 import { roleSchema, type Role, type SessionUser } from "@/features/auth/schemas";
 import { ROLE_ENUM } from "@/constant/enum";
+import { IS_MOCK_DATA } from "@/lib/config/fe-mode";
 
 export const demoUsers: Record<Role, SessionUser> = {
   [ROLE_ENUM.FARMER]: {
@@ -51,8 +52,8 @@ export function getDemoRole(): Role {
 }
 
 export function setDemoRole(role: Role) {
-  if (process.env.NEXT_PUBLIC_USE_MOCK !== "true")
-    throw new Error("Pergantian role hanya tersedia dalam mode demo.");
+  if (!IS_MOCK_DATA)
+    throw new Error("Pergantian role hanya tersedia dalam mode data mock.");
   sessionStorage.setItem(key, roleSchema.parse(role));
   window.dispatchEvent(new Event(eventName));
 }

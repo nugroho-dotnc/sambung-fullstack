@@ -28,3 +28,9 @@ yarn-debug.log*
 pnpm-debug.log*
 .DS_Store
 *.tmp
+SAMBUNG-panel-capture
+.agents
+docs
+
+CHANGELOG.md
+skills-lock.json

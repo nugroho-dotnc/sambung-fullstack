@@ -6,7 +6,7 @@ import { useOffer } from "../hooks/use-offers";
 import { offerRequestId } from "../services/request-id";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { CheckCircle2, ChevronRight, ArrowLeft, ShieldCheck, Info, Loader2, InfoIcon } from "lucide-react";
+import { Check, CheckCircle2, ChevronRight, ArrowLeft, ShieldCheck, Info, Loader2, InfoIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -35,6 +35,8 @@ import { UnsavedChangesDialog } from "@/components/shared/unsaved-changes-dialog
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
+import { IS_MOCK_DATA } from "@/lib/config/fe-mode";
+import { OfferWizardSkeleton } from "./offer-wizard-skeleton";
 
 const emptyFields = {
   grainType: "GKP" as "GKP" | "GKG",
@@ -67,7 +69,7 @@ const DISTRICT_SELECT_ITEMS = DISTRICT_OPTIONS.map((d) => ({
   label: d.label,
 }));
 
-const live = process.env.NEXT_PUBLIC_USE_MOCK !== "true";
+const live = !IS_MOCK_DATA;
 type Region = { id: string; regency: string; province: string };
 type Reference = {
   bounds: { lowerOperational: number; upperOperational: number };
@@ -100,7 +102,14 @@ function combinePickupAndNotes(pickupAddress: string, notes: string): string | n
 export function OfferWizard(props: { initialOffer?: HarvestOffer; onBack?: () => void }) {
   const id = useSearchParams().get("draft") || "";
   const draft = useOffer(id);
-  if (id && !draft.data) return <p className="p-8 text-center text-xs text-muted-foreground">{draft.error?.message || "Memuat draf…"}</p>;
+  if (id && draft.error) {
+    return (
+      <p role="alert" className="p-8 text-center text-xs text-destructive">
+        {draft.error.message}
+      </p>
+    );
+  }
+  if (id && !draft.data) return <OfferWizardSkeleton />;
   return <WizardForm key={id} {...props} initialOffer={draft.data || props.initialOffer} />;
 }
 
@@ -503,7 +512,7 @@ function WizardForm({
                   : "bg-muted text-foreground border border-border/80"
               }`}
             >
-              {step > item.num ? "✓" : item.num}
+              {step > item.num ? <Check className="size-3.5 stroke-[2.5]" aria-hidden="true" /> : item.num}
             </span>
             <span className="truncate font-semibold">{item.label}</span>
           </div>

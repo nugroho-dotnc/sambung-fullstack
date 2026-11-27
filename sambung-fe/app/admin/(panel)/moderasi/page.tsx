@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { PageContainer } from "@/components/shared/page-container";
+import { ListCardsSkeleton } from "@/components/shared/page-skeletons";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -134,9 +135,7 @@ export default function AdminModerasiPage() {
         </div>
 
         {isLoading ? (
-          <p className="p-10 text-center text-xs text-muted-foreground">
-            Memuat data tawaran...
-          </p>
+          <ListCardsSkeleton label="Memuat data tawaran..." />
         ) : (offers || []).length === 0 ? (
           <p className="p-10 text-center text-xs text-muted-foreground">
             Belum ada penawaran panen yang terdaftar di sistem.

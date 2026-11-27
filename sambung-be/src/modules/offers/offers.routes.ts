@@ -20,9 +20,9 @@ export function marketRouter(db: PrismaClient) {
     const rows=await db.region.findMany({orderBy:{id:"asc"}});
     const all=new Map<string,{id:string,name:string,level:string,parentId:string|null,province:string,regency:string}>();
     for(const row of rows) {
-      all.set(row.province,{...row,id:row.province,name:row.province,level:"provinsi",parentId:null});
-      all.set(row.regency,{...row,id:row.regency,name:row.regency,level:"kabupaten",parentId:row.province});
-      all.set(row.id,{...row,name:row.id,level:"kecamatan",parentId:row.regency});
+      all.set(`provinsi:${row.province}`,{...row,id:row.province,name:row.province,level:"provinsi",parentId:null});
+      all.set(`kabupaten:${row.province}:${row.regency}`,{...row,id:row.regency,name:row.regency,level:"kabupaten",parentId:row.province});
+      all.set(`kecamatan:${row.id}`,{...row,name:row.id,level:"kecamatan",parentId:row.regency});
     }
     res.json({data:Array.from(all.values()).filter(r=>(!q.level||r.level===q.level)&&(!q.parentId||r.parentId===q.parentId))});
   });

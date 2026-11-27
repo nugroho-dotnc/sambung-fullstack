@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { PageContainer } from "@/components/shared/page-container";
+import { TableRowsSkeleton } from "@/components/shared/page-skeletons";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAdminAuditLogs } from "@/features/admin/hooks/use-admin";
@@ -104,11 +105,7 @@ export default function AdminAuditLogPage() {
             </thead>
             <tbody className="divide-y divide-border">
               {isLoading ? (
-                <tr>
-                  <td colSpan={5} className="p-10 text-center text-xs text-muted-foreground">
-                    Memuat catatan log audit...
-                  </td>
-                </tr>
+                <TableRowsSkeleton columns={5} />
               ) : filteredLogs.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="p-10 text-center text-xs text-muted-foreground">

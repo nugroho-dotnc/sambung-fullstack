@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { PageContainer } from "@/components/shared/page-container";
+import { TableRowsSkeleton } from "@/components/shared/page-skeletons";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -198,11 +199,7 @@ export default function AdminPriceDataPage() {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {isLoading ? (
-                    <tr>
-                      <td colSpan={7} className="p-10 text-center text-xs text-muted-foreground">
-                        Memuat data harga acuan...
-                      </td>
-                    </tr>
+                    <TableRowsSkeleton columns={7} />
                   ) : isError ? (
                     <tr>
                       <td colSpan={7} className="p-8 text-center">

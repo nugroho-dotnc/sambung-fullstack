@@ -3,10 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { PageContainer } from "@/components/shared/page-container";
+import { TableRowsSkeleton } from "@/components/shared/page-skeletons";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAdminUsers } from "@/features/admin/hooks/use-admin";
+import { ProBadge } from "@/features/subscription/components/pro-badge";
 import { Lock, UserX, Info } from "lucide-react";
 
 export default function AdminUsersPage() {
@@ -102,11 +104,7 @@ export default function AdminUsersPage() {
             </thead>
             <tbody className="divide-y divide-border">
               {isLoading ? (
-                <tr>
-                  <td colSpan={8} className="p-10 text-center text-xs text-muted-foreground">
-                    Memuat data pengguna...
-                  </td>
-                </tr>
+                <TableRowsSkeleton columns={8} />
               ) : (users || []).length === 0 ? (
                 <tr>
                   <td colSpan={8} className="p-10 text-center text-xs text-muted-foreground">
@@ -126,16 +124,19 @@ export default function AdminUsersPage() {
                         {u.name}
                       </td>
                       <td className="py-4 px-5 first:pl-6 last:pr-6 whitespace-nowrap">
-                        <Badge
-                          variant="outline"
-                          className={`rounded-md px-2 py-0.5 text-xs font-semibold uppercase ${
-                            u.role === "admin"
-                              ? "admin-brand-pill"
-                              : "bg-muted text-foreground border-transparent"
-                          }`}
-                        >
-                          {u.role}
-                        </Badge>
+                        <div className="flex items-center gap-1.5">
+                          <Badge
+                            variant="outline"
+                            className={`rounded-md px-2 py-0.5 text-xs font-semibold uppercase ${
+                              u.role === "admin"
+                                ? "admin-brand-pill"
+                                : "bg-muted text-foreground border-transparent"
+                            }`}
+                          >
+                            {u.role}
+                          </Badge>
+                          {u.role === "pembeli" && u.isPro && <ProBadge size="xs" />}
+                        </div>
                       </td>
                       <td className="py-4 px-5 first:pl-6 last:pr-6 text-muted-foreground whitespace-nowrap tabular-nums">
                         <span className="bg-muted text-foreground px-2.5 py-0.5 rounded text-xs font-semibold">

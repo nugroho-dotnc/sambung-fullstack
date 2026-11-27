@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { PageContainer } from "@/components/shared/page-container";
+import { TableRowsSkeleton } from "@/components/shared/page-skeletons";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -162,11 +163,7 @@ export default function AdminCatalogPage() {
             </thead>
             <tbody className="divide-y divide-border">
               {isLoading ? (
-                <tr>
-                  <td colSpan={9} className="p-10 text-center text-xs text-muted-foreground">
-                    Memuat data pasokan...
-                  </td>
-                </tr>
+                <TableRowsSkeleton columns={9} />
               ) : filteredOffers.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="p-10 text-center text-xs text-muted-foreground">

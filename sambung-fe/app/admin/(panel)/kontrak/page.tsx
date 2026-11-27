@@ -3,21 +3,52 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { PageContainer } from "@/components/shared/page-container";
+import { TableRowsSkeleton } from "@/components/shared/page-skeletons";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatRupiah } from "@/features/offers/components/offer-summary";
+import {
+  formatPaymentChannel,
+  getPaymentStatusMeta,
+} from "@/features/contracts/domain/payment-helpers";
 import { useContracts } from "@/features/contracts/hooks/use-contracts";
 import { Lock } from "lucide-react";
+
+function getAdminPaymentBadgeClasses(
+  tone: "emerald" | "blue" | "amber" | "danger" | "neutral"
+): string {
+  switch (tone) {
+    case "emerald":
+      return "status-success";
+    case "blue":
+      return "status-info";
+    case "amber":
+      return "status-warning";
+    case "danger":
+      return "status-error";
+    default:
+      return "bg-muted text-foreground";
+  }
+}
 
 export default function AdminContractsPage() {
   const { data: contracts, isLoading } = useContracts();
   const [statusFilter, setStatusFilter] = useState("all");
 
   const filteredContracts = useMemo(() => {
-    let list = contracts || [];
+    const list = contracts || [];
+
+    if (statusFilter === "signed_shipping") {
+      return list.filter((c) => c.status === "signed" || c.status === "shipping");
+    }
+    if (statusFilter === "cancelled") {
+      return list.filter(
+        (c) => c.status === "cancelled" || c.status === "rejected" || c.status === "expired"
+      );
+    }
 
     if (statusFilter !== "all") {
-      list = list.filter((c) => c.status === statusFilter);
+      return list.filter((c) => c.status === statusFilter);
     }
 
     return list;
@@ -98,11 +129,19 @@ export default function AdminContractsPage() {
               },
               {
                 id: "approved",
-                label: `Disetujui (${contracts?.filter((c) => c.status === "approved").length || 0})`,
+                label: `Menunggu TTD (${contracts?.filter((c) => c.status === "approved").length || 0})`,
+              },
+              {
+                id: "signed_shipping",
+                label: `Escrow & Kirim (${contracts?.filter((c) => c.status === "signed" || c.status === "shipping").length || 0})`,
               },
               {
                 id: "completed",
                 label: `Selesai (${contracts?.filter((c) => c.status === "completed").length || 0})`,
+              },
+              {
+                id: "cancelled",
+                label: `Batal / Berakhir (${contracts?.filter((c) => c.status === "cancelled" || c.status === "rejected" || c.status === "expired").length || 0})`,
               },
             ].map((tab) => {
               const active = statusFilter === tab.id;
@@ -135,19 +174,16 @@ export default function AdminContractsPage() {
                 <th scope="col" className="py-3.5 px-5 first:pl-6 last:pr-6 text-right">Harga Sepakat</th>
                 <th scope="col" className="py-3.5 px-5 first:pl-6 last:pr-6 text-right">Total Nilai</th>
                 <th scope="col" className="py-3.5 px-5 first:pl-6 last:pr-6 text-center">Status</th>
+                <th scope="col" className="py-3.5 px-5 first:pl-6 last:pr-6">Pembayaran &amp; Escrow</th>
                 <th scope="col" className="py-3.5 px-5 first:pl-6 last:pr-6 text-center">Serah Terima Fisik</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {isLoading ? (
-                <tr>
-                  <td colSpan={8} className="p-10 text-center text-xs text-muted-foreground">
-                    Memuat data kontrak...
-                  </td>
-                </tr>
+                <TableRowsSkeleton columns={9} />
               ) : filteredContracts.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-10 text-center text-xs text-muted-foreground">
+                  <td colSpan={9} className="p-10 text-center text-xs text-muted-foreground">
                     Tidak ditemukan kesepakatan pada kategori ini.
                   </td>
                 </tr>
@@ -155,6 +191,7 @@ export default function AdminContractsPage() {
                 filteredContracts.map((contract) => {
                   const deliveryCount =
                     (contract.farmerConfirmed ? 1 : 0) + (contract.buyerConfirmed ? 1 : 0);
+                  const paymentMeta = getPaymentStatusMeta(contract);
                   const totalAmount = (contract.currentPrice || 0) * (contract.volumeKg || 0);
 
                   return (
@@ -216,6 +253,24 @@ export default function AdminContractsPage() {
                             ? "Kedaluwarsa"
                             : contract.status}
                         </Badge>
+                      </td>
+                      <td className="py-4 px-5 first:pl-6 last:pr-6 whitespace-nowrap">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold ${getAdminPaymentBadgeClasses(
+                            paymentMeta.tone
+                          )}`}
+                        >
+                          {paymentMeta.shortLabel}
+                        </span>
+                        {contract.payment && (
+                          <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+                            <p className="font-mono">{contract.payment.orderId}</p>
+                            <p className="tabular-nums">
+                              {formatRupiah(contract.payment.grossAmount)} &middot;{" "}
+                              {formatPaymentChannel(contract.payment)}
+                            </p>
+                          </div>
+                        )}
                       </td>
                       <td className="py-4 px-5 first:pl-6 last:pr-6 text-center whitespace-nowrap">
                         <span

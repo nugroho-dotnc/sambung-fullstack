@@ -23,6 +23,7 @@ import {
 } from "@/features/price-check";
 import { useContractCommand } from "@/features/contracts/hooks/use-contracts";
 import { ContractService } from "@/features/contracts/services/contract.service";
+import { IS_MOCK_DATA } from "@/lib/config/fe-mode";
 import { useMobile } from "@/hooks/use-mobile";
 import type { CatalogItem } from "../schemas";
 
@@ -124,7 +125,7 @@ export function PartialOrderForm({ item }: { item: CatalogItem }) {
       return;
     }
 
-    if (process.env.NEXT_PUBLIC_USE_MOCK === "true") {
+    if (IS_MOCK_DATA) {
       await submitOrder({});
       return;
     }

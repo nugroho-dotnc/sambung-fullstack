@@ -29,8 +29,15 @@ export function authService(db: PrismaClient, consentVersion: string) {
         const consumed = await tx.otpChallenge.deleteMany({ where: { phone, digest: digest(phone + code) } });
         if (!consumed.count) return null;
         const account = await tx.account.findUnique({ where: { phone }, select: profileFields });
-        if (account && (account.status !== "active" || account.role === "admin")) {
-          throw new ApiError(403, "ACCESS_DENIED", "Akun ini tidak dapat masuk melalui OTP demo.");
+        if (account && account.role === "admin") {
+          throw new ApiError(403, "ACCESS_DENIED", "Akun pengawas tidak dapat masuk melalui OTP.");
+        }
+        if (account && account.status !== "active") {
+          throw new ApiError(
+            403,
+            "ACCOUNT_CLOSED",
+            "Akun Anda berstatus nonaktif atau ditutup oleh pengawas sistem. Hubungi admin untuk informasi lebih lanjut."
+          );
         }
         await tx.authSession.deleteMany({ where: { OR: [
           { tokenHash: previousHash }, { expiresAt: { lte: new Date() } },
@@ -46,10 +53,35 @@ export function authService(db: PrismaClient, consentVersion: string) {
       const { agreedToTerms, ...profile } = input;
       try {
         return await db.$transaction(async tx => {
+          const officialRegion = await tx.region.findFirst({
+            where: {
+              id: { equals: profile.district, mode: "insensitive" },
+              regency: { equals: profile.regency, mode: "insensitive" },
+              province: { equals: profile.province, mode: "insensitive" },
+            },
+          });
+          if (!officialRegion) {
+            throw new ApiError(
+              422,
+              "INVALID_REGION",
+              "Wilayah domisili (provinsi, kabupaten/kota, kecamatan) harus dipilih dari daftar wilayah resmi."
+            );
+          }
+
           const proof = await tx.authSession.deleteMany({ where: { tokenHash, phone: profile.phone,
             accountId: null, expiresAt: { gt: new Date() } } });
           if (!proof.count) throw new ApiError(401, "VERIFICATION_REQUIRED", "Verifikasi nomor ponsel terlebih dahulu.");
-          const account = await tx.account.create({ data: { ...profile, consentAt: new Date(), consentVersion }, select: profileFields });
+          const account = await tx.account.create({
+            data: {
+              ...profile,
+              province: officialRegion.province,
+              regency: officialRegion.regency,
+              district: officialRegion.id,
+              consentAt: new Date(),
+              consentVersion,
+            },
+            select: profileFields,
+          });
           return { session: await createSession(tx, account.phone, account.id), body: { success: true, user: publicProfile(account) } };
         });
       } catch (error) {

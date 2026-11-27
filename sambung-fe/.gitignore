@@ -45,5 +45,8 @@ docs
 package-lock.json
 
 /ai/
-pnpm-lock.yaml
 /ai/venv
+pnpm-lock.yaml
+
+CHANGELOG.md
+AGENTS.md

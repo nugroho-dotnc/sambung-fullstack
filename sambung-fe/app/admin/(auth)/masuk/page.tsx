@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { useAdminLogin } from "@/features/auth/hooks/use-auth";
 import { useRedirectAuthenticatedUser } from "@/features/auth/hooks/use-redirect-authenticated";
 import { resolvePostAuthPath } from "@/features/auth/domain/role-routes";
+import { AdminLoginPageSkeleton } from "@/features/auth/components/auth-page-skeletons";
+import { IS_DEMO_FE } from "@/lib/config/fe-mode";
 
 function AdminLoginContent() {
   const router = useRouter();
@@ -17,18 +19,14 @@ function AdminLoginContent() {
   const redirect = searchParams.get("redirect");
   const { isRedirecting } = useRedirectAuthenticatedUser(redirect);
 
-  const [email, setEmail] = useState("admin@sambung.id");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState(IS_DEMO_FE ? "admin@sambung.id" : "");
+  const [password, setPassword] = useState(IS_DEMO_FE ? "admin123" : "");
   const [errorMsg, setErrorMsg] = useState("");
 
   const adminLoginMutation = useAdminLogin();
 
   if (isRedirecting) {
-    return (
-      <div className="p-8 text-center text-sm text-muted-foreground">
-        Sesi Anda masih aktif. Mengalihkan ke panel yang sesuai...
-      </div>
-    );
+    return <AdminLoginPageSkeleton label="Mengalihkan ke panel yang sesuai..." />;
   }
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -138,10 +136,12 @@ function AdminLoginContent() {
           </div>
         </div>
 
-        <div className="border-t border-border pt-4 text-xs space-y-1 text-muted-foreground">
-          <p className="font-semibold text-[var(--admin-gold-text)]">Akun Demo Pengawas</p>
-          <p className="tabular-nums">Email: admin@sambung.id · Sandi: admin123</p>
-        </div>
+        {IS_DEMO_FE && (
+          <div className="border-t border-border pt-4 text-xs space-y-1 text-muted-foreground">
+            <p className="font-semibold text-[var(--admin-gold-text)]">Akun Demo Pengawas</p>
+            <p className="tabular-nums">Email: admin@sambung.id · Sandi: admin123</p>
+          </div>
+        )}
       </form>
     </div>
   );
@@ -149,7 +149,7 @@ function AdminLoginContent() {
 
 export default function AdminLoginPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">Memuat halaman pengawas...</div>}>
+    <Suspense fallback={<AdminLoginPageSkeleton />}>
       <AdminLoginContent />
     </Suspense>
   );

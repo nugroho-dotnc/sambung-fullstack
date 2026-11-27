@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { PageContainer } from "@/components/shared/page-container";
+import { SettingsFormSkeleton } from "@/components/shared/page-skeletons";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -396,7 +397,7 @@ export default function AdminParametersPage() {
       </header>
 
       {isLoading ? (
-        <p className="text-xs text-muted-foreground">Memuat pengaturan sistem...</p>
+        <SettingsFormSkeleton label="Memuat pengaturan sistem..." />
       ) : (
         <ParametersForm
           key={parameters?.lastUpdated ?? "initial"}

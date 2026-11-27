@@ -4,6 +4,7 @@ import { use } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { PageContainer } from "@/components/shared/page-container";
+import { DetailSplitSkeleton } from "@/components/shared/page-skeletons";
 import { Button } from "@/components/ui/button";
 import { useContract } from "@/features/contracts/hooks/use-contracts";
 import { NegotiationRoom } from "@/features/contracts/components/negotiation-room";
@@ -19,7 +20,7 @@ export default function ContractDetailPage({
   if (isLoading) {
     return (
       <PageContainer>
-        <p className="text-xs text-muted-foreground">Memuat ruang kesepakatan...</p>
+        <DetailSplitSkeleton label="Memuat ruang kesepakatan..." />
       </PageContainer>
     );
   }

@@ -10,6 +10,7 @@
     "start": "node --env-file-if-exists=.env dist/index.js",
     "migrate": "prisma migrate deploy",
     "seed:demo": "prisma migrate deploy && node --env-file-if-exists=.env prisma/seed.ts",
+    "seed:price-history": "prisma migrate deploy && node --env-file-if-exists=.env prisma/seed-price-history.ts",
     "generate": "prisma generate",
     "test:phase4": "node --env-file-if-exists=.env --test --test-concurrency=1 tests/integration/*.test.mjs",
     "test:phase3": "node --env-file-if-exists=.env --test --test-concurrency=1 tests/integration/*.test.mjs",

@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
+import { ActivityRowsSkeleton } from "@/components/shared/page-skeletons";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -64,7 +66,13 @@ export default function AdminDashboardPage() {
                       : "bg-muted text-foreground border-transparent rounded-md px-2 py-0.5 text-xs font-semibold"
                   }
                 >
-                  {stats?.dataFreshnessStatus ? "Aktif & Valid" : "Memuat..."}
+                  {statsLoading ? (
+                    <Skeleton className="h-3.5 w-16 rounded-sm" />
+                  ) : stats?.dataFreshnessStatus ? (
+                    "Aktif & Valid"
+                  ) : (
+                    "Perlu Cek"
+                  )}
                 </Badge>
               </div>
               <div className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
@@ -133,12 +141,18 @@ export default function AdminDashboardPage() {
                   Pasokan Gabah Terdaftar
                 </span>
                 <span className="text-xs font-semibold text-[var(--admin-gold-text)] tabular-nums">
-                  {statsLoading ? "..." : `${stats?.totalOffers || 0} tawaran`}
+                  {statsLoading ? <Skeleton className="h-3.5 w-16 rounded-sm" /> : `${stats?.totalOffers || 0} tawaran`}
                 </span>
               </div>
               <div className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tabular-nums tracking-tight">
-                {(stats?.totalVolumeKg || 0).toLocaleString("id-ID")}{" "}
-                <span className="text-base font-normal text-muted-foreground font-sans">kg</span>
+                {statsLoading ? (
+                  <Skeleton className="h-8 w-28 rounded-md" />
+                ) : (
+                  <>
+                    {(stats?.totalVolumeKg || 0).toLocaleString("id-ID")}{" "}
+                    <span className="text-base font-normal text-muted-foreground font-sans">kg</span>
+                  </>
+                )}
               </div>
             </div>
             <p className="text-xs text-muted-foreground flex items-center gap-1.5 tabular-nums pt-3.5 border-t border-border">
@@ -166,10 +180,16 @@ export default function AdminDashboardPage() {
                 className={`text-2xl sm:text-3xl font-extrabold font-display tabular-nums tracking-tight ${hasAnomaly ? "text-[var(--admin-gold-text)]" : "text-foreground"
                   }`}
               >
-                {statsLoading ? "..." : stats?.flaggedOffers || 0}{" "}
-                <span className="text-base font-normal text-muted-foreground font-sans">
-                  tawaran
-                </span>
+                {statsLoading ? (
+                  <Skeleton className="h-8 w-20 rounded-md" />
+                ) : (
+                  <>
+                    {stats?.flaggedOffers || 0}{" "}
+                    <span className="text-base font-normal text-muted-foreground font-sans">
+                      tawaran
+                    </span>
+                  </>
+                )}
               </div>
             </div>
             <p className="text-xs text-muted-foreground flex items-center gap-1.5 pt-3.5 border-t border-border">
@@ -263,9 +283,7 @@ export default function AdminDashboardPage() {
 
         <div className="divide-y divide-border">
           {logsLoading ? (
-            <p className="text-xs text-muted-foreground py-7 px-6 text-center">
-              Memuat aktivitas transaksi...
-            </p>
+            <ActivityRowsSkeleton label="Memuat aktivitas transaksi..." />
           ) : !logs || logs.length === 0 ? (
             <div className="py-9 px-6 text-center text-xs text-muted-foreground space-y-1.5">
               <CheckCircle2 className="w-6 h-6 text-muted-foreground mx-auto opacity-60" aria-hidden="true" />

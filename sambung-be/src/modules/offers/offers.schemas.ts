@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+function todayJakartaIso(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date());
+}
+
 export const inputSchema = z.object({
   districtId: z.string().min(1, "Pilih kecamatan lokasi panen."),
   grainType: z.enum(["GKP", "GKG"], { message: "Jenis gabah harus GKP atau GKG." }),
@@ -19,7 +23,12 @@ export const inputSchema = z.object({
     .max(100, "Kadar air maksimal 100%.")
     .nullable(),
   notes: z.string().max(500, "Gabungan lokasi pengambilan dan catatan maksimal 500 karakter.").nullish(),
-  availableOn: z.iso.date({ message: "Format tanggal siap angkut tidak valid (YYYY-MM-DD)." }).nullish(),
+  availableOn: z.iso
+    .date({ message: "Format tanggal siap angkut tidak valid (YYYY-MM-DD)." })
+    .refine((value) => value >= todayJakartaIso(), {
+      message: "Tanggal perkiraan panen / siap angkut tidak boleh di masa lalu.",
+    })
+    .nullish(),
 });
 
 export const versionSchema = z.object({
