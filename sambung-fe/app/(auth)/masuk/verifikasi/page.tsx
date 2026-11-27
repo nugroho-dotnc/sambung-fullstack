@@ -7,9 +7,11 @@ import { KeyRound, ArrowRight, RefreshCw, CheckCircle2, MessageSquare } from "lu
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useVerifyOtp, useRequestOtp, useOtpMode } from "@/features/auth/hooks/use-auth";
+import { useVerifyOtp, useRequestOtp } from "@/features/auth/hooks/use-auth";
 import { useRedirectAuthenticatedUser } from "@/features/auth/hooks/use-redirect-authenticated";
 import { resolvePostAuthPath } from "@/features/auth/domain/role-routes";
+import { VerificationPageSkeleton } from "@/features/auth/components/auth-page-skeletons";
+import { IS_DEMO_FE, IS_LIVE_FE } from "@/lib/config/fe-mode";
 
 function VerificationContent() {
   const router = useRouter();
@@ -22,28 +24,22 @@ function VerificationContent() {
   const [errorMsg, setErrorMsg] = useState("");
   const [hint, setHint] = useState("");
   const [countdown, setCountdown] = useState(60);
-  const [activeOtpMode, setActiveOtpMode] = useState<"demo" | "live">("demo");
 
   const verifyMutation = useVerifyOtp();
   const requestOtpMutation = useRequestOtp();
-  const { data: otpConfig } = useOtpMode();
+  const isLive = IS_LIVE_FE;
 
   useEffect(() => {
     if (!phone) {
       router.push("/masuk");
       return;
     }
+    if (!IS_DEMO_FE) return;
     const timer = window.setTimeout(() => {
       setHint(sessionStorage.getItem(`otp-hint:${phone}`) ?? "");
-      const storedMode = sessionStorage.getItem("otp-mode") as "demo" | "live" | null;
-      if (storedMode) {
-        setActiveOtpMode(storedMode);
-      } else if (otpConfig?.otpMode) {
-        setActiveOtpMode(otpConfig.otpMode);
-      }
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [phone, router, otpConfig?.otpMode]);
+  }, [phone, router]);
 
   useEffect(() => {
     if (countdown <= 0) return;
@@ -54,11 +50,7 @@ function VerificationContent() {
   }, [countdown]);
 
   if (isRedirecting) {
-    return (
-      <div className="p-8 text-center text-sm text-muted-foreground">
-        Sesi Anda masih aktif. Mengalihkan ke ruang kerja...
-      </div>
-    );
+    return <VerificationPageSkeleton label="Mengalihkan ke ruang kerja..." />;
   }
 
   const handleResend = async () => {
@@ -66,11 +58,11 @@ function VerificationContent() {
     setErrorMsg("");
     try {
       const result = await requestOtpMutation.mutateAsync(phone);
-      const nextMode = result.otpMode || otpConfig?.otpMode || "demo";
-      setActiveOtpMode(nextMode);
-      sessionStorage.setItem("otp-mode", nextMode);
-      sessionStorage.setItem(`otp-hint:${phone}`, result.debugHint ?? "");
-      setHint(result.debugHint ?? "");
+      if (IS_DEMO_FE) {
+        const nextHint = result.debugHint ?? "";
+        sessionStorage.setItem(`otp-hint:${phone}`, nextHint);
+        setHint(nextHint);
+      }
       setCountdown(60);
     } catch (err) {
       setErrorMsg(
@@ -112,11 +104,9 @@ function VerificationContent() {
     }
   };
 
-  const isLive = activeOtpMode === "live";
-
   return (
-    <div className="w-full flex flex-col gap-8">
-      <div className="space-y-3">
+    <div className="w-full flex flex-col gap-6">
+      <div className="space-y-2">
         <h1 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
           {isLive ? "Verifikasi WhatsApp" : "Verifikasi Nomor"}
         </h1>
@@ -145,7 +135,7 @@ function VerificationContent() {
                 placeholder="4 digit"
                 value={otpCode}
                 onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
-                className="pl-10 text-center tracking-[0.5em] text-xl font-bold min-h-12 tabular-nums"
+                className="pl-10 text-center tracking-[0.5em] text-xl font-bold min-h-12 rounded-xl bg-muted/40 border-border/80 tabular-nums"
                 disabled={verifyMutation.isPending}
                 autoFocus
               />
@@ -188,7 +178,7 @@ function VerificationContent() {
 
         <Button
           type="submit"
-          className="w-full min-h-11 text-base font-semibold"
+          className="w-full min-h-11 rounded-xl text-base font-semibold"
           disabled={verifyMutation.isPending || otpCode.length !== 4}
         >
           {verifyMutation.isPending ? "Memverifikasi..." : "Konfirmasi & Masuk"}
@@ -223,7 +213,7 @@ function VerificationContent() {
 
 export default function VerificationPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">Memuat halaman verifikasi...</div>}>
+    <Suspense fallback={<VerificationPageSkeleton />}>
       <VerificationContent />
     </Suspense>
   );

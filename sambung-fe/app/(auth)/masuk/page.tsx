@@ -3,12 +3,14 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Phone, ArrowRight, UserCheck, MessageSquare } from "lucide-react";
+import { Phone, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useRequestOtp, useOtpMode } from "@/features/auth/hooks/use-auth";
+import { useRequestOtp } from "@/features/auth/hooks/use-auth";
 import { useRedirectAuthenticatedUser } from "@/features/auth/hooks/use-redirect-authenticated";
+import { LoginPageSkeleton } from "@/features/auth/components/auth-page-skeletons";
+import { IS_DEMO_FE, IS_LIVE_FE } from "@/lib/config/fe-mode";
 
 function LoginContent() {
   const router = useRouter();
@@ -19,15 +21,10 @@ function LoginContent() {
   const [phone, setPhone] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const requestOtpMutation = useRequestOtp();
-  const { data: otpConfig } = useOtpMode();
-  const isLiveOtp = otpConfig?.otpMode === "live";
+  const isLiveOtp = IS_LIVE_FE;
 
   if (isRedirecting) {
-    return (
-      <div className="p-8 text-center text-sm text-muted-foreground">
-        Sesi Anda masih aktif. Mengalihkan ke ruang kerja...
-      </div>
-    );
+    return <LoginPageSkeleton label="Mengalihkan ke ruang kerja..." />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -42,9 +39,11 @@ function LoginContent() {
 
     try {
       const result = await requestOtpMutation.mutateAsync(cleanPhone);
-      const activeMode = result.otpMode || otpConfig?.otpMode || "demo";
-      sessionStorage.setItem("otp-mode", activeMode);
-      sessionStorage.setItem(`otp-hint:${cleanPhone}`, result.debugHint ?? "");
+      if (IS_DEMO_FE) {
+        sessionStorage.setItem(`otp-hint:${cleanPhone}`, result.debugHint ?? "");
+      } else {
+        sessionStorage.removeItem(`otp-hint:${cleanPhone}`);
+      }
 
       const nextParams = new URLSearchParams({ phone: cleanPhone });
       if (redirect) nextParams.set("redirect", redirect);
@@ -64,8 +63,8 @@ function LoginContent() {
   };
 
   return (
-    <div className="flex flex-col gap-8 h-full">
-      <div className="space-y-3">
+    <div className="flex flex-col gap-6 w-full">
+      <div className="space-y-2">
         <h1 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
           Selamat datang kembali!
         </h1>
@@ -92,7 +91,7 @@ function LoginContent() {
                 placeholder={isLiveOtp ? "Nomor WhatsApp (contoh: 081234567890)" : "081234567890"}
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="pl-10 min-h-11 text-base tabular-nums"
+                className="pl-10 min-h-11 rounded-xl bg-muted/40 border-border/80 text-base tabular-nums"
                 disabled={requestOtpMutation.isPending}
                 autoFocus
               />
@@ -106,10 +105,10 @@ function LoginContent() {
           )}
         </div>
 
-        <div className="flex flex-col gap-5 pt-2">
+        <div className="flex flex-col gap-4 pt-1">
           <Button
             type="submit"
-            className="w-full min-h-11 text-base font-semibold"
+            className="w-full min-h-11 rounded-xl text-base font-semibold"
             disabled={requestOtpMutation.isPending}
           >
             {requestOtpMutation.isPending
@@ -120,7 +119,7 @@ function LoginContent() {
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
 
-          <div className="flex items-center justify-end w-full pt-4 border-t border-border/60 text-xs text-muted-foreground">
+          <div className="flex items-center justify-end w-full pt-3 border-t border-border/60 text-xs text-muted-foreground">
             <Link href="/admin/masuk" className="font-medium text-foreground hover:underline flex items-center gap-1">
               Masuk Pengelola (Admin)
             </Link>
@@ -128,20 +127,9 @@ function LoginContent() {
         </div>
       </form>
 
-      {isLiveOtp ? (
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-3.5 py-4 space-y-2 text-xs">
-          <p className="font-semibold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
-            <MessageSquare className="w-4 h-4 text-emerald-600" />
-            Layanan Pengiriman WhatsApp Aktif
-          </p>
-          <p className="text-muted-foreground leading-relaxed">
-            Sistem terhubung langsung ke gateway pengiriman pesan resmi. Pastikan nomor yang Anda masukkan aktif pada aplikasi WhatsApp.
-          </p>
-        </div>
-      ) : (
-        <div className="rounded-xl border border-border/60 bg-muted/40 px-3 py-4 space-y-3">
+      {IS_DEMO_FE && (
+        <div className="px-3 py-4 space-y-3">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-            <UserCheck className="w-3.5 h-3.5 text-primary" />
             Nomor Akun Terdaftar untuk Uji Coba:
           </p>
           <div className="grid grid-cols-2 gap-2 text-xs">
@@ -175,7 +163,7 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">Memuat halaman masuk...</div>}>
+    <Suspense fallback={<LoginPageSkeleton />}>
       <LoginContent />
     </Suspense>
   );

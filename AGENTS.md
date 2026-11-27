@@ -26,7 +26,7 @@ Format entri di `## [Unreleased]`:
 
 Catatan runtime:
 - `sambung-be` menjalankan `.ts` langsung lewat Node (`node --env-file-if-exists=.env --watch src/index.ts`), dan `src/config/env.ts` menolak `NODE_ENV=production`.
-- `sambung-fe/lib/api/client.ts` bercabang berdasarkan `NEXT_PUBLIC_USE_MOCK`: `"true"` mengarahkan request ke `sambung-fe/mock/server/router.ts`, `"false"` memanggil Express API (`NEXT_PUBLIC_API_BASE_URL`) dengan `credentials: "include"`.
+- `sambung-fe` memisahkan dua state lingkungan di `lib/config/fe-mode.ts`: `NEXT_PUBLIC_USE_MOCK` (`true` mengarahkan request `lib/api/client.ts` ke `sambung-fe/mock/server/router.ts`, `false`/default mengambil data riil dari Express API `NEXT_PUBLIC_API_BASE_URL` dengan `credentials: "include"`), dan `NEXT_PUBLIC_FE_MODE` (`"demo"` menampilkan elemen bantu demo & alur OTP demo di UI, sedangkan `"live"` menyembunyikan elemen demo & memakai alur OTP WhatsApp live — keduanya tetap memakai data backend riil selama `NEXT_PUBLIC_USE_MOCK=false`).
 
 ---
 

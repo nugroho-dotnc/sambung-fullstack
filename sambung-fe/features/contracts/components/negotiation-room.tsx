@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { IS_MOCK_DATA } from "@/lib/config/fe-mode";
 import {
   ArrowLeft,
   Clock,
@@ -88,7 +89,7 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
   const bothSigned = Boolean(contract.farmerSignature && contract.buyerSignature);
 
   const saved=contract.priceReference;
-  const priceRef=process.env.NEXT_PUBLIC_USE_MOCK==="true"?PriceReferenceService.getReference(contract.grainType,contract.regency):
+  const priceRef=IS_MOCK_DATA?PriceReferenceService.getReference(contract.grainType,contract.regency):
     {lowerBound:saved?.bounds.lowerOperational ?? 0,upperBound:saved?.bounds.upperOperational ?? 0,toleranceDelta:(saved?.deltaBp ?? 300)/10000};
   const path="/contracts/"+encodeURIComponent(contract.id)+"/";
   function quote(action:"accept"|"counter",price:number){
@@ -140,7 +141,7 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
     setModalError(null);
     mutation.reset();
 
-    if (process.env.NEXT_PUBLIC_USE_MOCK === "true") {
+    if (IS_MOCK_DATA) {
       await executeConfirmedPriceAction(action, {});
       return;
     }
@@ -202,7 +203,7 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
           path +
           (isFarmer &&
           contract.status === "pending" &&
-          process.env.NEXT_PUBLIC_USE_MOCK !== "true"
+          !IS_MOCK_DATA
             ? "reject"
             : "cancel"),
         body: {

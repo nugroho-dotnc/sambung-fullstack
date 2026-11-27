@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useRegisterProfile } from "@/features/auth/hooks/use-auth";
 import { useRedirectAuthenticatedUser } from "@/features/auth/hooks/use-redirect-authenticated";
 import { resolvePostAuthPath } from "@/features/auth/domain/role-routes";
+import { RegisterPageSkeleton } from "@/features/auth/components/auth-page-skeletons";
 
 function RegisterContent() {
   const router = useRouter();
@@ -37,11 +38,7 @@ function RegisterContent() {
   }, [phone, isRedirecting, router]);
 
   if (isRedirecting) {
-    return (
-      <div className="p-8 text-center text-sm text-muted-foreground">
-        Sesi Anda masih aktif. Mengalihkan ke ruang kerja...
-      </div>
-    );
+    return <RegisterPageSkeleton label="Mengalihkan ke ruang kerja..." />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -84,9 +81,9 @@ function RegisterContent() {
   };
 
   return (
-    <div className="w-full flex flex-col gap-8">
+    <div className="w-full flex flex-col gap-6">
       {/* Header halaman */}
-      <div className="space-y-3">
+      <div className="space-y-2 text-center">
         <h1 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
           Selamat datang di Sambung!
         </h1>
@@ -299,7 +296,7 @@ function RegisterContent() {
 
 export default function RegisterPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">Memuat formulir pendaftaran...</div>}>
+    <Suspense fallback={<RegisterPageSkeleton />}>
       <RegisterContent />
     </Suspense>
   );

@@ -23,6 +23,7 @@ import {
 } from "@/features/price-check";
 import { useContractCommand } from "@/features/contracts/hooks/use-contracts";
 import { ContractService } from "@/features/contracts/services/contract.service";
+import { IS_MOCK_DATA } from "@/lib/config/fe-mode";
 import { useMobile } from "@/hooks/use-mobile";
 import type { CatalogItem } from "../schemas";
 
@@ -51,7 +52,7 @@ export function PartialOrderForm({ item }: { item: CatalogItem }) {
   const estimatedTotal = numVolume * proposedPrice;
 
   const saved = item.priceCheck?.reference;
-  const priceRef = process.env.NEXT_PUBLIC_USE_MOCK === "true"
+  const priceRef = IS_MOCK_DATA
     ? PriceReferenceService.getReference(item.grainType, item.regency || "Subang")
     : { lowerBound: saved?.bounds.lowerOperational ?? 0, upperBound: saved?.bounds.upperOperational ?? 0, toleranceDelta: (saved?.deltaBp ?? 300)/10000 };
 
@@ -116,7 +117,7 @@ export function PartialOrderForm({ item }: { item: CatalogItem }) {
       return;
     }
 
-    if (process.env.NEXT_PUBLIC_USE_MOCK === "true") {
+    if (IS_MOCK_DATA) {
       await submitOrder({});
       return;
     }

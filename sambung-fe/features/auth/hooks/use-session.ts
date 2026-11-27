@@ -1,6 +1,7 @@
 "use client";
 
 import { useCurrentUser } from "./use-auth";
+import { IS_MOCK_DATA } from "@/lib/config/fe-mode";
 
 /**
  * Hook sesi pengguna untuk seluruh aplikasi SAMBUNG.
@@ -8,11 +9,10 @@ import { useCurrentUser } from "./use-auth";
  */
 export function useSession() {
   const { data: user, isLoading } = useCurrentUser();
-  const isDemo = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 
   return {
     user: user ?? null,
     isPending: isLoading,
-    isDemo,
+    isDemo: IS_MOCK_DATA,
   };
 }

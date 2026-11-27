@@ -9,6 +9,12 @@ Semua perubahan penting pada proyek **SAMBUNG** (`sambung-be` dan `sambung-fe`) 
 ## [Unreleased]
 
 ### Added
+- **Frontend (`sambung-fe`) — Panel Skeleton Terpadu untuk Transisi Auth & Keadaan Memuat Data**:
+  - (2026-11-27) Mengganti teks `"Sesi Anda masih aktif..."` saat `isRedirecting` di keempat halaman autentikasi (`masuk`, `masuk/verifikasi`, `daftar`, `admin/masuk`) dengan panel skeleton masing-masing (`LoginPageSkeleton`, `VerificationPageSkeleton`, `RegisterPageSkeleton`, `AdminLoginPageSkeleton`) berlabel `sr-only`.
+  - Menambahkan komponen skeleton bersama di `sambung-fe/components/shared/page-skeletons.tsx` (`DetailSplitSkeleton`, `DocumentSheetSkeleton`, `TableRowsSkeleton`, `ListCardsSkeleton`, `SettingsFormSkeleton`, `ActivityRowsSkeleton`) dan menerapkannya pada seluruh keadaan `isLoading` / `isPending` di `kontrak/[id]`, `kontrak/[id]/bukti`, `pembeli/katalog/[id]`, `offer-detail-view.tsx`, `offer-wizard.tsx`, `demo-role-panel.tsx`, serta seluruh halaman `admin/(panel)/*` (`page.tsx`, `data-harga`, `katalog`, `kontrak`, `log`, `moderasi`, `parameter`, `pengguna`).
+- **Frontend (`sambung-fe`) — Komponen Skeleton Fallback untuk Halaman `<Suspense>`**:
+  - (2026-11-27) Menambahkan `sambung-fe/features/auth/components/auth-page-skeletons.tsx` (`LoginPageSkeleton`, `VerificationPageSkeleton`, `RegisterPageSkeleton`, `AdminLoginPageSkeleton`) dan `sambung-fe/features/offers/components/offer-wizard-skeleton.tsx` (`OfferWizardSkeleton`).
+  - Mengganti fallback teks statis pada seluruh boundary `<Suspense>` halaman (`masuk`, `masuk/verifikasi`, `daftar`, `admin/masuk`, dan `petani/jual`) dengan skeleton yang proporsional terhadap tata letak aktual.
 - **Frontend (`sambung-fe`) — Tipografi Tanda Tangan Digital (Alex Brush Font)**:
   - Mengonfigurasi font kaligrafi lokal `AlexBrush-Regular.ttf` pada `sambung-fe/app/fonts/`, `layout.tsx`, dan `globals.css` dengan token `--font-signature` serta utility class `font-signature`.
   - Menerapkan font Alex Brush pada pratinjau ketik tanda tangan di dialog (`signature-dialog.tsx`) dan tampilan lembar kesepakatan digital / cetak PDF (`bukti/page.tsx`).
@@ -17,6 +23,18 @@ Semua perubahan penting pada proyek **SAMBUNG** (`sambung-be` dan `sambung-fe`) 
   - Menampilkan alur sekuensial lengkap: Pesanan Diajukan $\rightarrow$ Histori Tawar Balik $\rightarrow$ Harga Disepakati $\rightarrow$ Tanda Tangan Petani & Pembeli $\rightarrow$ Pengiriman $\rightarrow$ Penerimaan Selesai (atau status Pembatalan) dengan icon Lucide murni tanpa emotikon sesuai referensi visual.
 
 ### Changed
+- **Frontend (`sambung-fe`) — Pemisahan State Data Mock (`NEXT_PUBLIC_USE_MOCK`) dan Mode Demo FE (`NEXT_PUBLIC_FE_MODE`)**:
+  - (2026-11-27) Memisahkan `IS_MOCK_DATA` (`NEXT_PUBLIC_USE_MOCK=true|false`, default `false`) dari `FE_MODE` / `IS_DEMO_FE` / `IS_LIVE_FE` (`NEXT_PUBLIC_FE_MODE=demo|live`, default `live`) di `sambung-fe/lib/config/fe-mode.ts`, serta memperbarui `sambung-fe/.env.local`, `sambung-fe/README.md`, dan `AGENTS.md`.
+  - Memastikan saat `NEXT_PUBLIC_FE_MODE=demo` dan `NEXT_PUBLIC_USE_MOCK=false`, seluruh panggilan data (`lib/api/client.ts`, `notifikasi/page.tsx`, `partial-order-form.tsx`, `negotiation-room.tsx`, `contract.service.ts`, `offer-detail-view.tsx`, `offer-wizard.tsx`, `offers-workspace.tsx`, `use-session.ts`, `mock/session.ts`) tetap mengambil data riil dari backend Express (`NEXT_PUBLIC_API_BASE_URL`), sementara elemen bantu demo & alur OTP demo/live pada `auth.service.ts`, `/masuk`, `/masuk/verifikasi`, dan `/admin/masuk` dikontrol independen oleh `NEXT_PUBLIC_FE_MODE` (tanpa hardcode OTP `"1234"` saat menggunakan backend nyata).
+- **Frontend (`sambung-fe`) — Layout Split-Screen 50:50 Halaman Autentikasi (`AuthLayout`)**:
+  - (2026-11-27) Mengubah `sambung-fe/app/(auth)/layout.tsx` menjadi tata letak kartu split-screen seimbang (`grid-cols-1 lg:grid-cols-2`) dengan panel gambar sawah berbingkai (`hero-image4.webp`), slogan `PANTAU. TAWARKAN. SEPAKATI.`, dan tombol kembali ke beranda di sisi kiri, serta logo terpusat `SAMBUNG` dan wadah form `max-w-md` di sisi kanan.
+  - Menyelaraskan judul/subjudul dan radius input/tombol pada `sambung-fe/app/(auth)/masuk/page.tsx`, `sambung-fe/app/(auth)/masuk/verifikasi/page.tsx`, dan `sambung-fe/app/(auth)/daftar/page.tsx`.
+- **Frontend (`sambung-fe`) — Kartu Fitur dengan Lencana Ikon Bulat Melayang (`FeatureSection`)**:
+  - (2026-11-27) Memperbaiki tata letak kartu fitur pada `sambung-fe/app/(public)/_sections/feature.tsx` dan mengekstraknya menjadi `FeatureCard` + `FEATURE_CARDS` agar konsisten di ketiga kartu (*Cek Harga Wajar*, *Pantau Harga, Lihat Arah Pasar*, *Tawarkan Panen, Sepakati Harga*).
+  - Mengatasi bentrok `pt-28` yang tertimpa `p-6 sm:p-7`, memusatkan lencana bulat `h-24 w-24` (`-top-12 left-1/2 -translate-x-1/2`) dengan pemisah `ring-[6px] ring-background` dan ikon Lucide (`Calculator`, `TrendingUp`, `Sprout`), serta menambahkan ruang vertikal grid (`pt-12 gap-y-20 md:gap-8`) agar lencana tidak bertabrakan pada tampilan mobile maupun desktop.
+- **Frontend (`sambung-fe`) — Redesain 3 Kartu Nilai Utama di Seksi Tentang (`AboutSection`)**:
+  - (2026-11-27) Mengubah 3 kartu (`Harga dengan sumber jelas`, `Gratis, tanpa komisi`, `Prakiraan harga gabah`) pada `sambung-fe/app/(public)/_sections/about.tsx` menjadi desain kartu berbentuk folder bertab di kanan atas sambil mempertahankan latar `bg-card` dan tipografi eksisting.
+  - Menambahkan ikon kontekstual di sudut kanan atas tiap tab (`Database`, `BadgePercent`, `TrendingUp`) serta mempersingkat paragraf deskripsi agar lebih ringkas dan sejajar.
 - **Frontend (`sambung-fe`) — Redesain Tipografi & Arsitektur Kartu Dasbor Admin**:
   - Mengadopsi prinsip desain bersih (*clean UI*) dari panel Petani dan Produsen pada `sambung-fe/app/admin/(panel)/page.tsx`:
     - Mengubah 4 kartu metrik kapital kaku menjadi 3 kartu metrik lapang (*sentence case* dan angka hero `text-3xl font-extrabold font-display` dengan satuan terpisah).

@@ -16,10 +16,13 @@ Frontend antarmuka web modern untuk **SAMBUNG — Platform Transaksi Gabah Digit
 Buat berkas `.env.local` pada direktori `sambung-fe/`:
 
 ```env
-# Mode API: Setel ke 'false' untuk terhubung ke backend Express nyata
+# Sumber data: 'false' untuk backend Express nyata (termasuk saat demo FE), 'true' untuk mock lokal
 NEXT_PUBLIC_USE_MOCK=false
 
-# Alamat URL Backend Express
+# Mode FE: 'demo' (tampilkan elemen bantu demo & OTP demo) atau 'live' (tanpa elemen demo & OTP WhatsApp)
+NEXT_PUBLIC_FE_MODE=live
+
+# Alamat URL Backend Express (dipakai saat NEXT_PUBLIC_USE_MOCK=false)
 NEXT_PUBLIC_API_BASE_URL=http://localhost:4000
 ```
 

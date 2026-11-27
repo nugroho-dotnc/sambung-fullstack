@@ -78,11 +78,11 @@ function FolderCard({ title, description, icon: Icon }: AboutCardItem) {
 
 export default function AboutSection() {
   return (
-    <section id="tentang" className="min-h-[calc(100vh-4rem)] flex flex-col justify-center max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-10 sm:space-y-12 scroll-mt-20">
+    <section id="tentang" className="min-h-[calc(100vh-4rem)] flex flex-col justify-center max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-4 py-8 sm:py-12 space-y-10 sm:space-y-12 scroll-mt-20">
       {/* 5.5 : 4.5 Ratio Grid Layout */}
-      <div className="flex flex-col gap-8 lg:gap-12 xl:gap-16 items-start justify-center">
+      <div className="flex flex-col gap-8 lg:gap-12 xl:gap-16 items-center justify-center w-full">
         {/* Left: Title & Description (55% ratio) */}
-        <div className="space-y-6 sm:space-y-8 text-left">
+        <div className="space-y-6 sm:space-y-8 text-left w-full">
           <div className="space-y-4">
             <h2 className="font-display text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground leading-[1.15]">
               Tahu Harga Sebelum Menjual, 
@@ -96,20 +96,12 @@ export default function AboutSection() {
           </p>
         </div>
 
-        <div className="grid w-full max-w-4xl grid-cols-1 gap-3.5 sm:grid-cols-3 sm:gap-4">
+        <div className="grid w-full items-start justify-start grid-cols-1 gap-3.5 sm:grid-cols-3 sm:gap-4">
           {ABOUT_CARDS.map((card) => (
             <FolderCard key={card.title} {...card} />
           ))}
         </div>
        
-      </div>
-
-      {/* Disclaimer di bawah dengan text kecil */}
-      <div className="flex items-start gap-2 pt-4 text-xs text-muted-foreground/75 leading-relaxed border-t border-border/40">
-        <Info className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
-        <p>
-          SAMBUNG mencatat kesepakatan harga dan volume antara petani dan penggilingan. Pembayaran dan pengiriman diatur langsung oleh kedua pihak. Harga wajar dan proyeksi menjadi acuan, bukan harga yang pasti.
-        </p>
       </div>
     </section>
   );

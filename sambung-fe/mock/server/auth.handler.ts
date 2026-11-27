@@ -11,6 +11,11 @@ import {
 export function handleAuthRequest(path: string, method: string, body: unknown): unknown {
   const db = readDb();
 
+  // 0. Mode OTP demo
+  if (path === "/auth/otp/mode" && method === "GET") {
+    return { otpMode: "demo" as const };
+  }
+
   // 1. Minta Kode OTP
   if (path === "/auth/otp/request" && method === "POST") {
     const parse = requestOtpInputSchema.safeParse(body);

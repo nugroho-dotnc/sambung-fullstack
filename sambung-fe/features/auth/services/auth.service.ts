@@ -1,4 +1,5 @@
 import { apiClient } from "@/lib/api/client";
+import { FE_MODE, IS_MOCK_DATA, type FeMode } from "@/lib/config/fe-mode";
 import type {
   RegisterProfileInput,
   AdminLoginInput,
@@ -6,17 +7,8 @@ import type {
 } from "../schemas";
 
 export const authService = {
-  async getOtpMode(): Promise<{ otpMode: "demo" | "live" }> {
-    try {
-      const res = (await apiClient("/auth/otp/mode", { method: "GET" })) as {
-        otpMode: "demo" | "live";
-      };
-      return res;
-    } catch {
-      return {
-        otpMode: (process.env.NEXT_PUBLIC_OTP_MODE as "demo" | "live") || "demo",
-      };
-    }
+  async getOtpMode(): Promise<{ otpMode: FeMode }> {
+    return { otpMode: IS_MOCK_DATA ? "demo" : FE_MODE };
   },
 
   async requestOtp(

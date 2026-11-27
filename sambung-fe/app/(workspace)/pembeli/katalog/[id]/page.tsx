@@ -4,7 +4,7 @@ import { use } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { PageContainer } from "@/components/shared/page-container";
-import { AsyncBoundary } from "@/components/shared/async-boundary";
+import { DetailSplitSkeleton } from "@/components/shared/page-skeletons";
 import { Button } from "@/components/ui/button";
 import { useCatalogItem } from "@/features/catalog/hooks/use-catalog";
 import { PartialOrderForm } from "@/features/catalog/components/partial-order-form";
@@ -20,7 +20,7 @@ export default function BuyerSupplyDetailPage({
   if (isLoading) {
     return (
       <PageContainer>
-        <p className="text-xs text-muted-foreground">Memuat rincian pasokan...</p>
+        <DetailSplitSkeleton label="Memuat rincian pasokan..." />
       </PageContainer>
     );
   }

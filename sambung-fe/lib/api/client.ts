@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ApiError } from "./errors";
+import { IS_MOCK_DATA } from "@/lib/config/fe-mode";
 
 const errorSchema = z.object({
   code: z.string(),
@@ -24,7 +25,7 @@ export async function apiClient(
   requestHeaders.set("Accept", "application/json");
   if (json !== undefined) requestHeaders.set("Content-Type", "application/json");
 
-  if (process.env.NEXT_PUBLIC_USE_MOCK === "true") {
+  if (IS_MOCK_DATA) {
     options.signal?.throwIfAborted();
     const { mockRouter } = await import("@/mock/server/router");
     options.signal?.throwIfAborted();

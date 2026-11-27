@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { PageContainer } from "@/components/shared/page-container";
+import { TableRowsSkeleton } from "@/components/shared/page-skeletons";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatRupiah } from "@/features/offers/components/offer-summary";
@@ -138,11 +139,7 @@ export default function AdminContractsPage() {
             </thead>
             <tbody className="divide-y divide-border/60">
               {isLoading ? (
-                <tr>
-                  <td colSpan={8} className="p-8 text-center text-xs text-muted-foreground">
-                    Memuat data kontrak...
-                  </td>
-                </tr>
+                <TableRowsSkeleton columns={8} />
               ) : filteredContracts.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="p-8 text-center text-xs text-muted-foreground">

@@ -46,3 +46,6 @@ package-lock.json
 
 /ai/
 pnpm-lock.yaml
+
+CHANGELOG.md
+AGENTS.md

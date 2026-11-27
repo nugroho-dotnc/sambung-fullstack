@@ -1,4 +1,5 @@
 import { apiClient } from "@/lib/api/client";
+import { IS_MOCK_DATA } from "@/lib/config/fe-mode";
 import { contractSchema } from "../schemas";
 
 export type Quote = {
@@ -47,7 +48,7 @@ export class ContractService {
   static async prepare({ quote, body }: Intent) {
     if (
       !quote ||
-      process.env.NEXT_PUBLIC_USE_MOCK === "true" ||
+      IS_MOCK_DATA ||
       typeof body.referenceVersion === "string"
     ) {
       return body;
