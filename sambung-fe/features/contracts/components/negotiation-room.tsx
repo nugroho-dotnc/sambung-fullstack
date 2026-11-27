@@ -45,6 +45,7 @@ import { useMobile } from "@/hooks/use-mobile";
 import type { Contract } from "../schemas";
 import { SignatureDialog } from "./signature-dialog";
 import { ShipConfirmDialog, ReceiveConfirmDialog } from "./fulfillment-dialogs";
+import { ContractTimeline } from "./contract-timeline";
 
 interface PendingRedAction {
   action: "accept" | "counter";
@@ -446,57 +447,8 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
             </div>
           </Card>
 
-          {/* Negotiation History Timeline */}
-          <Card className="rounded-2xl border-border/80 bg-card p-6 space-y-4">
-            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 border-b border-border/60 pb-3">
-              <MessageSquare className="w-4 h-4 text-primary" />
-              Histori Penawaran & Negosiasi Harga
-            </h3>
-
-            <div className="space-y-4">
-              {contract.history.map((hist, idx) => {
-                const isAuthorMe = hist.role === user?.role;
-                return (
-                  <div
-                    key={hist.id || idx}
-                    className={`flex flex-col ${
-                      isAuthorMe ? "items-end" : "items-start"
-                    }`}
-                  >
-                    <div
-                      className={`max-w-[85%] rounded-2xl p-4 space-y-1.5 text-xs ${
-                        isAuthorMe
-                          ? "bg-primary text-primary-foreground rounded-br-xs"
-                          : "bg-muted/70 text-foreground border border-border/60 rounded-bl-xs"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-4 text-xs opacity-80">
-                        <span className="font-semibold">{hist.authorName}</span>
-                        <span>
-                          {new Date(hist.timestamp).toLocaleTimeString("id-ID", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
-                      </div>
-
-                      <div className="pt-0.5">
-                        <span className="text-sm font-bold tabular-nums block">
-                          Tawaran Harga: {formatRupiah(hist.price)} / kg
-                        </span>
-                      </div>
-
-                      {hist.note && (
-                        <p className="pt-1 opacity-90 leading-relaxed border-t border-current/20">
-                          {hist.note}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
+          {/* Unified Contract Journey Timeline */}
+          <ContractTimeline contract={contract} />
         </div>
 
         {/* Right Column: Contact Details (BR-018) & Actions */}
