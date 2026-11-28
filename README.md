@@ -104,7 +104,7 @@ Agar dua pengguna dapat berinteraksi secara *live* dari perangkat berbeda:
 - **Tawaran & Validasi Harga Wajar**: Evaluasi lampu harga (hijau, kuning, merah) berbasis acuan wilayah PIHPS dan Bapanas.
 - **Katalog & Pemesanan Parsial**: Pembeli dapat memesan sebagian kuota dari tawaran panen petani dengan penguncian baris konkuren (*row-level locking*).
 - **Ruang Negosiasi Dinamis**: Alur tawar balik harga berversi dengan proteksi benturan versi (*version conflict prevention*).
-- **Prakiraan AI v3 & TreeSHAP**: Prediksi harga produsen 2 & 4 pekan ke depan menggunakan model Machine Learning Bagged3 Hurdle-LightGBM yang lolos evaluasi *walk-forward*.
+- **Sambung Predict (`sambung-predict-v1`) & TreeSHAP**. Prakiraan harga beras tingkat produsen untuk 2 dan 4 pekan ke depan menggunakan model Hurdle + Dual-L1 yang dievaluasi secara *walk-forward* per provinsi dan horizon.
 - **Pemberitahuan Transaksi Real-time**: Notifikasi otomatis saat lawan transaksi memesan, menawar balik, menyetujui, atau mengonfirmasi.
 - **Portal Pengawas (Admin Governance)**: Dasbor statistik pasar gabah terintegrasi, kalibrasi dinamis tenggat kedaluwarsa pesanan, dan jejak audit sistem.
 - **Surat Bukti Digital (SIMULASI)**: Lembar kesepakatan digital resmi dengan format cetak/PDF setelah kedua belah pihak menyelesaikan transaksi.
