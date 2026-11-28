@@ -906,56 +906,60 @@ export async function sendPaymentOverdueReminders(
 
   let sentCount = 0;
   for (const contract of dueContracts) {
-    const claimed = await db.$transaction(async (tx) => {
-      const updated = await tx.contract.updateMany({
-        where: {
-          id: contract.id,
-          status: "signed",
-          paymentDueAt: { lte: now },
-          paymentReminderSentAt: null,
-          payments: { none: { status: "paid" } },
-        },
-        data: { paymentReminderSentAt: now },
-      });
-      if (updated.count === 0) return false;
-
-      await tx.notification.createMany({
-        data: [
-          {
-            accountId: contract.buyerId,
-            type: "kontrak",
-            title: "Tenggat Pembayaran Lewat — Sisa Masa Tenggang 3 Hari",
-            description:
-              "Batas waktu pembayaran 7 hari untuk kontrak ini telah lewat. Harap segera melunasi dalam 3 hari atau kontrak akan dibatalkan otomatis oleh sistem.",
-            linkHref: `/kontrak/${contract.id}`,
-            contractId: contract.id,
+    try {
+      const claimed = await db.$transaction(async (tx) => {
+        const updated = await tx.contract.updateMany({
+          where: {
+            id: contract.id,
+            status: "signed",
+            paymentDueAt: { lte: now },
+            paymentReminderSentAt: null,
+            payments: { none: { status: "paid" } },
           },
-          {
-            accountId: contract.offer.ownerId,
-            type: "kontrak",
-            title: "Pembayaran Produsen Memasuki Masa Tenggang 3 Hari",
-            description:
-              "Produsen belum menyelesaikan pembayaran dalam 7 hari. Sistem memberi masa tenggang 3 hari sebelum kontrak dibatalkan otomatis.",
-            linkHref: `/kontrak/${contract.id}`,
-            contractId: contract.id,
+          data: { paymentReminderSentAt: now },
+        });
+        if (updated.count === 0) return false;
+
+        await tx.notification.createMany({
+          data: [
+            {
+              accountId: contract.buyerId,
+              type: "kontrak",
+              title: "Tenggat Pembayaran Lewat — Sisa Masa Tenggang 3 Hari",
+              description:
+                "Batas waktu pembayaran 7 hari untuk kontrak ini telah lewat. Harap segera melunasi dalam 3 hari atau kontrak akan dibatalkan otomatis oleh sistem.",
+              linkHref: `/kontrak/${contract.id}`,
+              contractId: contract.id,
+            },
+            {
+              accountId: contract.offer.ownerId,
+              type: "kontrak",
+              title: "Pembayaran Produsen Memasuki Masa Tenggang 3 Hari",
+              description:
+                "Produsen belum menyelesaikan pembayaran dalam 7 hari. Sistem memberi masa tenggang 3 hari sebelum kontrak dibatalkan otomatis.",
+              linkHref: `/kontrak/${contract.id}`,
+              contractId: contract.id,
+            },
+          ],
+        });
+
+        await tx.auditLog.create({
+          data: {
+            actorRole: "sistem",
+            actorName: "Sistem Transaksi",
+            action: "PAYMENT_OVERDUE_WARNING",
+            targetType: "contract",
+            targetId: contract.id,
+            details: "Mengirim pengingat masa tenggang pembayaran 3 hari setelah tenggat 7 hari terlewati.",
           },
-        ],
+        });
+        return true;
       });
 
-      await tx.auditLog.create({
-        data: {
-          actorRole: "sistem",
-          actorName: "Sistem Transaksi",
-          action: "PAYMENT_OVERDUE_WARNING",
-          targetType: "contract",
-          targetId: contract.id,
-          details: "Mengirim pengingat masa tenggang pembayaran 3 hari setelah tenggat 7 hari terlewati.",
-        },
-      });
-      return true;
-    });
-
-    if (claimed) sentCount += 1;
+      if (claimed) sentCount += 1;
+    } catch (err) {
+      console.error("[sweeper] Gagal mengirim pengingat masa tenggang pembayaran:", contract.id, err);
+    }
   }
 
   return sentCount;
@@ -988,116 +992,120 @@ export async function cancelUnpaidSignedContracts(
 
   let cancelledCount = 0;
   for (const contract of overdueContracts) {
-    const activePending = contract.payments[0];
-    if (activePending?.snapToken && isMidtransConfigured()) {
-      try {
-        const config = readMidtransConfig();
-        const remote = await fetchTransactionStatus(config, activePending.orderId);
-        if (remote.found) {
-          const mapped = mapMidtransStatus(
-            String(remote.data.transaction_status ?? "pending"),
-            typeof remote.data.fraud_status === "string" ? remote.data.fraud_status : null
-          );
-          if (mapped.status === "paid") {
-            await applyMidtransStatusTransition(
-              db,
-              activePending.orderId,
-              remote.data,
-              "sweeper_rescue"
+    try {
+      const activePending = contract.payments[0];
+      if (activePending?.snapToken && isMidtransConfigured()) {
+        try {
+          const config = readMidtransConfig();
+          const remote = await fetchTransactionStatus(config, activePending.orderId);
+          if (remote.found) {
+            const mapped = mapMidtransStatus(
+              String(remote.data.transaction_status ?? "pending"),
+              typeof remote.data.fraud_status === "string" ? remote.data.fraud_status : null
             );
-            continue;
+            if (mapped.status === "paid") {
+              await applyMidtransStatusTransition(
+                db,
+                activePending.orderId,
+                remote.data,
+                "sweeper_rescue"
+              );
+              continue;
+            }
           }
+        } catch {
+          // Avoid false auto-cancellation if Midtrans status lookup fails transiently; retry next sweep cycle.
+          continue;
         }
-      } catch {
-        // Avoid false auto-cancellation if Midtrans status lookup fails transiently; retry next sweep cycle.
-        continue;
       }
+
+      const cancelled = await db.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "Contract" WHERE id = ${contract.id}::uuid FOR UPDATE`;
+
+        const row = await tx.contract.findUnique({
+          where: { id: contract.id },
+          select: {
+            id: true,
+            status: true,
+            paymentGraceEndsAt: true,
+            buyerId: true,
+            offer: { select: { ownerId: true } },
+          },
+        });
+        if (
+          !row ||
+          row.status !== "signed" ||
+          !row.paymentGraceEndsAt ||
+          row.paymentGraceEndsAt.getTime() > now.getTime()
+        ) {
+          return false;
+        }
+
+        const existingPaid = await tx.payment.findFirst({
+          where: { contractId: row.id, status: "paid" },
+          select: { id: true },
+        });
+        if (existingPaid) {
+          return false;
+        }
+
+        await tx.payment.updateMany({
+          where: { contractId: row.id, status: "pending" },
+          data: {
+            status: "expired",
+            escrowStatus: "unpaid",
+            lastSyncedAt: now,
+          },
+        });
+
+        const changed = await tx.contract.updateMany({
+          where: { id: row.id, status: "signed" },
+          data: {
+            status: "cancelled",
+            cancelReason: AUTO_CANCEL_REASON,
+          },
+        });
+        if (changed.count === 0) return false;
+
+        await tx.notification.createMany({
+          data: [
+            {
+              accountId: row.buyerId,
+              type: "kontrak",
+              title: "Kontrak Dibatalkan Otomatis",
+              description: `${AUTO_CANCEL_REASON} Kesepakatan ini telah ditutup oleh sistem.`,
+              linkHref: `/kontrak/${row.id}`,
+              contractId: row.id,
+            },
+            {
+              accountId: row.offer.ownerId,
+              type: "kontrak",
+              title: "Kontrak Dibatalkan — Stok Gabah Dipulihkan",
+              description: `${AUTO_CANCEL_REASON} Volume gabah pada tawaran Anda kini tersedia kembali di pasar.`,
+              linkHref: `/kontrak/${row.id}`,
+              contractId: row.id,
+            },
+          ],
+        });
+
+        await tx.auditLog.create({
+          data: {
+            actorRole: "sistem",
+            actorName: "Sistem Transaksi",
+            action: "CONTRACT_AUTO_CANCELLED_UNPAID",
+            targetType: "contract",
+            targetId: row.id,
+            details: `Kontrak dibatalkan otomatis setelah masa tenggang 7+3 hari: ${AUTO_CANCEL_REASON}`,
+          },
+        });
+
+        return true;
+      });
+
+      if (cancelled) cancelledCount += 1;
+    } catch (err) {
+      console.error("[sweeper] Gagal membatalkan otomatis kontrak belum dibayar:", contract.id, err);
     }
-
-    const cancelled = await db.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT id FROM "Contract" WHERE id = ${contract.id}::uuid FOR UPDATE`;
-
-      const row = await tx.contract.findUnique({
-        where: { id: contract.id },
-        select: {
-          id: true,
-          status: true,
-          paymentGraceEndsAt: true,
-          buyerId: true,
-          offer: { select: { ownerId: true } },
-        },
-      });
-      if (
-        !row ||
-        row.status !== "signed" ||
-        !row.paymentGraceEndsAt ||
-        row.paymentGraceEndsAt.getTime() > now.getTime()
-      ) {
-        return false;
-      }
-
-      const existingPaid = await tx.payment.findFirst({
-        where: { contractId: row.id, status: "paid" },
-        select: { id: true },
-      });
-      if (existingPaid) {
-        return false;
-      }
-
-      await tx.payment.updateMany({
-        where: { contractId: row.id, status: "pending" },
-        data: {
-          status: "expired",
-          escrowStatus: "unpaid",
-          lastSyncedAt: now,
-        },
-      });
-
-      const changed = await tx.contract.updateMany({
-        where: { id: row.id, status: "signed" },
-        data: {
-          status: "cancelled",
-          cancelReason: AUTO_CANCEL_REASON,
-        },
-      });
-      if (changed.count === 0) return false;
-
-      await tx.notification.createMany({
-        data: [
-          {
-            accountId: row.buyerId,
-            type: "kontrak",
-            title: "Kontrak Dibatalkan Otomatis",
-            description: `${AUTO_CANCEL_REASON} Kesepakatan ini telah ditutup oleh sistem.`,
-            linkHref: `/kontrak/${row.id}`,
-            contractId: row.id,
-          },
-          {
-            accountId: row.offer.ownerId,
-            type: "kontrak",
-            title: "Kontrak Dibatalkan — Stok Gabah Dipulihkan",
-            description: `${AUTO_CANCEL_REASON} Volume gabah pada tawaran Anda kini tersedia kembali di pasar.`,
-            linkHref: `/kontrak/${row.id}`,
-            contractId: row.id,
-          },
-        ],
-      });
-
-      await tx.auditLog.create({
-        data: {
-          actorRole: "sistem",
-          actorName: "Sistem Transaksi",
-          action: "CONTRACT_AUTO_CANCELLED_UNPAID",
-          targetType: "contract",
-          targetId: row.id,
-          details: `Kontrak dibatalkan otomatis setelah masa tenggang 7+3 hari: ${AUTO_CANCEL_REASON}`,
-        },
-      });
-
-      return true;
-    });
-
-    if (cancelled) cancelledCount += 1;
   }
 
   return cancelledCount;

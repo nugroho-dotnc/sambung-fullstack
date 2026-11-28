@@ -51,7 +51,7 @@ export default function HeroSection() {
                     <ButtonLink
                         variant="outline"
                         size="lg"
-                        className="min-h-12 px-6 text-base font-medium cursor-pointer bg-brand-cream text-black backdrop-blur-xs "
+                        className="min-h-12 px-6 text-base font-medium cursor-pointer bg-brand-cream text-foreground border-border/80 hover:bg-brand-cream/90 backdrop-blur-xs"
                         href="/peta-harga"
                     >
                         Jelajahi Peta & Papan Harga

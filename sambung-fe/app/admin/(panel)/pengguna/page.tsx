@@ -13,7 +13,7 @@ import { ProBadge } from "@/features/subscription/components/pro-badge";
 import { Lock, UserX, Info } from "lucide-react";
 
 export default function AdminUsersPage() {
-  const { data: users, isLoading } = useAdminUsers();
+  const { data: users, isLoading, isError, error, refetch } = useAdminUsers();
   const [closurePendingUsers, setClosurePendingUsers] = useState<string[]>([]);
   const [closureNotice, setClosureNotice] = useState<string | null>(null);
 
@@ -106,6 +106,23 @@ export default function AdminUsersPage() {
             <tbody className="divide-y divide-border">
               {isLoading ? (
                 <TableRowsSkeleton columns={8} />
+              ) : isError ? (
+                <tr>
+                  <td colSpan={8} className="p-10 text-center text-xs space-y-2">
+                    <p className="font-semibold text-destructive">
+                      {error?.message || "Gagal memuat daftar pengguna."}
+                    </p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void refetch()}
+                      className="text-xs"
+                    >
+                      Coba Muat Ulang
+                    </Button>
+                  </td>
+                </tr>
               ) : (users || []).length === 0 ? (
                 <tr>
                   <td colSpan={8} className="p-10 text-center text-xs text-muted-foreground">
@@ -114,7 +131,9 @@ export default function AdminUsersPage() {
                 </tr>
               ) : (
                 (users || []).map((u) => {
+                  const isClosed = u.status === "closed";
                   const isPendingClosure = closurePendingUsers.includes(u.id);
+                  const isClosing = !isClosed && (u.status === "closing" || isPendingClosure);
 
                   return (
                     <tr key={u.id}>
@@ -164,14 +183,18 @@ export default function AdminUsersPage() {
                       <td className="py-4 px-5 first:pl-6 last:pr-6 text-center whitespace-nowrap">
                         <span
                           className={`inline-block px-2.5 py-0.5 rounded-md text-xs font-semibold ${
-                            isPendingClosure ? "status-warning" : "status-success"
+                            isClosed
+                              ? "status-error"
+                              : isClosing
+                              ? "status-warning"
+                              : "status-success"
                           }`}
                         >
-                          {isPendingClosure ? "Permohonan Tutup" : "Aktif"}
+                          {isClosed ? "Ditutup" : isClosing ? "Permohonan Tutup" : "Aktif"}
                         </span>
                       </td>
                       <td className="py-4 px-5 first:pl-6 last:pr-6 text-right whitespace-nowrap">
-                        {u.role !== "admin" && (
+                        {u.role !== "admin" && !isClosed && (
                           <Button
                             type="button"
                             variant="ghost"

@@ -50,6 +50,7 @@ export function useUpdateParameters() {
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.auditLogs() });
       queryClient.invalidateQueries({ queryKey: ["fair-price"] });
       queryClient.invalidateQueries({ queryKey: ["price-board"] });
+      queryClient.invalidateQueries({ queryKey: ["price-history"] });
       queryClient.invalidateQueries({ queryKey: ["spatial-disparity"] });
       queryClient.invalidateQueries({ queryKey: ["forecasts"] });
     },
@@ -80,6 +81,7 @@ export function usePublishObservations() {
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.auditLogs() });
       queryClient.invalidateQueries({ queryKey: ["fair-price"] });
       queryClient.invalidateQueries({ queryKey: ["price-board"] });
+      queryClient.invalidateQueries({ queryKey: ["price-history"] });
       queryClient.invalidateQueries({ queryKey: ["spatial-disparity"] });
       queryClient.invalidateQueries({ queryKey: ["forecasts"] });
     },
@@ -114,6 +116,7 @@ export function useAdminAiIngest() {
       queryClient.invalidateQueries({ queryKey: ["forecasts"] });
       queryClient.invalidateQueries({ queryKey: ["fair-price"] });
       queryClient.invalidateQueries({ queryKey: ["price-board"] });
+      queryClient.invalidateQueries({ queryKey: ["price-history"] });
       queryClient.invalidateQueries({ queryKey: ["spatial-disparity"] });
     },
   });

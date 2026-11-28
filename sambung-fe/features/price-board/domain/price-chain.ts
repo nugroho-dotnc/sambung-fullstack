@@ -2,6 +2,7 @@
  * Domain logic and data models for SAMBUNG Price Chain Board (PB-02).
  * Follows Clean Code principles (pure functions, no side effects).
  */
+import { escapeCsvCell } from "@/lib/csv";
 
 export interface SupplyChainLevel {
   id: string;
@@ -92,20 +93,14 @@ export function calculateMargin(farmerPrice: number, retailPrice: number): {
 export function generateSupplyChainCsv(data: SupplyChainComparison): string {
   const headers = ["Tingkat Rantai Pasok", "Komoditas", "Wilayah", "Harga Acuan (Rp/kg)", "Keterangan"];
   const rows = data.levels.map((lvl) => [
-    `"${lvl.level}"`,
-    `"${data.commodity}"`,
-    `"${data.region}"`,
-    lvl.price,
-    `"${lvl.note}"`,
+    escapeCsvCell(lvl.level),
+    escapeCsvCell(data.commodity),
+    escapeCsvCell(data.region),
+    escapeCsvCell(lvl.price),
+    escapeCsvCell(lvl.note),
   ]);
 
-  return [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-}
-
-function csvCell(value: string | number | null | undefined): string {
-  if (value === null || value === undefined) return "";
-  const str = String(value);
-  return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+  return [headers.map(escapeCsvCell).join(","), ...rows.map((r) => r.join(","))].join("\n");
 }
 
 /**
@@ -135,25 +130,25 @@ export function generatePriceHistoryCsv(region: string, rows: PriceHistoryRow[])
   const ordered = [...rows].reverse();
   const lines = ordered.map((row) =>
     [
-      csvCell(row.weekStart),
-      csvCell(row.weekLabel),
-      csvCell(region),
-      csvCell(row.rowStatus),
-      csvCell(row.source),
-      csvCell(row.farmerPrice),
-      csvCell(row.millerPrice),
-      csvCell(row.wholesalePrice),
-      csvCell(row.retailPrice),
-      csvCell(row.predictedMillerPrice),
-      csvCell(row.predictedFarmerPrice),
-      csvCell(row.predictionErrorRp),
-      csvCell(row.predictionLower80),
-      csvCell(row.predictionUpper80),
-      csvCell(row.predictionHorizonWeeks),
-      csvCell(row.farmerSharePercent),
-      csvCell(row.millerChangeRp),
+      escapeCsvCell(row.weekStart),
+      escapeCsvCell(row.weekLabel),
+      escapeCsvCell(region),
+      escapeCsvCell(row.rowStatus),
+      escapeCsvCell(row.source),
+      escapeCsvCell(row.farmerPrice),
+      escapeCsvCell(row.millerPrice),
+      escapeCsvCell(row.wholesalePrice),
+      escapeCsvCell(row.retailPrice),
+      escapeCsvCell(row.predictedMillerPrice),
+      escapeCsvCell(row.predictedFarmerPrice),
+      escapeCsvCell(row.predictionErrorRp),
+      escapeCsvCell(row.predictionLower80),
+      escapeCsvCell(row.predictionUpper80),
+      escapeCsvCell(row.predictionHorizonWeeks),
+      escapeCsvCell(row.farmerSharePercent),
+      escapeCsvCell(row.millerChangeRp),
     ].join(",")
   );
 
-  return [headers.join(","), ...lines].join("\n");
+  return [headers.map(escapeCsvCell).join(","), ...lines].join("\n");
 }

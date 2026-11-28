@@ -1,8 +1,9 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import {
   Sprout,
   Building2,
@@ -16,6 +17,16 @@ import {
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { apiClient } from "@/lib/api/client";
+import { IS_MOCK_DATA } from "@/lib/config/fe-mode";
+import { INDONESIA_REGIONS, type RegionRecord } from "@/features/regions/regions-catalog";
 import { useRegisterProfile } from "@/features/auth/hooks/use-auth";
 import { useRedirectAuthenticatedUser } from "@/features/auth/hooks/use-redirect-authenticated";
 import { resolvePostAuthPath } from "@/features/auth/domain/role-routes";
@@ -41,6 +52,76 @@ function RegisterContent() {
   const [district, setDistrict] = useState("Pagaden");
   const [agreedToTerms, setAgreedToTerms] = useState(false); // FR-002.13: TIDAK tercentang otomatis!
   const [errorMsg, setErrorMsg] = useState("");
+
+  const regionsQuery = useQuery({
+    queryKey: ["regions", "kecamatan"],
+    enabled: !IS_MOCK_DATA,
+    staleTime: 5 * 60_000,
+    queryFn: () => apiClient.get<{ data: RegionRecord[] }>("/regions?level=kecamatan"),
+  });
+
+  const allRegions = useMemo(() => {
+    const fetched = regionsQuery.data?.data;
+    return fetched && fetched.length > 0 ? fetched : INDONESIA_REGIONS;
+  }, [regionsQuery.data?.data]);
+
+  const provinceOptions = useMemo(() => {
+    const unique = Array.from(new Set(allRegions.map((r) => r.province))).sort((a, b) =>
+      a.localeCompare(b, "id")
+    );
+    return unique.map((p) => ({ value: p, label: p }));
+  }, [allRegions]);
+
+  const regencyOptions = useMemo(() => {
+    const unique = Array.from(
+      new Set(allRegions.filter((r) => r.province === province).map((r) => r.regency))
+    ).sort((a, b) => a.localeCompare(b, "id"));
+    return unique.map((reg) => ({ value: reg, label: reg }));
+  }, [allRegions, province]);
+
+  const districtOptions = useMemo(() => {
+    const unique = Array.from(
+      new Set(
+        allRegions
+          .filter((r) => r.province === province && r.regency === regency)
+          .map((r) => r.id)
+      )
+    ).sort((a, b) => a.localeCompare(b, "id"));
+    return unique.map((dist) => ({ value: dist, label: dist }));
+  }, [allRegions, province, regency]);
+
+  const handleProvinceChange = (nextProvince: string | null) => {
+    if (!nextProvince) return;
+    setProvince(nextProvince);
+    const nextRegencies = Array.from(
+      new Set(allRegions.filter((r) => r.province === nextProvince).map((r) => r.regency))
+    ).sort((a, b) => a.localeCompare(b, "id"));
+    const firstRegency = nextRegencies[0] ?? "";
+    setRegency(firstRegency);
+    const nextDistricts = Array.from(
+      new Set(
+        allRegions
+          .filter((r) => r.province === nextProvince && r.regency === firstRegency)
+          .map((r) => r.id)
+      )
+    ).sort((a, b) => a.localeCompare(b, "id"));
+    setDistrict(nextDistricts[0] ?? "");
+    if (errorMsg) setErrorMsg("");
+  };
+
+  const handleRegencyChange = (nextRegency: string | null) => {
+    if (!nextRegency) return;
+    setRegency(nextRegency);
+    const nextDistricts = Array.from(
+      new Set(
+        allRegions
+          .filter((r) => r.province === province && r.regency === nextRegency)
+          .map((r) => r.id)
+      )
+    ).sort((a, b) => a.localeCompare(b, "id"));
+    setDistrict(nextDistricts[0] ?? "");
+    if (errorMsg) setErrorMsg("");
+  };
 
   const registerMutation = useRegisterProfile();
 
@@ -406,57 +487,99 @@ function RegisterContent() {
                 </p>
               </div>
 
+              {regionsQuery.isError && (
+                <div className="rounded-xl border border-amber-300/70 bg-amber-50/70 dark:border-amber-900/60 dark:bg-amber-950/30 p-3 text-xs text-amber-950 dark:text-amber-200 flex items-center justify-between gap-2">
+                  <span>Daftar wilayah langsung belum termuat; menampilkan katalog wilayah standar.</span>
+                  <button
+                    type="button"
+                    onClick={() => void regionsQuery.refetch()}
+                    className="font-semibold underline underline-offset-2 shrink-0 cursor-pointer"
+                  >
+                    Muat Ulang
+                  </button>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
                 <div className="space-y-1.5">
                   <label htmlFor="province" className="block text-xs font-medium text-foreground">
                     Provinsi <span className="text-destructive">*</span>
                   </label>
-                  <Input
-                    id="province"
+                  <Select
+                    items={provinceOptions}
                     value={province}
-                    onChange={(e) => {
-                      setProvince(e.target.value);
-                      if (errorMsg) setErrorMsg("");
-                    }}
-                    placeholder="Contoh: Jawa Barat"
-                    className="h-11 rounded-xl border-input bg-background px-3 text-sm focus-visible:ring-primary"
-                    autoFocus
-                    required
-                  />
+                    onValueChange={handleProvinceChange}
+                  >
+                    <SelectTrigger
+                      id="province"
+                      className="w-full h-11 rounded-xl border-input bg-background px-3 text-sm"
+                    >
+                      <SelectValue placeholder="Pilih provinsi" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {provinceOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-1.5">
                   <label htmlFor="regency" className="block text-xs font-medium text-foreground">
                     Kabupaten / Kota <span className="text-destructive">*</span>
                   </label>
-                  <Input
-                    id="regency"
+                  <Select
+                    items={regencyOptions}
                     value={regency}
-                    onChange={(e) => {
-                      setRegency(e.target.value);
-                      if (errorMsg) setErrorMsg("");
-                    }}
-                    placeholder="Contoh: Subang"
-                    className="h-11 rounded-xl border-input bg-background px-3 text-sm focus-visible:ring-primary"
-                    required
-                  />
+                    onValueChange={handleRegencyChange}
+                    disabled={regencyOptions.length === 0}
+                  >
+                    <SelectTrigger
+                      id="regency"
+                      className="w-full h-11 rounded-xl border-input bg-background px-3 text-sm"
+                    >
+                      <SelectValue placeholder="Pilih kabupaten/kota" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {regencyOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-1.5 sm:col-span-2 md:col-span-1">
                   <label htmlFor="district" className="block text-xs font-medium text-foreground">
                     Kecamatan <span className="text-destructive">*</span>
                   </label>
-                  <Input
-                    id="district"
+                  <Select
+                    items={districtOptions}
                     value={district}
-                    onChange={(e) => {
-                      setDistrict(e.target.value);
+                    onValueChange={(nextDistrict) => {
+                      if (!nextDistrict) return;
+                      setDistrict(nextDistrict);
                       if (errorMsg) setErrorMsg("");
                     }}
-                    placeholder="Contoh: Pagaden"
-                    className="h-11 rounded-xl border-input bg-background px-3 text-sm focus-visible:ring-primary"
-                    required
-                  />
+                    disabled={districtOptions.length === 0}
+                  >
+                    <SelectTrigger
+                      id="district"
+                      className="w-full h-11 rounded-xl border-input bg-background px-3 text-sm"
+                    >
+                      <SelectValue placeholder="Pilih kecamatan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {districtOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -480,6 +603,7 @@ function RegisterContent() {
                     <Link
                       href="/bantuan"
                       target="_blank"
+                      rel="noopener noreferrer"
                       className="font-medium text-primary hover:underline"
                     >
                       Ketentuan Layanan &amp; Kebijakan Data SAMBUNG

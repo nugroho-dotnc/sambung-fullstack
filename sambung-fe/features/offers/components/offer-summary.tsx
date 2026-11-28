@@ -8,9 +8,18 @@ const RUPIAH_FORMATTER = new Intl.NumberFormat("id-ID", {
 
 export const formatRupiah = (value: number) => RUPIAH_FORMATTER.format(value);
 
+function extractPickupFromNotes(notes?: string | null): string {
+  if (!notes) return "";
+  const match = notes.match(/^\[Lokasi:\s*([^\]]+)\]/);
+  return match ? match[1].trim() : "";
+}
+
 export function OfferSummary({ input }: { input: OfferInput }) {
   const regionText = `Kec. ${input.district || input.districtId || "Pagaden"}, Kab. ${input.regency || "Subang"}`;
-  const pickupText = input.pickupAddress?.trim() || "Sesuai koordinasi pengambilan";
+  const pickupText =
+    input.pickupAddress?.trim() ||
+    extractPickupFromNotes(input.notes) ||
+    "Sesuai koordinasi pengambilan";
 
   const rows = [
     { label: "Jenis Komoditas", value: `Gabah ${input.grainType} (${input.grainType === "GKP" ? "Kering Panen" : "Kering Giling"})` },

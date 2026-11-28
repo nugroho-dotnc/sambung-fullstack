@@ -308,6 +308,38 @@ test("Buyer Subscription Pembeli Pro: Rp99rb Midtrans Snap, stacking 30d, fee 0.
     })),
   });
 
+  await db.marketPriceHistory.deleteMany({ where: { region: "Jawa Barat" } });
+  await db.marketPriceHistory.createMany({
+    data: [
+      {
+        region: "Jawa Barat",
+        commodity: "Beras Medium I",
+        weekStart: new Date("2026-11-16T00:00:00.000Z"),
+        farmerPrice: 12666,
+        millerPrice: 13100,
+        wholesalePrice: 14500,
+        retailPrice: 14900,
+        predictedFarmerPrice: 12600,
+        predictedMillerPrice: 13000,
+        source: "pihps_bi",
+      },
+      {
+        region: "Jawa Barat",
+        commodity: "Beras Medium I",
+        weekStart: new Date("2026-11-30T00:00:00.000Z"),
+        predictedFarmerPrice: 12666,
+        predictedMillerPrice: 13100,
+        predictedGkpPrice: 6762,
+        predictionLower80: 13020,
+        predictionUpper80: 13180,
+        predictionHorizonWeeks: 2,
+        predictionMethod: "Mode AI",
+        predictionModelVersion: "sambung-predict-v1",
+        source: "ai_forecast",
+      },
+    ],
+  });
+
   const suffix = randomUUID().slice(0, 8);
   const regionId = `JEMBER-${suffix}`;
   await db.region.create({
@@ -441,6 +473,24 @@ test("Buyer Subscription Pembeli Pro: Rp99rb Midtrans Snap, stacking 30d, fee 0.
     cookie: buyerCookie,
   });
   assert.equal(buyerHist12wFree.status, 200);
+
+  const buyerHistJabarPredFree = await api(
+    "/price-history?region=Jawa%20Barat&range=12w&status=predicted",
+    { cookie: buyerCookie }
+  );
+  assert.equal(buyerHistJabarPredFree.status, 403);
+  assert.equal(buyerHistJabarPredFree.data.code, "SUBSCRIPTION_REQUIRED");
+
+  const buyerHistJabarAllFree = await api(
+    "/price-history?region=Jawa%20Barat&range=12w&status=all",
+    { cookie: buyerCookie }
+  );
+  assert.equal(buyerHistJabarAllFree.status, 200);
+  assert.equal(buyerHistJabarAllFree.data.predictionCount, 0);
+  assert.equal(buyerHistJabarAllFree.data.rows.length, 1);
+  assert.equal(buyerHistJabarAllFree.data.rows[0].rowStatus, "actual");
+  assert.equal(buyerHistJabarAllFree.data.rows[0].predictedMillerPrice, null);
+  assert.equal(buyerHistJabarAllFree.data.rows[0].predictedFarmerPrice, null);
 
   const buyerForecastJabarFree = await api("/forecasts?province=Jawa%20Barat", {
     cookie: buyerCookie,
@@ -598,6 +648,13 @@ test("Buyer Subscription Pembeli Pro: Rp99rb Midtrans Snap, stacking 30d, fee 0.
   assert.equal(buyerHistAllPro.status, 200);
   assert.ok(buyerHistAllPro.data.rows.length >= 14);
 
+  const buyerHistJabarPredPro = await api(
+    "/price-history?region=Jawa%20Barat&range=12w&status=predicted",
+    { cookie: buyerCookie }
+  );
+  assert.equal(buyerHistJabarPredPro.status, 200);
+  assert.ok(buyerHistJabarPredPro.data.rows.length >= 1);
+
   const buyerForecastJabarPro = await api("/forecasts?province=Jawa%20Barat", {
     cookie: buyerCookie,
   });
@@ -742,7 +799,7 @@ test("Buyer Subscription Pembeli Pro: Rp99rb Midtrans Snap, stacking 30d, fee 0.
   assert.equal(reminded1, 1);
   assert.equal(reminded2, 0);
   const reminderNotif = await db.notification.findFirst({
-    where: { accountId: buyer.id, title: "Masa Aktif Pembeli Pro Segera Berakhir" },
+    where: { accountId: buyer.id, title: "Masa Aktif Produsen Pro Segera Berakhir" },
   });
   assert.ok(reminderNotif);
 
@@ -802,7 +859,7 @@ test("Buyer Subscription Pembeli Pro: Rp99rb Midtrans Snap, stacking 30d, fee 0.
   assert.equal(expiredCount1, 1);
   assert.equal(expiredCount2, 0);
   const expiredNotif = await db.notification.findFirst({
-    where: { accountId: buyer.id, title: "Masa Aktif Pembeli Pro Berakhir" },
+    where: { accountId: buyer.id, title: "Masa Aktif Produsen Pro Berakhir" },
   });
   assert.ok(expiredNotif);
 

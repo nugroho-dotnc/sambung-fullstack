@@ -11,6 +11,7 @@ import {
 } from "@/features/subscription/domain/permissions";
 import { Search, Download, ArrowUpDown, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { downloadCsvFile, escapeCsvCell } from "@/lib/csv";
 
 interface ProvincialTableProps {
   data: ProvincialPriceComparison[];
@@ -78,26 +79,30 @@ export function ProvincialTable({
     ];
 
     const rows = filteredAndSortedData.map((item) => [
-      `"${item.province}"`,
-      `"${item.grainType}"`,
-      item.price,
-      item.medianPrice,
-      item.percentageDiff.toFixed(2),
-      item.sampleCount,
-      `"${item.percentageDiff < -3.5 ? "Surplus / Rendah" : item.percentageDiff > 5 ? "Defisit / Tinggi" : "Normal"}"`,
+      escapeCsvCell(item.province),
+      escapeCsvCell(item.grainType),
+      escapeCsvCell(item.price),
+      escapeCsvCell(item.medianPrice),
+      escapeCsvCell(item.percentageDiff.toFixed(2)),
+      escapeCsvCell(item.sampleCount),
+      escapeCsvCell(
+        item.percentageDiff < -3.5
+          ? "Surplus / Rendah"
+          : item.percentageDiff > 5
+          ? "Defisit / Tinggi"
+          : "Normal"
+      ),
     ]);
 
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+    const csvContent = [
+      headers.map(escapeCsvCell).join(","),
+      ...rows.map((e) => e.join(",")),
+    ].join("\n");
 
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `disparitas-harga-provinsi-${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    downloadCsvFile(
+      `disparitas-harga-provinsi-${new Date().toISOString().slice(0, 10)}.csv`,
+      csvContent
+    );
   };
 
   return (

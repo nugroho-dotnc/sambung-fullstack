@@ -133,6 +133,20 @@ export function OfferDetailView({ offerId }: { offerId: string }) {
     );
   }
 
+  if (isError) {
+    return (
+      <PageContainer>
+        <AsyncBoundary
+          isError={isError}
+          error={error}
+          onRetry={() => void refetch()}
+        >
+          {null}
+        </AsyncBoundary>
+      </PageContainer>
+    );
+  }
+
   if (!offer) {
     return (
       <PageContainer>

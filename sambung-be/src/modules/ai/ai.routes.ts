@@ -94,16 +94,25 @@ export function aiRouter(db: PrismaClient) {
     res.set("Cache-Control", "no-store");
     const actor = await requireActiveActor(db, req);
     const query = priceHistoryQuerySchema.parse(req.query);
-    if (
-      actor.role === "pembeli" &&
-      !isBuyerPro(actor) &&
-      !FREE_BUYER_HISTORY_RANGES.has(query.range)
-    ) {
-      throw new ApiError(
-        403,
-        "SUBSCRIPTION_REQUIRED",
-        "Riwayat harga lebih dari 12 minggu hanya tersedia untuk anggota Produsen Pro."
-      );
+    if (actor.role === "pembeli" && !isBuyerPro(actor)) {
+      if (!FREE_BUYER_HISTORY_RANGES.has(query.range)) {
+        throw new ApiError(
+          403,
+          "SUBSCRIPTION_REQUIRED",
+          "Riwayat harga lebih dari 12 minggu hanya tersedia untuk anggota Produsen Pro."
+        );
+      }
+      const isCrossProvince =
+        query.region.trim().toLowerCase() !== actor.province.trim().toLowerCase();
+      if (isCrossProvince && query.status === "predicted") {
+        throw new ApiError(
+          403,
+          "SUBSCRIPTION_REQUIRED",
+          "Prakiraan AI lintas provinsi hanya tersedia untuk paket Pembeli Pro."
+        );
+      }
+      res.json(await getPriceHistory(db, query, { stripPredictions: isCrossProvince }));
+      return;
     }
     res.json(await getPriceHistory(db, query));
   });

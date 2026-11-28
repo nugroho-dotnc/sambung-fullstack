@@ -13,12 +13,36 @@ export const actionSchema = z.enum([
 ]);
 export type Action = z.infer<typeof actionSchema>;
 
-export const signSchema = z.object({
-  type: z.enum(["draw", "type"], {
-    message: "Tipe tanda tangan harus berupa goresan ('draw') atau ketikan ('type').",
-  }),
-  signature: z.string().min(1, "Data tanda tangan wajib diisi."),
-});
+export const signSchema = z
+  .object({
+    type: z.enum(["draw", "type"], {
+      message: "Tipe tanda tangan harus berupa goresan ('draw') atau ketikan ('type').",
+    }),
+    signature: z.string().min(1, "Data tanda tangan wajib diisi."),
+  })
+  .superRefine((data, ctx) => {
+    if (data.type === "draw") {
+      if (
+        data.signature.length > 120_000 ||
+        !/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(data.signature)
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["signature"],
+          message: "Format gambar tanda tangan digital harus berupa PNG base64 yang valid.",
+        });
+      }
+    } else {
+      const trimmedLen = data.signature.trim().length;
+      if (trimmedLen < 2 || trimmedLen > 120) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["signature"],
+          message: "Nama tanda tangan ketik harus terdiri dari 2 hingga 120 karakter.",
+        });
+      }
+    }
+  });
 
 export const shipSchema = z.object({
   notes: z.string().max(300, "Catatan pengiriman maksimal 300 karakter.").optional(),

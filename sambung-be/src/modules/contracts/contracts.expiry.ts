@@ -18,32 +18,41 @@ export async function expirePending(db: PrismaClient) {
   return db.contract.updateMany({where:{status:"pending",expiresAt:{lte:new Date()}},data:{status:"expired"}});
 }
 export function startExpiry(db: PrismaClient) {
+  let running = false;
   const sweep = async () => {
-    await expirePending(db).catch(() => console.error("Gagal memproses tenggat kontrak."));
-    await expireApprovedUnsignedContracts(db).catch(() =>
-      console.error("Gagal memproses tenggat tanda tangan 48 jam.")
-    );
-    await sendPaymentOverdueReminders(db).catch(() =>
-      console.error("Gagal mengirim pengingat masa tenggang pembayaran.")
-    );
-    await cancelUnpaidSignedContracts(db).catch(() =>
-      console.error("Gagal memproses pembatalan otomatis kontrak belum dibayar.")
-    );
-    await sendShippingOverdueReminders(db).catch(() =>
-      console.error("Gagal mengirim pengingat tenggat pengiriman.")
-    );
-    await cancelUnshippedPaidContracts(db).catch(() =>
-      console.error("Gagal memproses kontrak terbayar melewati tenggat kirim.")
-    );
-    await autoCompleteAndReleaseShippedContracts(db).catch(() =>
-      console.error("Gagal memproses penyelesaian otomatis kontrak terkirim.")
-    );
-    await sendSubscriptionExpiryReminders(db).catch(() =>
-      console.error("Gagal mengirim pengingat masa aktif langganan Produsen Pro.")
-    );
-    await sendSubscriptionExpiredNotices(db).catch(() =>
-      console.error("Gagal mengirim pemberitahuan berakhirnya langganan Produsen Pro.")
-    );
+    if (running) return;
+    running = true;
+    try {
+      await expirePending(db).catch((err) =>
+        console.error("Gagal memproses tenggat kontrak.", err)
+      );
+      await expireApprovedUnsignedContracts(db).catch((err) =>
+        console.error("Gagal memproses tenggat tanda tangan 48 jam.", err)
+      );
+      await sendPaymentOverdueReminders(db).catch((err) =>
+        console.error("Gagal mengirim pengingat masa tenggang pembayaran.", err)
+      );
+      await cancelUnpaidSignedContracts(db).catch((err) =>
+        console.error("Gagal memproses pembatalan otomatis kontrak belum dibayar.", err)
+      );
+      await sendShippingOverdueReminders(db).catch((err) =>
+        console.error("Gagal mengirim pengingat tenggat pengiriman.", err)
+      );
+      await cancelUnshippedPaidContracts(db).catch((err) =>
+        console.error("Gagal memproses kontrak terbayar melewati tenggat kirim.", err)
+      );
+      await autoCompleteAndReleaseShippedContracts(db).catch((err) =>
+        console.error("Gagal memproses penyelesaian otomatis kontrak terkirim.", err)
+      );
+      await sendSubscriptionExpiryReminders(db).catch((err) =>
+        console.error("Gagal mengirim pengingat masa aktif langganan Produsen Pro.", err)
+      );
+      await sendSubscriptionExpiredNotices(db).catch((err) =>
+        console.error("Gagal mengirim pemberitahuan berakhirnya langganan Produsen Pro.", err)
+      );
+    } finally {
+      running = false;
+    }
   };
   void sweep();
   const timer=setInterval(() => { void sweep(); }, 5000);

@@ -46,6 +46,7 @@ export async function createAuditLog(
 export async function adminLogin(db: PrismaClient, email: string, pass: string) {
   const account = await db.account.findFirst({
     where: { email: email.toLowerCase().trim(), role: "admin", status: "active" },
+    select: { ...profileFields, email: true, passwordHash: true },
   });
 
   if (!account || account.passwordHash !== digest(pass)) {
@@ -65,7 +66,12 @@ export async function adminLogin(db: PrismaClient, email: string, pass: string) 
     details: "Masuk ke portal pengawas sistem.",
   });
 
-  return { token, maxAge, user: publicProfile(account) };
+  const { passwordHash: _passwordHash, ...safeAccount } = account;
+  return {
+    token,
+    maxAge,
+    user: publicProfile({ ...safeAccount, email: safeAccount.email ?? undefined }),
+  };
 }
 
 export async function getAdminStats(db: PrismaClient) {
@@ -84,7 +90,7 @@ export async function getAdminStats(db: PrismaClient) {
       where: { status: "published" },
     }),
     db.contract.count({ where: { status: "pending" } }),
-    db.contract.count({ where: { status: { in: ["approved", "completed"] } } }),
+    db.contract.count({ where: { status: { in: ["approved", "signed", "shipping", "completed"] } } }),
     db.offer.count({ where: { notes: { contains: MODERATION_MARKER } } }),
     db.account.count({ where: { status: "active" } }),
     db.auditLog.count(),

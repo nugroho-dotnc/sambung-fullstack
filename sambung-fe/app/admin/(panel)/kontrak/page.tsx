@@ -32,7 +32,7 @@ function getAdminPaymentBadgeClasses(
 }
 
 export default function AdminContractsPage() {
-  const { data: contracts, isLoading } = useContracts();
+  const { data: contracts, isLoading, isError, error, refetch } = useContracts();
   const [statusFilter, setStatusFilter] = useState("all");
 
   const filteredContracts = useMemo(() => {
@@ -55,11 +55,12 @@ export default function AdminContractsPage() {
   }, [contracts, statusFilter]);
 
   function maskPhone(phone?: string): string {
-    if (!phone) return "0812-****-7890";
+    if (!phone) return "Tertutup";
+    if (phone.includes("*")) return phone;
     if (phone.length >= 8) {
       return `${phone.slice(0, 4)}-****-${phone.slice(-4)}`;
     }
-    return "0812-****-7890";
+    return "Tersamar";
   }
 
   const getContractStatusClass = (status: string): string => {
@@ -181,6 +182,21 @@ export default function AdminContractsPage() {
             <tbody className="divide-y divide-border">
               {isLoading ? (
                 <TableRowsSkeleton columns={9} />
+              ) : isError ? (
+                <tr>
+                  <td colSpan={9} className="p-10 text-center text-xs space-y-2">
+                    <p className="font-semibold text-destructive">
+                      {error?.message || "Gagal memuat daftar kesepakatan."}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => void refetch()}
+                      className="px-3 py-1.5 rounded-md border border-border text-xs font-semibold hover:bg-muted cursor-pointer"
+                    >
+                      Coba Muat Ulang
+                    </button>
+                  </td>
+                </tr>
               ) : filteredContracts.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="p-10 text-center text-xs text-muted-foreground">
@@ -189,8 +205,12 @@ export default function AdminContractsPage() {
                 </tr>
               ) : (
                 filteredContracts.map((contract) => {
-                  const deliveryCount =
-                    (contract.farmerConfirmed ? 1 : 0) + (contract.buyerConfirmed ? 1 : 0);
+                  const handoverMeta =
+                    contract.status === "completed" || Boolean(contract.completedAt)
+                      ? { label: "2/2 Diterima", cls: "status-success" }
+                      : contract.status === "shipping" || Boolean(contract.shippedAt)
+                      ? { label: "1/2 Dikirim", cls: "status-warning" }
+                      : { label: "0/2 Belum Kirim", cls: "bg-muted text-foreground" };
                   const paymentMeta = getPaymentStatusMeta(contract);
                   const totalAmount = (contract.currentPrice || 0) * (contract.volumeKg || 0);
 
@@ -274,15 +294,9 @@ export default function AdminContractsPage() {
                       </td>
                       <td className="py-4 px-5 first:pl-6 last:pr-6 text-center whitespace-nowrap">
                         <span
-                          className={`inline-block px-2.5 py-0.5 rounded-md text-xs font-semibold tabular-nums ${
-                            deliveryCount === 2
-                              ? "status-success"
-                              : deliveryCount === 1
-                              ? "status-warning"
-                              : "bg-muted text-foreground"
-                          }`}
+                          className={`inline-block px-2.5 py-0.5 rounded-md text-xs font-semibold tabular-nums ${handoverMeta.cls}`}
                         >
-                          {deliveryCount}/2 Konfirmasi
+                          {handoverMeta.label}
                         </span>
                       </td>
                     </tr>

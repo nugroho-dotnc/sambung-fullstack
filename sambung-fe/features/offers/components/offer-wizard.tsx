@@ -368,7 +368,7 @@ function WizardForm({
     try {
       let draft = saved;
       let activeCheck = checked;
-      if (live && draft?.status === "published" && !activeCheck) {
+      if (live && (publish || draft?.status === "published") && !activeCheck) {
         const previewCheck = await apiClient.post<{
           reference: Reference;
           requiresConfirmation: boolean;
@@ -990,6 +990,9 @@ function WizardForm({
               className="w-full sm:w-auto min-h-11 px-6"
               onClick={() => {
                 setFields(emptyFields);
+                setChecked(null);
+                setError("");
+                setInitialSnapshot(JSON.stringify(emptyFields));
                 setSaved(undefined);
                 setReview(null);
                 setStep(1);

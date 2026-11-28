@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { downloadCsvFile, escapeCsvCell } from "@/lib/csv";
 import {
   Select,
   SelectContent,
@@ -112,7 +113,7 @@ export default function BuyerCatalogPage() {
 
   // CSV Export Function (PR-07)
   function handleExportCsv() {
-    if (!canUserExportCsv || filteredItems.length === 0) return;
+    if (!canUserExportCsv(user) || filteredItems.length === 0) return;
 
     const headers = [
       "ID Pasokan",
@@ -126,30 +127,25 @@ export default function BuyerCatalogPage() {
     ];
 
     const rows = filteredItems.map((item) => [
-      item.id,
-      item.grainType,
-      item.farmerBusiness || item.farmerName || "Petani",
-      item.district || item.districtId,
-      item.regency || "Subang",
-      item.availableVolumeKg,
-      item.askPrice,
-      item.availableOn || "Langsung",
+      escapeCsvCell(item.id),
+      escapeCsvCell(item.grainType),
+      escapeCsvCell(item.farmerBusiness || item.farmerName || "Petani"),
+      escapeCsvCell(item.district || item.districtId),
+      escapeCsvCell(item.regency || "Subang"),
+      escapeCsvCell(item.availableVolumeKg),
+      escapeCsvCell(item.askPrice),
+      escapeCsvCell(item.availableOn || "Langsung"),
     ]);
 
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+    const csvContent = [
+      headers.map(escapeCsvCell).join(","),
+      ...rows.map((e) => e.join(",")),
+    ].join("\n");
 
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute(
-      "download",
-      `rekap-pasokan-gabah-${new Date().toISOString().slice(0, 10)}.csv`
+    downloadCsvFile(
+      `rekap-pasokan-gabah-${new Date().toISOString().slice(0, 10)}.csv`,
+      csvContent
     );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   }
 
   return (

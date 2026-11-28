@@ -317,12 +317,18 @@ export default function DigitalContractProofPage({
             <div className="min-h-16 flex flex-col items-center justify-center">
               {contract.farmerSignature ? (
                 contract.farmerSignatureType === "draw" ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={contract.farmerSignature}
-                    alt={`Tanda tangan ${contract.farmerName}`}
-                    className="h-16 max-w-[180px] object-contain dark:invert print:invert-0"
-                  />
+                  /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(contract.farmerSignature) ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={contract.farmerSignature}
+                      alt={`Tanda tangan ${contract.farmerName}`}
+                      className="h-16 max-w-[180px] object-contain dark:invert print:invert-0"
+                    />
+                  ) : (
+                    <span className="text-xs text-muted-foreground italic">
+                      Format tanda tangan tidak valid
+                    </span>
+                  )
                 ) : (
                   <span className="font-signature text-2xl sm:text-3xl text-foreground tracking-wide py-2">
                     {contract.farmerSignature}
@@ -369,12 +375,18 @@ export default function DigitalContractProofPage({
             <div className="min-h-16 flex flex-col items-center justify-center">
               {contract.buyerSignature ? (
                 contract.buyerSignatureType === "draw" ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={contract.buyerSignature}
-                    alt={`Tanda tangan ${contract.buyerName}`}
-                    className="h-16 max-w-[180px] object-contain dark:invert print:invert-0"
-                  />
+                  /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(contract.buyerSignature) ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={contract.buyerSignature}
+                      alt={`Tanda tangan ${contract.buyerName}`}
+                      className="h-16 max-w-[180px] object-contain dark:invert print:invert-0"
+                    />
+                  ) : (
+                    <span className="text-xs text-muted-foreground italic">
+                      Format tanda tangan tidak valid
+                    </span>
+                  )
                 ) : (
                   <span className="font-signature text-2xl sm:text-3xl text-foreground tracking-wide py-2">
                     {contract.buyerSignature}

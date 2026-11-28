@@ -86,11 +86,13 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
   const [counterNote, setCounterNote] = useState("");
   const [cancelReason, setCancelReason] = useState("");
   const [modalError, setModalError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [isCheckingPrice, setIsCheckingPrice] = useState(false);
   const [pendingRedAction, setPendingRedAction] = useState<PendingRedAction | null>(null);
   const [copiedPhone, setCopiedPhone] = useState(false);
 
   const isFarmer = user?.role === "petani";
+  const isBuyer = user?.role === "pembeli";
   const isAdmin = user?.role === "admin";
   const farmerDisplayName = contract.farmerBusiness || contract.farmerName;
   const buyerDisplayName = contract.buyerBusiness || contract.buyerName;
@@ -111,8 +113,16 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
 
   const contactRevealed = isContactRevealed(contract.status);
   const isMyTurn = contract.status === "pending" && contract.currentTurnRole === user?.role;
-  const hasUserSigned = isFarmer ? Boolean(contract.farmerSignature) : Boolean(contract.buyerSignature);
-  const hasPartnerSigned = isFarmer ? Boolean(contract.buyerSignature) : Boolean(contract.farmerSignature);
+  const hasUserSigned = isFarmer
+    ? Boolean(contract.farmerSignature)
+    : isBuyer
+    ? Boolean(contract.buyerSignature)
+    : false;
+  const hasPartnerSigned = isFarmer
+    ? Boolean(contract.buyerSignature)
+    : isBuyer
+    ? Boolean(contract.farmerSignature)
+    : false;
   const bothSigned = Boolean(contract.farmerSignature && contract.buyerSignature);
 
   const { reference: liveRef } = usePriceReference(
@@ -177,10 +187,21 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
 
   async function submitWithPricePreview(action: "accept" | "counter", price: number) {
     setModalError(null);
+    setActionError(null);
     mutation.reset();
 
     if (IS_MOCK_DATA) {
-      await executeConfirmedPriceAction(action, {});
+      try {
+        await executeConfirmedPriceAction(action, {});
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Gagal memproses penawaran harga.";
+        if (action === "counter") {
+          setModalError(message);
+        } else {
+          setActionError(message);
+        }
+      }
       return;
     }
 
@@ -210,6 +231,8 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
         err instanceof Error ? err.message : "Gagal memproses penawaran harga.";
       if (action === "counter") {
         setModalError(message);
+      } else {
+        setActionError(message);
       }
     } finally {
       setIsCheckingPrice(false);
@@ -259,6 +282,7 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
 
   async function handleSignContract(data: { type: "draw" | "type"; signature: string }) {
     setModalError(null);
+    setActionError(null);
     try {
       await mutation.mutateAsync({
         path: path + "sign",
@@ -266,12 +290,16 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
       });
       setSignModalOpen(false);
     } catch (err) {
-      setModalError(err instanceof Error ? err.message : "Gagal menyimpan tanda tangan kontrak.");
+      const message =
+        err instanceof Error ? err.message : "Gagal menyimpan tanda tangan kontrak.";
+      setModalError(message);
+      throw err;
     }
   }
 
   async function handleShipContract(notes?: string) {
     setModalError(null);
+    setActionError(null);
     try {
       await mutation.mutateAsync({
         path: path + "ship",
@@ -279,12 +307,16 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
       });
       setShipModalOpen(false);
     } catch (err) {
-      setModalError(err instanceof Error ? err.message : "Gagal mengonfirmasi pengiriman gabah.");
+      const message =
+        err instanceof Error ? err.message : "Gagal mengonfirmasi pengiriman gabah.";
+      setModalError(message);
+      throw err;
     }
   }
 
   async function handleReceiveContract(notes?: string) {
     setModalError(null);
+    setActionError(null);
     try {
       await mutation.mutateAsync({
         path: path + "receive",
@@ -292,7 +324,10 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
       });
       setReceiveModalOpen(false);
     } catch (err) {
-      setModalError(err instanceof Error ? err.message : "Gagal mengonfirmasi penerimaan gabah.");
+      const message =
+        err instanceof Error ? err.message : "Gagal mengonfirmasi penerimaan gabah.";
+      setModalError(message);
+      throw err;
     }
   }
 
@@ -333,13 +368,18 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
         }
       />
 
-      {mutation.error && !counterModalOpen && !cancelModalOpen && (
+      {(actionError || mutation.error) &&
+        !counterModalOpen &&
+        !cancelModalOpen &&
+        !signModalOpen &&
+        !shipModalOpen &&
+        !receiveModalOpen && (
         <div
           role="alert"
           className="mb-6 rounded-xl border border-destructive/40 bg-destructive/10 p-3.5 text-xs text-destructive flex items-start gap-2"
         >
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-          <span>{mutation.error.message}</span>
+          <span>{actionError ?? mutation.error?.message}</span>
         </div>
       )}
       {/* Top Status Banner */}
@@ -571,10 +611,14 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
                 <div className="pt-2">
                   <Button
                     className="w-full min-h-10 text-xs"
-                    onClick={() => {
-                      const cleanPhone = partnerPhone.replace(/\D/g, "");
-                      window.open(`https://wa.me/62${cleanPhone.replace(/^(62|0)/, "")}`, "_blank");
-                    }}
+                      onClick={() => {
+                        const cleanPhone = partnerPhone.replace(/\D/g, "");
+                        window.open(
+                          `https://wa.me/62${cleanPhone.replace(/^(62|0)/, "")}`,
+                          "_blank",
+                          "noopener,noreferrer"
+                        );
+                      }}
                   >
                     <Phone className="w-3.5 h-3.5 mr-2" />
                     Hubungi via WhatsApp
@@ -645,19 +689,25 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
                   <div className="rounded-xl bg-muted/40 p-4 text-center space-y-2 border border-border/60">
                     <Clock className="w-5 h-5 text-muted-foreground mx-auto" />
                     <p className="text-xs font-medium text-foreground">
-                      Menunggu Tanggapan dari {partnerRole}
+                      {isAdmin
+                        ? "Menunggu Respons Negosiasi Dua Pihak"
+                        : `Menunggu Tanggapan dari ${partnerRole}`}
                     </p>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      Mitra sedang meninjau penawaran harga. Anda akan menerima pembaruan begitu ada respons.
+                      {isAdmin
+                        ? "Mode baca pengawas: petani dan produsen sedang menyelesaikan kesepakatan harga."
+                        : "Mitra sedang meninjau penawaran harga. Anda akan menerima pembaruan begitu ada respons."}
                     </p>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="min-h-8 text-xs text-muted-foreground hover:text-destructive"
-                      onClick={() => setCancelModalOpen(true)}
-                    >
-                      {isFarmer ? "Tolak pesanan" : "Batalkan pesanan"}
-                    </Button>
+                    {!isAdmin && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="min-h-8 text-xs text-muted-foreground hover:text-destructive"
+                        onClick={() => setCancelModalOpen(true)}
+                      >
+                        {isFarmer ? "Tolak pesanan" : "Batalkan pesanan"}
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>
@@ -705,7 +755,11 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
                   </div>
                 </div>
 
-                {!hasUserSigned ? (
+                {isAdmin ? (
+                  <div className="p-3.5 rounded-xl bg-muted/40 border border-border/70 text-xs text-muted-foreground text-center">
+                    Mode baca pengawas: menunggu petani dan produsen melengkapi tanda tangan digital.
+                  </div>
+                ) : !hasUserSigned ? (
                   <Button
                     className="w-full min-h-11 text-xs font-semibold"
                     disabled={mutation.isPending}
@@ -736,21 +790,23 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
                 </ButtonLink>
 
                 {/* Cancel allowed ONLY if NOT both signed */}
-                <div className="pt-2 border-t border-border/60">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="w-full min-h-8 text-xs text-muted-foreground hover:text-destructive cursor-pointer"
-                    onClick={() => {
-                      setCancelReason("");
-                      setCancelModalOpen(true);
-                    }}
-                  >
-                    <AlertTriangle className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
-                    {isMobile ? "Batalkan Kesepakatan" : "Kendala Lapangan / Batalkan Kesepakatan"}
-                  </Button>
-                </div>
+                {!isAdmin && (
+                  <div className="pt-2 border-t border-border/60">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="w-full min-h-8 text-xs text-muted-foreground hover:text-destructive cursor-pointer"
+                      onClick={() => {
+                        setCancelReason("");
+                        setCancelModalOpen(true);
+                      }}
+                    >
+                      <AlertTriangle className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+                      {isMobile ? "Batalkan Kesepakatan" : "Kendala Lapangan / Batalkan Kesepakatan"}
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
 
@@ -805,7 +861,7 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
                       </p>
                     )}
                   </div>
-                ) : !isPaid ? (
+                ) : isBuyer && !isPaid ? (
                   <div className="p-3.5 rounded-xl bg-muted/40 border border-border/70 text-xs text-muted-foreground text-center space-y-1">
                     <Clock className="w-5 h-5 text-amber-600 mx-auto mb-1" />
                     <p className="font-medium text-foreground">
@@ -815,12 +871,24 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
                       Gunakan kartu <strong>Pembayaran Escrow (Midtrans Sandbox)</strong> di atas untuk melunasi tagihan agar petani dapat segera memberangkatkan gabah.
                     </p>
                   </div>
-                ) : (
+                ) : isBuyer ? (
                   <div className="p-3.5 rounded-xl bg-muted/40 border border-border/70 text-xs text-muted-foreground text-center space-y-1">
                     <Truck className="w-5 h-5 text-muted-foreground mx-auto mb-1" />
                     <p className="font-medium text-foreground">Menunggu Pengiriman dari Petani</p>
                     <p className="text-[11px] leading-relaxed">
                       Dana escrow Anda sudah ditahan aman. Petani sedang menyiapkan armada angkut dan akan mengonfirmasi saat gabah diberangkatkan.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="p-3.5 rounded-xl bg-muted/40 border border-border/70 text-xs text-muted-foreground text-center space-y-1">
+                    <Lock className="w-5 h-5 text-muted-foreground mx-auto mb-1" />
+                    <p className="font-medium text-foreground">
+                      {isPaid
+                        ? "Dana Escrow Ditahan — Menunggu Pengiriman"
+                        : "Menunggu Pelunasan Escrow Produsen"}
+                    </p>
+                    <p className="text-[11px] leading-relaxed">
+                      Mode baca pengawas: status kontrak dan escrow dipantau otomatis oleh sistem.
                     </p>
                   </div>
                 )}
@@ -849,7 +917,7 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
                   </p>
                 </div>
 
-                {!isFarmer ? (
+                {isBuyer ? (
                   <Button
                     className="w-full min-h-11 text-xs font-semibold"
                     disabled={mutation.isPending}
@@ -1106,10 +1174,12 @@ export function NegotiationRoom({ contract }: { contract: Contract }) {
             referenceVersion: pending.referenceVersion,
             redConfirmed: true,
           }).catch((err) => {
+            const msg =
+              err instanceof Error ? err.message : "Gagal mengirim penawaran harga.";
             if (pending.action === "counter") {
-              setModalError(
-                err instanceof Error ? err.message : "Gagal mengirim penawaran harga."
-              );
+              setModalError(msg);
+            } else {
+              setActionError(msg);
             }
           });
         }}

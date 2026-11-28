@@ -22,6 +22,7 @@ test("integrasi modul admin dan notifikasi", async () => {
     const loginBody = await resLogin.json();
     assert.equal(loginBody.success, true);
     assert.equal(loginBody.user.role, "admin");
+    assert.equal("passwordHash" in loginBody.user, false);
 
     const adminCookie = resLogin.headers.get("set-cookie")?.split(";")[0];
     assert.ok(adminCookie);

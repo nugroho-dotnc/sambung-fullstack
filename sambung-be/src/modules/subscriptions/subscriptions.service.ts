@@ -883,37 +883,41 @@ export async function sendSubscriptionExpiryReminders(
   for (const buyer of expiringBuyers) {
     const proExpiresAt = buyer.proExpiresAt;
     if (!proExpiresAt) continue;
-    const claimed = await db.$transaction(async (tx) => {
-      const updated = await tx.account.updateMany({
-        where: {
-          id: buyer.id,
-          role: "pembeli",
-          proExpiresAt: { gt: now, lte: threshold },
-          proReminderSentAt: null,
-        },
-        data: { proReminderSentAt: now },
+    try {
+      const claimed = await db.$transaction(async (tx) => {
+        const updated = await tx.account.updateMany({
+          where: {
+            id: buyer.id,
+            role: "pembeli",
+            proExpiresAt: { gt: now, lte: threshold },
+            proReminderSentAt: null,
+          },
+          data: { proReminderSentAt: now },
+        });
+        if (updated.count === 0) return false;
+
+        const remainingDays = Math.max(
+          1,
+          Math.ceil((proExpiresAt.getTime() - now.getTime()) / 86_400_000)
+        );
+
+        await tx.notification.create({
+          data: {
+            accountId: buyer.id,
+            type: "sistem",
+            title: "Masa Aktif Produsen Pro Segera Berakhir",
+            description: `Langganan Produsen Pro Anda tersisa ${remainingDays} hari (berakhir ${formatDateIndonesian(proExpiresAt)}). Perpanjang sekarang agar sisa hari tetap utuh dan langsung ditambah 30 hari.`,
+            linkHref: "/langganan",
+          },
+        });
+
+        return true;
       });
-      if (updated.count === 0) return false;
 
-      const remainingDays = Math.max(
-        1,
-        Math.ceil((proExpiresAt.getTime() - now.getTime()) / 86_400_000)
-      );
-
-      await tx.notification.create({
-        data: {
-          accountId: buyer.id,
-          type: "sistem",
-          title: "Masa Aktif Produsen Pro Segera Berakhir",
-          description: `Langganan Produsen Pro Anda tersisa ${remainingDays} hari (berakhir ${formatDateIndonesian(proExpiresAt)}). Perpanjang sekarang agar sisa hari tetap utuh dan langsung ditambah 30 hari.`,
-          linkHref: "/langganan",
-        },
-      });
-
-      return true;
-    });
-
-    if (claimed) sentCount += 1;
+      if (claimed) sentCount += 1;
+    } catch (err) {
+      console.error("[sweeper] Gagal mengirim pengingat langganan Produsen Pro:", buyer.id, err);
+    }
   }
 
   return sentCount;
@@ -942,57 +946,61 @@ export async function sendSubscriptionExpiredNotices(
   let sentCount = 0;
   for (const buyer of expiredBuyers) {
     if (!buyer.proExpiresAt) continue;
-    const sent = await db.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT id FROM "account" WHERE id = ${buyer.id}::uuid FOR UPDATE`;
-      const fresh = await tx.account.findUnique({
-        where: { id: buyer.id },
-        select: { id: true, name: true, role: true, proExpiresAt: true },
+    try {
+      const sent = await db.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "account" WHERE id = ${buyer.id}::uuid FOR UPDATE`;
+        const fresh = await tx.account.findUnique({
+          where: { id: buyer.id },
+          select: { id: true, name: true, role: true, proExpiresAt: true },
+        });
+        if (
+          !fresh ||
+          fresh.role !== "pembeli" ||
+          !fresh.proExpiresAt ||
+          fresh.proExpiresAt.getTime() > now.getTime()
+        ) {
+          return false;
+        }
+
+        const existingNotice = await tx.notification.findFirst({
+          where: {
+            accountId: fresh.id,
+            type: "sistem",
+            title: "Masa Aktif Produsen Pro Berakhir",
+            createdAt: { gte: fresh.proExpiresAt },
+          },
+          select: { id: true },
+        });
+        if (existingNotice) return false;
+
+        await tx.notification.create({
+          data: {
+            accountId: fresh.id,
+            type: "sistem",
+            title: "Masa Aktif Produsen Pro Berakhir",
+            description: `Masa aktif Produsen Pro Anda berakhir pada ${formatDateIndonesian(fresh.proExpiresAt)}. Akun kembali ke Paket Gratis dengan biaya layanan transaksi standar 0,5%.`,
+            linkHref: "/langganan",
+          },
+        });
+
+        await tx.auditLog.create({
+          data: {
+            actorRole: "sistem",
+            actorName: "Sistem Langganan",
+            action: "SUBSCRIPTION_EXPIRED",
+            targetType: "account",
+            targetId: fresh.id,
+            details: `Masa aktif Produsen Pro akun ${fresh.name} telah berakhir pada ${fresh.proExpiresAt.toISOString()}.`,
+          },
+        });
+
+        return true;
       });
-      if (
-        !fresh ||
-        fresh.role !== "pembeli" ||
-        !fresh.proExpiresAt ||
-        fresh.proExpiresAt.getTime() > now.getTime()
-      ) {
-        return false;
-      }
 
-      const existingNotice = await tx.notification.findFirst({
-        where: {
-          accountId: fresh.id,
-          type: "sistem",
-          title: "Masa Aktif Produsen Pro Berakhir",
-          createdAt: { gte: fresh.proExpiresAt },
-        },
-        select: { id: true },
-      });
-      if (existingNotice) return false;
-
-      await tx.notification.create({
-        data: {
-          accountId: fresh.id,
-          type: "sistem",
-          title: "Masa Aktif Produsen Pro Berakhir",
-          description: `Masa aktif Produsen Pro Anda berakhir pada ${formatDateIndonesian(fresh.proExpiresAt)}. Akun kembali ke Paket Gratis dengan biaya layanan transaksi standar 0,5%.`,
-          linkHref: "/langganan",
-        },
-      });
-
-      await tx.auditLog.create({
-        data: {
-          actorRole: "sistem",
-          actorName: "Sistem Langganan",
-          action: "SUBSCRIPTION_EXPIRED",
-          targetType: "account",
-          targetId: fresh.id,
-          details: `Masa aktif Produsen Pro akun ${fresh.name} telah berakhir pada ${fresh.proExpiresAt.toISOString()}.`,
-        },
-      });
-
-      return true;
-    });
-
-    if (sent) sentCount += 1;
+      if (sent) sentCount += 1;
+    } catch (err) {
+      console.error("[sweeper] Gagal mengirim pemberitahuan berakhirnya Produsen Pro:", buyer.id, err);
+    }
   }
 
   return sentCount;

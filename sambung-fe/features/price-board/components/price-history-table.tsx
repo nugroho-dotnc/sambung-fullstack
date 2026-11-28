@@ -17,6 +17,7 @@ import {
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { AsyncBoundary } from "@/components/shared/async-boundary";
+import { downloadCsvFile } from "@/lib/csv";
 import { formatRupiah } from "@/features/offers/components/offer-summary";
 import {
   generatePriceHistoryCsv,
@@ -218,19 +219,8 @@ export const PriceHistoryTable = memo(function PriceHistoryTable({
   function handleExportCsv() {
     if (!canExportCsv || !filteredChronologicalRows.length) return;
     const csv = generatePriceHistoryCsv(region, filteredChronologicalRows);
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
     const safeRegion = region.replace(/\s+/g, "_");
-    link.setAttribute(
-      "download",
-      `SAMBUNG_Riwayat_Harga_${safeRegion}_${range}.csv`
-    );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    downloadCsvFile(`SAMBUNG_Riwayat_Harga_${safeRegion}_${range}.csv`, csv);
   }
 
   return (

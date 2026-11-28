@@ -26,6 +26,10 @@ import {
 
 export function adminRouter(db: PrismaClient, isSecure: boolean) {
   const router = Router();
+  router.use((_req, res, next) => {
+    res.set("Cache-Control", "no-store");
+    next();
+  });
 
   async function getAdminActor(req: Request) {
     const session = await db.authSession.findFirst({

@@ -33,13 +33,36 @@ function isPathAllowedForRole(path: string, role: Role): boolean {
  * Resolves a safe post-authentication redirect target that matches the user's role.
  */
 export function resolvePostAuthPath(role: Role, requestedRedirect?: string | null): string {
-  if (!requestedRedirect || !requestedRedirect.startsWith("/") || requestedRedirect.startsWith("//")) {
+  if (
+    !requestedRedirect ||
+    !requestedRedirect.startsWith("/") ||
+    requestedRedirect.startsWith("//") ||
+    /[\\\u0000-\u001F\u007F]/.test(requestedRedirect)
+  ) {
     return getDashboardRoute(role);
   }
-  if (requestedRedirect.startsWith("/masuk") || requestedRedirect.startsWith("/daftar")) {
+
+  let parsed: URL;
+  try {
+    parsed = new URL(requestedRedirect, "http://localhost");
+  } catch {
     return getDashboardRoute(role);
   }
-  return isPathAllowedForRole(requestedRedirect, role)
-    ? requestedRedirect
+
+  if (parsed.origin !== "http://localhost" || !parsed.pathname.startsWith("/")) {
+    return getDashboardRoute(role);
+  }
+
+  if (
+    parsed.pathname.startsWith("/masuk") ||
+    parsed.pathname.startsWith("/daftar") ||
+    parsed.pathname.startsWith("/admin/masuk")
+  ) {
+    return getDashboardRoute(role);
+  }
+
+  const safePath = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  return isPathAllowedForRole(parsed.pathname, role)
+    ? safePath
     : getDashboardRoute(role);
 }

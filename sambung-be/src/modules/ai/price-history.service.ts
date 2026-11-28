@@ -379,9 +379,13 @@ async function getCoveredRegions(db: PrismaClient): Promise<string[]> {
  */
 export async function getPriceHistory(
   db: PrismaClient,
-  query: z.infer<typeof priceHistoryQuerySchema>
+  query: z.infer<typeof priceHistoryQuerySchema>,
+  options?: { stripPredictions?: boolean }
 ) {
-  await syncForecastPredictionsToHistory(db, query.region);
+  const stripPredictions = Boolean(options?.stripPredictions);
+  if (!stripPredictions) {
+    await syncForecastPredictionsToHistory(db, query.region);
+  }
 
   const [rawRows, coveredRegions] = await Promise.all([
     db.marketPriceHistory.findMany({
@@ -394,8 +398,18 @@ export async function getPriceHistory(
     getCoveredRegions(db),
   ]);
 
+  const sourceRows = stripPredictions
+    ? rawRows.filter(
+        (row) =>
+          row.farmerPrice !== null ||
+          row.millerPrice !== null ||
+          row.wholesalePrice !== null ||
+          row.retailPrice !== null
+      )
+    : rawRows;
+
   let prevEffectiveMiller: number | null = null;
-  const enriched: PriceHistoryRowDto[] = rawRows.map((row) => {
+  const enriched: PriceHistoryRowDto[] = sourceRows.map((row) => {
     const weekStart = formatIsoDate(row.weekStart);
     const year = Number(weekStart.slice(0, 4));
     const hasActual =
@@ -403,7 +417,7 @@ export async function getPriceHistory(
       row.millerPrice !== null ||
       row.wholesalePrice !== null ||
       row.retailPrice !== null;
-    const hasPrediction = row.predictedMillerPrice !== null;
+    const hasPrediction = !stripPredictions && row.predictedMillerPrice !== null;
     const rowStatus: PriceHistoryRowStatus =
       hasActual && hasPrediction
         ? "actual_with_prediction"
@@ -411,7 +425,9 @@ export async function getPriceHistory(
         ? "actual"
         : "predicted";
 
-    const effectiveMiller = row.millerPrice ?? row.predictedMillerPrice;
+    const effectiveMiller = stripPredictions
+      ? row.millerPrice
+      : row.millerPrice ?? row.predictedMillerPrice;
     const millerChangeRp =
       prevEffectiveMiller !== null && effectiveMiller !== null
         ? effectiveMiller - prevEffectiveMiller
@@ -433,7 +449,7 @@ export async function getPriceHistory(
         ? Math.max(0, row.retailPrice - row.farmerPrice)
         : null;
     const predictionErrorRp =
-      row.millerPrice !== null && row.predictedMillerPrice !== null
+      !stripPredictions && row.millerPrice !== null && row.predictedMillerPrice !== null
         ? row.millerPrice - row.predictedMillerPrice
         : null;
 
@@ -448,14 +464,14 @@ export async function getPriceHistory(
       millerPrice: row.millerPrice,
       wholesalePrice: row.wholesalePrice,
       retailPrice: row.retailPrice,
-      predictedFarmerPrice: row.predictedFarmerPrice,
-      predictedMillerPrice: row.predictedMillerPrice,
-      predictedGkpPrice: row.predictedGkpPrice,
-      predictionLower80: row.predictionLower80,
-      predictionUpper80: row.predictionUpper80,
-      predictionHorizonWeeks: row.predictionHorizonWeeks,
-      predictionMethod: row.predictionMethod,
-      predictionModelVersion: row.predictionModelVersion,
+      predictedFarmerPrice: stripPredictions ? null : row.predictedFarmerPrice,
+      predictedMillerPrice: stripPredictions ? null : row.predictedMillerPrice,
+      predictedGkpPrice: stripPredictions ? null : row.predictedGkpPrice,
+      predictionLower80: stripPredictions ? null : row.predictionLower80,
+      predictionUpper80: stripPredictions ? null : row.predictionUpper80,
+      predictionHorizonWeeks: stripPredictions ? null : row.predictionHorizonWeeks,
+      predictionMethod: stripPredictions ? null : row.predictionMethod,
+      predictionModelVersion: stripPredictions ? null : row.predictionModelVersion,
       farmerSharePercent,
       marginAmount,
       millerChangeRp,

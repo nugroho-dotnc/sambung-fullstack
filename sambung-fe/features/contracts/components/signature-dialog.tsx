@@ -180,24 +180,30 @@ export function SignatureDialog({
       return;
     }
 
-    if (activeTab === "draw") {
-      if (!hasDrawn || !canvasRef.current || strokesRef.current.length === 0) {
-        setError("Silakan buat goresan tanda tangan Anda pada bidang kanvas.");
-        return;
+    try {
+      if (activeTab === "draw") {
+        if (!hasDrawn || !canvasRef.current || strokesRef.current.length === 0) {
+          setError("Silakan buat goresan tanda tangan Anda pada bidang kanvas.");
+          return;
+        }
+        const exportCanvas = document.createElement("canvas");
+        exportCanvas.width = canvasRef.current.width;
+        exportCanvas.height = canvasRef.current.height;
+        redrawStrokes(exportCanvas, strokesRef.current, "#09090b");
+        const dataUrl = exportCanvas.toDataURL("image/png");
+        await onConfirm({ type: "draw", signature: dataUrl });
+      } else {
+        const trimmed = effectiveTypedName.trim();
+        if (trimmed.length < 2) {
+          setError("Silakan ketikkan nama Anda minimal 2 karakter.");
+          return;
+        }
+        await onConfirm({ type: "type", signature: trimmed });
       }
-      const exportCanvas = document.createElement("canvas");
-      exportCanvas.width = canvasRef.current.width;
-      exportCanvas.height = canvasRef.current.height;
-      redrawStrokes(exportCanvas, strokesRef.current, "#09090b");
-      const dataUrl = exportCanvas.toDataURL("image/png");
-      await onConfirm({ type: "draw", signature: dataUrl });
-    } else {
-      const trimmed = effectiveTypedName.trim();
-      if (trimmed.length < 2) {
-        setError("Silakan ketikkan nama Anda minimal 2 karakter.");
-        return;
-      }
-      await onConfirm({ type: "type", signature: trimmed });
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Gagal menyimpan tanda tangan kontrak."
+      );
     }
   }
 

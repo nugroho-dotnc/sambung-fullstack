@@ -28,6 +28,7 @@ import {
 import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { AsyncBoundary } from "@/components/shared/async-boundary";
+import { ApiError } from "@/lib/api/errors";
 import { useCurrentUser } from "@/features/auth/hooks/use-auth";
 import { ProUpgradeBanner } from "@/features/subscription/components/pro-upgrade-banner";
 import {
@@ -211,6 +212,36 @@ export default function PriceBoardPage() {
             fromPath="/harga"
           />
         </div>
+      )}
+
+      {historyQuery.isError && chartData.length > 0 && (
+        historyQuery.error instanceof ApiError &&
+        historyQuery.error.code === "SUBSCRIPTION_REQUIRED" ? (
+          <div className="mb-6">
+            <ProUpgradeBanner
+              title="Akses Riwayat & Prakiraan Terbatas pada Paket Gratis"
+              description={historyQuery.error.message}
+              fromPath="/harga"
+            />
+          </div>
+        ) : (
+          <div
+            role="alert"
+            className="mb-6 rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-xs text-destructive flex flex-wrap items-center justify-between gap-3"
+          >
+            <span>
+              {historyQuery.error?.message ||
+                "Riwayat harga mingguan belum dapat dimuat. Grafik menampilkan ringkasan papan harga sementara."}
+            </span>
+            <button
+              type="button"
+              onClick={() => void historyQuery.refetch()}
+              className="px-3 py-1.5 rounded-lg border border-destructive/40 font-semibold hover:bg-destructive/10 cursor-pointer"
+            >
+              Coba Muat Ulang
+            </button>
+          </div>
+        )
       )}
 
       <AsyncBoundary

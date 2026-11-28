@@ -52,9 +52,10 @@ export function hasFullAnalyticsAccess(
 export function publicProfile<
   T extends { businessName: string | null; role?: string; proExpiresAt?: Date | null }
 >(user: T) {
+  const { passwordHash: _passwordHash, ...safeUser } = user as T & { passwordHash?: unknown };
   const activePro = isBuyerPro(user);
   return {
-    ...user,
+    ...safeUser,
     businessName: user.businessName ?? undefined,
     proExpiresAt: user.proExpiresAt ? user.proExpiresAt.toISOString() : null,
     isPro: activePro,

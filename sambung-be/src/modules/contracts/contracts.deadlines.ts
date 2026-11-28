@@ -32,55 +32,59 @@ export async function expireApprovedUnsignedContracts(
 
   let expiredCount = 0;
   for (const candidate of candidates) {
-    const claimed = await db.$transaction(async (tx) => {
-      const updated = await tx.contract.updateMany({
-        where: {
-          id: candidate.id,
-          status: "approved",
-          signDeadlineAt: { lte: now },
-        },
-        data: {
-          status: "expired",
-          cancelReason: SIGN_EXPIRED_REASON,
-        },
-      });
-      if (updated.count === 0) return false;
-
-      await tx.notification.createMany({
-        data: [
-          {
-            accountId: candidate.buyerId,
-            type: "kontrak",
-            title: "Kesepakatan Kedaluwarsa (Tenggat Tanda Tangan 48 Jam)",
-            description: `${SIGN_EXPIRED_REASON} Volume gabah telah dikembalikan ke penawaran petani.`,
-            linkHref: `/kontrak/${candidate.id}`,
-            contractId: candidate.id,
+    try {
+      const claimed = await db.$transaction(async (tx) => {
+        const updated = await tx.contract.updateMany({
+          where: {
+            id: candidate.id,
+            status: "approved",
+            signDeadlineAt: { lte: now },
           },
-          {
-            accountId: candidate.offer.ownerId,
-            type: "kontrak",
-            title: "Kesepakatan Kedaluwarsa (Tenggat Tanda Tangan 48 Jam)",
-            description: `${SIGN_EXPIRED_REASON} Stok gabah pada tawaran Anda dipulihkan otomatis.`,
-            linkHref: `/kontrak/${candidate.id}`,
-            contractId: candidate.id,
+          data: {
+            status: "expired",
+            cancelReason: SIGN_EXPIRED_REASON,
           },
-        ],
+        });
+        if (updated.count === 0) return false;
+
+        await tx.notification.createMany({
+          data: [
+            {
+              accountId: candidate.buyerId,
+              type: "kontrak",
+              title: "Kesepakatan Kedaluwarsa (Tenggat Tanda Tangan 48 Jam)",
+              description: `${SIGN_EXPIRED_REASON} Volume gabah telah dikembalikan ke penawaran petani.`,
+              linkHref: `/kontrak/${candidate.id}`,
+              contractId: candidate.id,
+            },
+            {
+              accountId: candidate.offer.ownerId,
+              type: "kontrak",
+              title: "Kesepakatan Kedaluwarsa (Tenggat Tanda Tangan 48 Jam)",
+              description: `${SIGN_EXPIRED_REASON} Stok gabah pada tawaran Anda dipulihkan otomatis.`,
+              linkHref: `/kontrak/${candidate.id}`,
+              contractId: candidate.id,
+            },
+          ],
+        });
+
+        await tx.auditLog.create({
+          data: {
+            actorRole: "sistem",
+            actorName: "Sistem Transaksi",
+            action: "CONTRACT_EXPIRED_UNSIGNED",
+            targetType: "contract",
+            targetId: candidate.id,
+            details: SIGN_EXPIRED_REASON,
+          },
+        });
+        return true;
       });
 
-      await tx.auditLog.create({
-        data: {
-          actorRole: "sistem",
-          actorName: "Sistem Transaksi",
-          action: "CONTRACT_EXPIRED_UNSIGNED",
-          targetType: "contract",
-          targetId: candidate.id,
-          details: SIGN_EXPIRED_REASON,
-        },
-      });
-      return true;
-    });
-
-    if (claimed) expiredCount += 1;
+      if (claimed) expiredCount += 1;
+    } catch (err) {
+      console.error("[sweeper] Gagal memproses tenggat tanda tangan 48 jam:", candidate.id, err);
+    }
   }
 
   return expiredCount;
@@ -112,32 +116,36 @@ export async function sendShippingOverdueReminders(
 
   let reminded = 0;
   for (const contract of dueSoon) {
-    const sent = await db.$transaction(async (tx) => {
-      const claim = await tx.contract.updateMany({
-        where: {
-          id: contract.id,
-          status: "signed",
-          shippingReminderSentAt: null,
-          shippedAt: null,
-        },
-        data: { shippingReminderSentAt: now },
-      });
-      if (claim.count === 0) return false;
+    try {
+      const sent = await db.$transaction(async (tx) => {
+        const claim = await tx.contract.updateMany({
+          where: {
+            id: contract.id,
+            status: "signed",
+            shippingReminderSentAt: null,
+            shippedAt: null,
+          },
+          data: { shippingReminderSentAt: now },
+        });
+        if (claim.count === 0) return false;
 
-      await tx.notification.create({
-        data: {
-          accountId: contract.offer.ownerId,
-          type: "kontrak",
-          title: "Pengingat Tenggat Pengiriman (< 24 Jam)",
-          description:
-            "Batas waktu 7 hari pengiriman gabah setelah pelunasan escrow tinggal kurang dari 24 jam. Segera konfirmasi pengiriman agar kontrak tidak dibatalkan otomatis.",
-          linkHref: `/kontrak/${contract.id}`,
-          contractId: contract.id,
-        },
+        await tx.notification.create({
+          data: {
+            accountId: contract.offer.ownerId,
+            type: "kontrak",
+            title: "Pengingat Tenggat Pengiriman (< 24 Jam)",
+            description:
+              "Batas waktu 7 hari pengiriman gabah setelah pelunasan escrow tinggal kurang dari 24 jam. Segera konfirmasi pengiriman agar kontrak tidak dibatalkan otomatis.",
+            linkHref: `/kontrak/${contract.id}`,
+            contractId: contract.id,
+          },
+        });
+        return true;
       });
-      return true;
-    });
-    if (sent) reminded += 1;
+      if (sent) reminded += 1;
+    } catch (err) {
+      console.error("[sweeper] Gagal mengirim pengingat tenggat pengiriman:", contract.id, err);
+    }
   }
 
   return reminded;
@@ -269,102 +277,106 @@ export async function autoCompleteAndReleaseShippedContracts(
 
   let completedCount = 0;
   for (const item of due) {
-    const released = await db.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT id FROM "Contract" WHERE id = ${item.id}::uuid FOR UPDATE`;
+    try {
+      const released = await db.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "Contract" WHERE id = ${item.id}::uuid FOR UPDATE`;
 
-      const row = await tx.contract.findUnique({
-        where: { id: item.id },
-        select: {
-          id: true,
-          status: true,
-          disputeStatus: true,
-          receiptDeadlineAt: true,
-          handoverNotes: true,
-          buyerId: true,
-          offer: { select: { ownerId: true } },
-        },
-      });
-      if (
-        !row ||
-        row.status !== "shipping" ||
-        row.disputeStatus !== "none" ||
-        !row.receiptDeadlineAt ||
-        row.receiptDeadlineAt.getTime() > now.getTime()
-      ) {
-        return false;
-      }
-
-      await tx.contract.update({
-        where: { id: row.id },
-        data: {
-          status: "completed",
-          completedAt: now,
-          farmerConfirmed: true,
-          buyerConfirmed: true,
-          handoverNotes: row.handoverNotes || AUTO_COMPLETE_HANDOVER_NOTE,
-        },
-      });
-
-      const heldPayment = await tx.payment.findFirst({
-        where: { contractId: row.id, status: "paid", escrowStatus: "held" },
-        select: { id: true, orderId: true, contractAmount: true },
-      });
-      if (heldPayment) {
-        const updatedPayment = await tx.payment.updateMany({
-          where: { id: heldPayment.id, status: "paid", escrowStatus: "held" },
-          data: { escrowStatus: "released", releasedAt: now, lastSyncedAt: now },
+        const row = await tx.contract.findUnique({
+          where: { id: item.id },
+          select: {
+            id: true,
+            status: true,
+            disputeStatus: true,
+            receiptDeadlineAt: true,
+            handoverNotes: true,
+            buyerId: true,
+            offer: { select: { ownerId: true } },
+          },
         });
-        if (updatedPayment.count > 0) {
-          await tx.auditLog.create({
-            data: {
-              actorRole: "sistem",
-              actorName: "Sistem Escrow",
-              action: "ESCROW_RELEASED",
-              targetType: "contract",
-              targetId: row.id,
-              details: `Pencairan otomatis dana bersih petani ${formatIdr(heldPayment.contractAmount)} (${heldPayment.orderId}) setelah 5 hari pengiriman tanpa sengketa.`,
-            },
-          });
+        if (
+          !row ||
+          row.status !== "shipping" ||
+          row.disputeStatus !== "none" ||
+          !row.receiptDeadlineAt ||
+          row.receiptDeadlineAt.getTime() > now.getTime()
+        ) {
+          return false;
         }
-      }
 
-      await tx.notification.createMany({
-        data: [
-          {
-            accountId: row.offer.ownerId,
-            type: "kontrak",
-            title: "Transaksi Selesai & Dana Escrow Dicairkan Otomatis",
-            description:
-              "Batas konfirmasi 5 hari pengiriman telah berakhir tanpa keberatan produsen. Transaksi dinyatakan selesai dan dana escrow dicairkan.",
-            linkHref: `/kontrak/${row.id}/bukti`,
-            contractId: row.id,
+        await tx.contract.update({
+          where: { id: row.id },
+          data: {
+            status: "completed",
+            completedAt: now,
+            farmerConfirmed: true,
+            buyerConfirmed: true,
+            handoverNotes: row.handoverNotes || AUTO_COMPLETE_HANDOVER_NOTE,
           },
-          {
-            accountId: row.buyerId,
-            type: "kontrak",
-            title: "Transaksi Selesai Otomatis (Batas Konfirmasi 5 Hari)",
-            description:
-              "Kontrak diselesaikan otomatis karena 5 hari telah berlalu sejak pengiriman tanpa keberatan. Bukti kesepakatan final siap diunduh.",
-            linkHref: `/kontrak/${row.id}/bukti`,
-            contractId: row.id,
+        });
+
+        const heldPayment = await tx.payment.findFirst({
+          where: { contractId: row.id, status: "paid", escrowStatus: "held" },
+          select: { id: true, orderId: true, contractAmount: true },
+        });
+        if (heldPayment) {
+          const updatedPayment = await tx.payment.updateMany({
+            where: { id: heldPayment.id, status: "paid", escrowStatus: "held" },
+            data: { escrowStatus: "released", releasedAt: now, lastSyncedAt: now },
+          });
+          if (updatedPayment.count > 0) {
+            await tx.auditLog.create({
+              data: {
+                actorRole: "sistem",
+                actorName: "Sistem Escrow",
+                action: "ESCROW_RELEASED",
+                targetType: "contract",
+                targetId: row.id,
+                details: `Pencairan otomatis dana bersih petani ${formatIdr(heldPayment.contractAmount)} (${heldPayment.orderId}) setelah 5 hari pengiriman tanpa sengketa.`,
+              },
+            });
+          }
+        }
+
+        await tx.notification.createMany({
+          data: [
+            {
+              accountId: row.offer.ownerId,
+              type: "kontrak",
+              title: "Transaksi Selesai & Dana Escrow Dicairkan Otomatis",
+              description:
+                "Batas konfirmasi 5 hari pengiriman telah berakhir tanpa keberatan produsen. Transaksi dinyatakan selesai dan dana escrow dicairkan.",
+              linkHref: `/kontrak/${row.id}/bukti`,
+              contractId: row.id,
+            },
+            {
+              accountId: row.buyerId,
+              type: "kontrak",
+              title: "Transaksi Selesai Otomatis (Batas Konfirmasi 5 Hari)",
+              description:
+                "Kontrak diselesaikan otomatis karena 5 hari telah berlalu sejak pengiriman tanpa keberatan. Bukti kesepakatan final siap diunduh.",
+              linkHref: `/kontrak/${row.id}/bukti`,
+              contractId: row.id,
+            },
+          ],
+        });
+
+        await tx.auditLog.create({
+          data: {
+            actorRole: "sistem",
+            actorName: "Sistem Transaksi",
+            action: "CONTRACT_AUTO_COMPLETED_ESCROW_RELEASED",
+            targetType: "contract",
+            targetId: row.id,
+            details: "Kontrak selesai otomatis setelah 5 hari sejak pengiriman tanpa laporan keberatan.",
           },
-        ],
-      });
+        });
 
-      await tx.auditLog.create({
-        data: {
-          actorRole: "sistem",
-          actorName: "Sistem Transaksi",
-          action: "CONTRACT_AUTO_COMPLETED_ESCROW_RELEASED",
-          targetType: "contract",
-          targetId: row.id,
-          details: "Kontrak selesai otomatis setelah 5 hari sejak pengiriman tanpa laporan keberatan.",
-        },
+        return true;
       });
-
-      return true;
-    });
-    if (released) completedCount += 1;
+      if (released) completedCount += 1;
+    } catch (err) {
+      console.error("[sweeper] Gagal menyelesaikan otomatis kontrak terkirim:", item.id, err);
+    }
   }
 
   return completedCount;
