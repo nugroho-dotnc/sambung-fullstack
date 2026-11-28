@@ -54,7 +54,7 @@ function AdminLoginContent() {
     <div className="overflow-hidden p-4 sm:p-6 w-full space-y-7">
       <div className="space-y-3 border-b border-border pb-6">
         <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md text-xs font-semibold bg-muted text-foreground">
-          <span className="admin-live-dot bg-[#78B000]" aria-hidden="true" />
+          <span className="size-2 rounded-full bg-primary" aria-hidden="true" />
           <span>Portal Pengawas</span>
         </span>
         <h1 className="font-display text-2xl sm:text-[28px] font-bold tracking-tight text-foreground leading-tight">
@@ -120,7 +120,7 @@ function AdminLoginContent() {
         <div className="flex flex-col gap-4 pt-2">
           <Button
             type="submit"
-            className="admin-cta w-full min-h-11 rounded-lg font-semibold cursor-pointer"
+            className="w-full min-h-11 rounded-lg font-semibold cursor-pointer"
             disabled={adminLoginMutation.isPending}
           >
             <span>{adminLoginMutation.isPending ? "Mengautentikasi..." : "Masuk ke Panel Pengawasan"}</span>

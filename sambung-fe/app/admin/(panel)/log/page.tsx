@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { PageContainer } from "@/components/shared/page-container";
+import { AdminPageHeader } from "@/features/admin/components/admin-page-header";
+import { AdminTableScroll } from "@/features/admin/components/admin-table-scroll";
 import { TableRowsSkeleton } from "@/components/shared/page-skeletons";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAdminAuditLogs } from "@/features/admin/hooks/use-admin";
-import { Shield, Search } from "lucide-react";
+import { Search } from "lucide-react";
 
 export default function AdminAuditLogPage() {
   const { data: auditLogs, isLoading } = useAdminAuditLogs();
@@ -25,47 +26,21 @@ export default function AdminAuditLogPage() {
   });
 
   return (
-    <PageContainer className="py-7 sm:py-9 space-y-7 sm:space-y-8">
-      {/* Header & Breadcrumb */}
-      <header className="border-b border-border pb-6">
-        <nav
-          aria-label="Breadcrumb"
-          className="flex items-center gap-2 text-xs text-muted-foreground mb-2.5"
-        >
-          <Link href="/admin" className="admin-breadcrumb-link font-semibold">
-            Pengawas Sistem
-          </Link>
-          <span className="text-muted-foreground/60" aria-hidden="true">/</span>
-          <span aria-current="page" className="font-medium text-foreground">
-            Log Audit Sistem
-          </span>
-        </nav>
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="font-display text-2xl sm:text-[28px] font-bold tracking-tight text-foreground">
-              Log Audit Peristiwa Bisnis
-            </h1>
-            <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed max-w-3xl">
-              Catatan kronologis perubahan status transaksi, pembaruan acuan harga, dan tindakan pengawasan yang tersimpan utuh agar tidak dapat diubah sepihak.
-            </p>
-          </div>
-
-          <div className="inline-flex items-center gap-2 text-xs font-semibold admin-brand-pill px-3 py-1.5 rounded-md shrink-0 self-start sm:self-auto">
-            <Shield className="w-3.5 h-3.5 text-white" aria-hidden="true" />
-            <span>Kredensial &amp; OTP Tidak Dicatat</span>
-          </div>
-        </div>
-      </header>
+    <PageContainer>
+      <AdminPageHeader
+        section="Log Audit Sistem"
+        title="Log Audit Peristiwa Bisnis"
+        description="Catatan kronologis perubahan status transaksi, pembaruan acuan harga, dan tindakan pengawasan yang tersimpan utuh agar tidak dapat diubah sepihak."
+      />
 
       {/* Main Table Card with Integrated Search */}
-      <Card className="admin-surface p-0 gap-0 overflow-hidden">
-        <div className="px-6 py-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <Card className="rounded-2xl p-0 gap-0 overflow-hidden">
+        <div className="px-4 sm:px-6 py-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <h2 className="font-display text-base font-bold text-foreground">
               Daftar Aktivitas Sistem Terlacak
             </h2>
-            <span aria-live="polite" className="text-xs font-semibold text-[var(--admin-gold-text)] tabular-nums">
+            <span aria-live="polite" className="text-xs font-semibold text-price-caution tabular-nums">
               {filteredLogs.length} peristiwa
             </span>
           </div>
@@ -84,12 +59,12 @@ export default function AdminAuditLogPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Cari aksi, pelaku, atau ID objek..."
-              className="w-full h-10 pl-9 pr-3 rounded-lg border border-input bg-background text-[13px] text-foreground placeholder:text-muted-foreground focus-visible:outline-none"
+              className="w-full h-10 pl-9 pr-3 rounded-xl border border-input bg-background text-[13px] text-foreground placeholder:text-muted-foreground focus-visible:outline-none"
             />
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <AdminTableScroll label="Riwayat log audit">
           <table className="admin-table w-full text-left border-collapse text-[13px]">
             <caption className="sr-only">
               Catatan log audit peristiwa bisnis sistem SAMBUNG
@@ -127,7 +102,7 @@ export default function AdminAuditLogPage() {
                         {log.actorRole}
                       </Badge>
                     </td>
-                    <td className="py-4 px-5 first:pl-6 last:pr-6 font-semibold text-[var(--admin-positive-text)] whitespace-nowrap">
+                    <td className="py-4 px-5 first:pl-6 last:pr-6 font-semibold text-primary whitespace-nowrap">
                       {log.action}
                     </td>
                     <td className="py-4 px-5 first:pl-6 last:pr-6 tabular-nums text-muted-foreground whitespace-nowrap text-xs">
@@ -141,7 +116,7 @@ export default function AdminAuditLogPage() {
               )}
             </tbody>
           </table>
-        </div>
+        </AdminTableScroll>
       </Card>
     </PageContainer>
   );

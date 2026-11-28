@@ -1,8 +1,10 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { PageContainer } from "@/components/shared/page-container";
+import { AdminPageHeader } from "@/features/admin/components/admin-page-header";
+import { AdminTableScroll } from "@/features/admin/components/admin-table-scroll";
 import { AsyncBoundary } from "@/components/shared/async-boundary";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +26,7 @@ function MetricInfoTooltip({ text }: { text: string }) {
           <button
             type="button"
             aria-label="Penjelasan istilah evaluasi"
-            className="size-8 rounded-md inline-flex items-center justify-center text-muted-foreground hover:text-[var(--admin-gold-text)] hover:bg-muted active:scale-95 transition-all cursor-pointer"
+            className="size-8 rounded-md inline-flex items-center justify-center text-muted-foreground hover:text-price-caution hover:bg-muted active:scale-95 transition-all cursor-pointer"
           >
             <Info className="w-4 h-4" aria-hidden="true" />
           </button>
@@ -65,46 +67,26 @@ export default function AdminModelEvalPage() {
   const quarantineRows = evalData?.quarantineLog ?? [];
 
   return (
-    <PageContainer className="py-7 sm:py-9 space-y-7 sm:space-y-8">
-      {/* Header & Breadcrumb */}
-      <header className="border-b border-border pb-6">
-        <nav
-          aria-label="Breadcrumb"
-          className="flex items-center gap-2 text-xs text-muted-foreground mb-2.5"
-        >
-          <Link href="/admin" className="admin-breadcrumb-link font-semibold">
-            Pengawas Sistem
-          </Link>
-          <span className="text-muted-foreground/60" aria-hidden="true">/</span>
-          <span aria-current="page" className="font-medium text-foreground">
-            Kelayakan Model Prakiraan
-          </span>
-        </nav>
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="font-display text-2xl sm:text-[28px] font-bold tracking-tight text-foreground">
-              Kelayakan &amp; Pengawasan Model Prakiraan AI
-            </h1>
-            <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed max-w-3xl">
-              Ringkasan hasil uji historis bertahap ({evalData?.evaluationWindow || "2024–2026"}) serta simulator skenario langsung untuk pengawasan model prakiraan.
-            </p>
-          </div>
-
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md admin-brand-pill text-xs font-semibold shrink-0 self-start sm:self-auto">
-            <Cpu className="w-4 h-4 shrink-0 text-white" aria-hidden="true" />
-            <span>{evalData?.modelVersion || "Sambung Predict v1"}</span>
-          </div>
-        </div>
-      </header>
+    <PageContainer>
+      <AdminPageHeader
+        section="Kelayakan Model Prakiraan"
+        title="Kelayakan & Pengawasan Model Prakiraan AI"
+        description={`Ringkasan hasil uji historis bertahap (${evalData?.evaluationWindow || "2024–2026"}) serta simulator skenario langsung untuk pengawasan model prakiraan.`}
+        actions={
+          <Badge variant="secondary" className="rounded-full">
+            <Cpu aria-hidden="true" />
+            {evalData?.modelVersion || "Sambung Predict v1"}
+          </Badge>
+        }
+      />
 
       <Tabs defaultValue="evaluation" className="space-y-6">
-        <TabsList variant="line" className="admin-tabs-list w-full justify-start border-b border-border gap-6 pb-0">
-          <TabsTrigger value="evaluation" className="gap-1.5 pb-3 text-xs font-semibold cursor-pointer">
+        <TabsList className="h-auto max-w-full flex-wrap justify-start gap-1 rounded-xl bg-muted/80 p-1">
+          <TabsTrigger value="evaluation" className="min-h-10 flex-none gap-2 rounded-lg px-3 text-sm font-semibold cursor-pointer">
             <Activity className="w-3.5 h-3.5" aria-hidden="true" />
             <span>Evaluasi &amp; Kelayakan Model</span>
           </TabsTrigger>
-          <TabsTrigger value="what-if" className="gap-1.5 pb-3 text-xs font-semibold cursor-pointer">
+          <TabsTrigger value="what-if" className="min-h-10 flex-none gap-2 rounded-lg px-3 text-sm font-semibold cursor-pointer">
             <FlaskConical className="w-3.5 h-3.5" aria-hidden="true" />
             <span>Simulasi What-If (Live)</span>
           </TabsTrigger>
@@ -121,16 +103,16 @@ export default function AdminModelEvalPage() {
             {evalData && s2 && s4 && (
               <>
                 {/* 4 Summary KPI Strip (Gestalt Common Region) */}
-                <Card className="admin-surface p-0 gap-0 overflow-hidden">
+                <Card className="rounded-2xl p-0 gap-0 overflow-hidden">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-border">
-                    <div className="admin-kpi-cell p-6 space-y-2">
+                    <div className="p-6 space-y-2">
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-xs text-muted-foreground font-semibold">
                           Wilayah Lolos Uji Penuh
                         </span>
                         <MetricInfoTooltip text="Setiap pasangan provinsi dan jangka waktu (2 atau 4 pekan) harus lolos syarat akurasi dan rentang wajar secara mandiri." />
                       </div>
-                      <p className="text-2xl font-extrabold font-display tabular-nums text-[var(--admin-positive-text)]">
+                      <p className="text-2xl font-extrabold font-display tabular-nums text-primary">
                         {totalPass} / {totalUnits} Unit
                       </p>
                       <p className="text-xs text-muted-foreground">
@@ -138,7 +120,7 @@ export default function AdminModelEvalPage() {
                       </p>
                     </div>
 
-                    <div className="admin-kpi-cell p-6 space-y-2">
+                    <div className="p-6 space-y-2">
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-xs text-muted-foreground font-semibold">
                           Skor Selisih vs Pekan Lalu
@@ -156,7 +138,7 @@ export default function AdminModelEvalPage() {
                       </p>
                     </div>
 
-                    <div className="admin-kpi-cell p-6 space-y-2">
+                    <div className="p-6 space-y-2">
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-xs text-muted-foreground font-semibold">
                           Ketepatan Rentang Wajar (80%)
@@ -175,14 +157,14 @@ export default function AdminModelEvalPage() {
                       </p>
                     </div>
 
-                    <div className="admin-kpi-cell p-6 space-y-2">
+                    <div className="p-6 space-y-2">
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-xs text-muted-foreground font-semibold">
                           Deteksi Lonjakan Ekstrem
                         </span>
                         <MetricInfoTooltip text="Kemampuan model mendeteksi kenaikan harga tajam (5% tertinggi) sebelum terjadi, diukur dari sensitivitas tangkap lonjakan." />
                       </div>
-                      <p className="text-2xl font-extrabold font-display tabular-nums text-[var(--admin-gold-text)]">
+                      <p className="text-2xl font-extrabold font-display tabular-nums text-price-caution">
                         Skor {spikeBlend?.nfr006Recall70?.rocAuc.toFixed(3) ?? "—"}
                       </p>
                       <p className="text-xs text-muted-foreground tabular-nums">
@@ -194,10 +176,10 @@ export default function AdminModelEvalPage() {
                 </Card>
 
                 {/* Baseline Comparison Table */}
-                <Card className="admin-surface p-0 gap-0 overflow-hidden">
-                  <div className="px-6 py-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <Card className="rounded-2xl p-0 gap-0 overflow-hidden">
+                  <div className="px-4 sm:px-6 py-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <h2 className="font-display text-base font-bold text-foreground flex items-center gap-2">
-                      <Activity className="w-4 h-4 text-[var(--admin-info-text)]" aria-hidden="true" />
+                      <Activity className="w-4 h-4 text-primary" aria-hidden="true" />
                       <span>
                         Perbandingan Model Utama vs Pembanding Dasar (
                         {baselineHorizon === "2w" ? "2 Pekan" : "4 Pekan"})
@@ -212,15 +194,16 @@ export default function AdminModelEvalPage() {
                         {(["2w", "4w"] as const).map((key) => {
                           const active = baselineHorizon === key;
                           return (
-                            <button
+                            <Button
                               key={key}
                               type="button"
+                              variant={active ? "default" : "outline"}
                               aria-pressed={active}
                               onClick={() => setBaselineHorizon(key)}
-                              className="admin-filter-btn min-h-8 rounded-lg text-xs px-3 font-semibold cursor-pointer"
+                              className="min-h-8 rounded-lg text-xs px-3 font-semibold cursor-pointer"
                             >
                               {key === "2w" ? "2 Pekan" : "4 Pekan"}
-                            </button>
+                            </Button>
                           );
                         })}
                       </div>
@@ -228,7 +211,7 @@ export default function AdminModelEvalPage() {
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto">
+                  <AdminTableScroll label="Perbandingan model dan baseline">
                     <table className="admin-table w-full text-left border-collapse text-[13px]">
                       <caption className="sr-only">
                         Perbandingan performa model utama terhadap pembanding dasar
@@ -268,12 +251,12 @@ export default function AdminModelEvalPage() {
                         ))}
                       </tbody>
                     </table>
-                  </div>
+                  </AdminTableScroll>
                 </Card>
 
                 {/* Main Per-Province Gate Table */}
-                <Card className="admin-surface p-0 gap-0 overflow-hidden">
-                  <div className="px-6 py-5 border-b border-border flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <Card className="rounded-2xl p-0 gap-0 overflow-hidden">
+                  <div className="px-4 sm:px-6 py-5 border-b border-border flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <h2 className="font-display text-base font-bold text-foreground">
                       Hasil Uji Kelayakan per Wilayah ({filteredRows.length} baris)
                     </h2>
@@ -286,15 +269,16 @@ export default function AdminModelEvalPage() {
                         {(["all", 2, 4] as const).map((hf) => {
                           const active = horizonFilter === hf;
                           return (
-                            <button
+                            <Button
                               key={String(hf)}
                               type="button"
+                              variant={active ? "default" : "outline"}
                               aria-pressed={active}
                               onClick={() => setHorizonFilter(hf)}
-                              className="admin-filter-btn min-h-8 rounded-lg text-xs px-3 font-semibold cursor-pointer"
+                              className="min-h-8 rounded-lg text-xs px-3 font-semibold cursor-pointer"
                             >
                               {hf === "all" ? "Semua Jangka Waktu" : `${hf} Pekan`}
-                            </button>
+                            </Button>
                           );
                         })}
                       </div>
@@ -309,26 +293,27 @@ export default function AdminModelEvalPage() {
                         {(["all", "pass", "fallback"] as const).map((sf) => {
                           const active = statusFilter === sf;
                           return (
-                            <button
+                            <Button
                               key={sf}
                               type="button"
+                              variant={active ? "default" : "outline"}
                               aria-pressed={active}
                               onClick={() => setStatusFilter(sf)}
-                              className="admin-filter-btn min-h-8 rounded-lg text-xs px-3 font-semibold cursor-pointer"
+                              className="min-h-8 rounded-lg text-xs px-3 font-semibold cursor-pointer"
                             >
                               {sf === "all"
                                 ? "Semua Status"
                                 : sf === "pass"
                                   ? "Prakiraan AI"
                                   : "Acuan Aman"}
-                            </button>
+                            </Button>
                           );
                         })}
                       </div>
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto max-h-[520px] overflow-y-auto">
+                  <AdminTableScroll label="Hasil evaluasi per wilayah" className="max-h-[520px] overflow-y-auto">
                     <table className="admin-table w-full text-left border-collapse text-[13px]">
                       <caption className="sr-only">
                         Hasil uji kelayakan model prakiraan per provinsi dan jangka waktu
@@ -357,8 +342,8 @@ export default function AdminModelEvalPage() {
                               <span
                                 className={
                                   row.mase <= evalData.gateCriteria.maxMase
-                                    ? "text-[var(--admin-positive-text)] font-bold"
-                                    : "text-[var(--admin-error-text)] font-bold"
+                                    ? "text-primary font-bold"
+                                    : "text-destructive font-bold"
                                 }
                               >
                                 {row.mase.toFixed(3)}
@@ -390,19 +375,19 @@ export default function AdminModelEvalPage() {
                         ))}
                       </tbody>
                     </table>
-                  </div>
+                  </AdminTableScroll>
                 </Card>
 
                 {/* Quarantine Log */}
-                <Card className="admin-surface p-0 gap-0 overflow-hidden">
-                  <div className="px-6 py-5 border-b border-border">
+                <Card className="rounded-2xl p-0 gap-0 overflow-hidden">
+                  <div className="px-4 sm:px-6 py-5 border-b border-border">
                     <h2 className="font-display text-base font-bold text-foreground flex items-center gap-2">
-                      <DatabaseZap className="w-4 h-4 text-[var(--admin-gold-text)]" aria-hidden="true" />
+                      <DatabaseZap className="w-4 h-4 text-price-caution" aria-hidden="true" />
                       <span>Catatan Penyaringan Kualitas Data ({quarantineRows.length} Kejadian)</span>
                     </h2>
                   </div>
 
-                  <div className="overflow-x-auto">
+                  <AdminTableScroll label="Riwayat karantina model">
                     <table className="admin-table w-full text-left border-collapse text-[13px]">
                       <caption className="sr-only">
                         Catatan penyaringan kualitas data historis model
@@ -428,16 +413,16 @@ export default function AdminModelEvalPage() {
                         ))}
                       </tbody>
                     </table>
-                  </div>
+                  </AdminTableScroll>
                 </Card>
 
                 {/* Kebijakan Evaluasi & Fallback (Figure-Ground Direndahkan) */}
                 <section
                   aria-label="Aturan kelayakan penayangan prakiraan AI"
-                  className="admin-editorial-note flex items-start gap-3"
+                  className="flex items-start gap-3"
                 >
                   <ShieldCheck
-                    className="w-4 h-4 text-[var(--admin-info-text)] shrink-0 mt-0.5"
+                    className="w-4 h-4 text-primary shrink-0 mt-0.5"
                     aria-hidden="true"
                   />
                   <div className="space-y-1">

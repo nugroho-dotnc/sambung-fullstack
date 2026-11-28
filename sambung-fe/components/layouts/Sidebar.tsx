@@ -14,6 +14,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { GET_NAVIGATION_GROUPS } from "@/constant/navigation";
 
@@ -35,12 +36,13 @@ function isRouteActive(currentPath: string, targetPath: string): boolean {
 export default function AppSidebar({ role }: { role: string }) {
   const pathname = usePathname();
   const navGroups = GET_NAVIGATION_GROUPS(role);
-  const isAdmin = role === "admin";
+  const { isMobile, setOpenMobile } = useSidebar();
+  const closeAdminMenu = role === "admin" && isMobile ? () => setOpenMobile(false) : undefined;
 
   return (
     <Sidebar className="border-r border-border bg-card select-none print:hidden">
       <SidebarHeader className="py-4 px-4 border-b border-border">
-        <Link href="/" className="flex items-center gap-2.5 group">
+        <Link href="/" onNavigate={closeAdminMenu} className="flex items-center gap-2.5 group">
           <BrandLogo
             size={36}
             className="w-9 h-9 rounded-lg transition-transform group-hover:scale-105"
@@ -56,7 +58,7 @@ export default function AppSidebar({ role }: { role: string }) {
         </Link>
       </SidebarHeader>
 
-      <SidebarContent className={`px-2.5 py-5 ${isAdmin ? "space-y-6" : "space-y-5"}`}>
+      <SidebarContent className="px-2.5 py-5 space-y-5">
         {navGroups.map((group, groupIndex) => (
           <SidebarGroup key={groupIndex} className="p-0">
             <SidebarGroupLabel className="px-3.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
@@ -72,18 +74,15 @@ export default function AppSidebar({ role }: { role: string }) {
                     <SidebarMenuButton
                       isActive={isActive}
                       tooltip={item.label}
-                      className={`min-h-11 px-3.5 text-sm font-medium transition-colors ${
-                        isAdmin ? "py-2.5 rounded-lg admin-nav-link" : "rounded-xl"
-                      } ${
+                      className={`min-h-11 px-3.5 text-sm font-medium transition-colors rounded-xl ${
                         isActive
-                          ? isAdmin
-                            ? "!bg-[#0D5907] !text-white font-semibold hover:!bg-[#2F8208] hover:!text-white active:!bg-[#0D5907] active:!text-white data-active:!bg-[#0D5907] data-active:!text-white"
-                            : "!bg-primary !text-primary-foreground font-semibold shadow-xs hover:!bg-primary/90 hover:!text-primary-foreground active:!bg-primary active:!text-primary-foreground data-active:!bg-primary data-active:!text-primary-foreground"
+                          ? "!bg-primary !text-primary-foreground font-semibold shadow-xs hover:!bg-primary/90 hover:!text-primary-foreground active:!bg-primary active:!text-primary-foreground data-active:!bg-primary data-active:!text-primary-foreground"
                           : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                       }`}
                       render={
                         <Link
                           href={item.path}
+                          onNavigate={closeAdminMenu}
                           aria-current={isActive ? "page" : undefined}
                         />
                       }
@@ -91,11 +90,7 @@ export default function AppSidebar({ role }: { role: string }) {
                       <Icon
                         aria-hidden="true"
                         className={`w-4 h-4 mr-2.5 shrink-0 ${
-                          isActive
-                            ? isAdmin
-                              ? "!text-white"
-                              : "!text-primary-foreground"
-                            : "text-muted-foreground"
+                          isActive ? "!text-primary-foreground" : "text-muted-foreground"
                         }`}
                       />
                       <span>{item.label}</span>
@@ -113,7 +108,7 @@ export default function AppSidebar({ role }: { role: string }) {
           <SidebarMenuItem>
             <SidebarMenuButton
               className="min-h-10 px-3 rounded-lg text-xs text-muted-foreground hover:text-foreground"
-              render={<Link href="/bantuan" />}
+              render={<Link href="/bantuan" onNavigate={closeAdminMenu} />}
             >
               <HelpCircle className="w-4 h-4 mr-2 text-muted-foreground" aria-hidden="true" />
               <span>Bantuan &amp; Ketentuan</span>

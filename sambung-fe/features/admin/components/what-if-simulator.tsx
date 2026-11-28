@@ -178,11 +178,11 @@ export function WhatIfSimulator() {
 
   return (
     <div className="space-y-6">
-      <Card className="admin-surface p-6 sm:p-7 space-y-6">
+      <Card className="rounded-2xl p-6 sm:p-7 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-[var(--admin-gold-text)]">
+              <span className="text-xs font-bold uppercase tracking-wider text-price-caution">
                 Simulasi Stateless (Tanpa Mengubah Database)
               </span>
               <Badge
@@ -260,22 +260,24 @@ export function WhatIfSimulator() {
                 aria-labelledby="whatif-horizon-label"
                 className="grid grid-cols-2 gap-1.5 h-10 p-1 rounded-lg bg-muted"
               >
-                <button
+                <Button
                   type="button"
+                  variant={horizonWeeks === 2 ? "default" : "outline"}
                   aria-pressed={horizonWeeks === 2}
                   onClick={() => setHorizonWeeks(2)}
-                  className="admin-filter-btn h-full rounded-md text-xs font-semibold cursor-pointer"
+                  className="min-h-10 rounded-lg text-xs font-semibold cursor-pointer"
                 >
                   2 Pekan
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant={horizonWeeks === 4 ? "default" : "outline"}
                   aria-pressed={horizonWeeks === 4}
                   onClick={() => setHorizonWeeks(4)}
-                  className="admin-filter-btn h-full rounded-md text-xs font-semibold cursor-pointer"
+                  className="min-h-10 rounded-lg text-xs font-semibold cursor-pointer"
                 >
                   4 Pekan
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -481,7 +483,7 @@ export function WhatIfSimulator() {
             <Button
               type="submit"
               disabled={predictMutation.isPending}
-              className="admin-cta min-h-10 rounded-lg gap-2 text-xs font-semibold px-5 cursor-pointer"
+              className="min-h-11 rounded-md gap-2 text-sm font-semibold px-5 cursor-pointer"
             >
               {predictMutation.isPending ? (
                 <>
@@ -502,12 +504,12 @@ export function WhatIfSimulator() {
       {result && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start animate-in fade-in-0 slide-in-from-bottom-1 duration-200">
           {/* Left: Simulated Forecast Output + Live Diagnostics */}
-          <Card className="lg:col-span-6 admin-surface p-0 gap-0 overflow-hidden">
-            <div className="px-6 py-5 border-b border-border flex items-start justify-between gap-2">
+          <Card className="lg:col-span-6 rounded-2xl p-0 gap-0 overflow-hidden">
+            <div className="px-4 sm:px-6 py-5 border-b border-border flex items-start justify-between gap-2">
               <div>
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-[var(--admin-gold-text)]" aria-hidden="true" />
-                  <span className="text-xs font-bold text-[var(--admin-gold-text)] uppercase tracking-wider">
+                  <Sparkles className="w-4 h-4 text-price-caution" aria-hidden="true" />
+                  <span className="text-xs font-bold text-price-caution uppercase tracking-wider">
                     Hasil Simulasi {result.province} ({result.horizonWeeks} Pekan)
                   </span>
                 </div>
@@ -531,7 +533,7 @@ export function WhatIfSimulator() {
 
             {/* Strip Proyeksi Beras & Gabah (Zero Nested Tinted Boxes) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border border-b border-border">
-              <div className="admin-kpi-cell p-6 space-y-2">
+              <div className="p-6 space-y-2">
                 <span className="text-xs font-semibold text-muted-foreground">
                   Proyeksi Beras Produsen
                 </span>
@@ -545,13 +547,13 @@ export function WhatIfSimulator() {
                 </p>
               </div>
 
-              <div className="admin-kpi-cell p-6 space-y-2.5">
+              <div className="p-6 space-y-2.5">
                 <span className="text-xs font-semibold text-muted-foreground block">
                   Estimasi Turunan Gabah
                 </span>
                 <div className="flex justify-between text-xs tabular-nums">
                   <span className="text-muted-foreground">GKP</span>
-                  <strong className="text-[var(--admin-positive-text)]">
+                  <strong className="text-primary">
                     {formatRupiah(result.gkpEstimate)}/kg
                   </strong>
                 </div>
@@ -570,37 +572,37 @@ export function WhatIfSimulator() {
                 Diagnostik Inferensi Live (Stateless)
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-px bg-border rounded-lg overflow-hidden text-xs">
-                <div className="bg-card p-3.5 space-y-0.5 hover:bg-[var(--admin-row-hover)] transition-colors">
+                <div className="bg-card p-3.5 space-y-0.5 hover:bg-muted/50 transition-colors">
                   <span className="text-xs text-muted-foreground block">Peluang Naik</span>
-                  <strong className="tabular-nums text-[var(--admin-positive-text)]">
+                  <strong className="tabular-nums text-primary">
                     {(result.liveDiagnostics.probUp * 100).toFixed(1)}%
                   </strong>
                 </div>
-                <div className="bg-card p-3.5 space-y-0.5 hover:bg-[var(--admin-row-hover)] transition-colors">
+                <div className="bg-card p-3.5 space-y-0.5 hover:bg-muted/50 transition-colors">
                   <span className="text-xs text-muted-foreground block">Peluang Datar</span>
                   <strong className="tabular-nums text-foreground">
                     {(result.liveDiagnostics.probFlat * 100).toFixed(1)}%
                   </strong>
                 </div>
-                <div className="bg-card p-3.5 space-y-0.5 hover:bg-[var(--admin-row-hover)] transition-colors">
+                <div className="bg-card p-3.5 space-y-0.5 hover:bg-muted/50 transition-colors">
                   <span className="text-xs text-muted-foreground block">Peluang Turun</span>
-                  <strong className="tabular-nums text-[var(--admin-gold-text)]">
+                  <strong className="tabular-nums text-price-caution">
                     {(result.liveDiagnostics.probDown * 100).toFixed(1)}%
                   </strong>
                 </div>
-                <div className="bg-card p-3.5 space-y-0.5 hover:bg-[var(--admin-row-hover)] transition-colors">
+                <div className="bg-card p-3.5 space-y-0.5 hover:bg-muted/50 transition-colors">
                   <span className="text-xs text-muted-foreground block">Status Gerbang</span>
                   <strong className="text-foreground">
                     {result.liveDiagnostics.gateTriggered ? "Terpicu (Bergerak)" : "Menahan (Stabil)"}
                   </strong>
                 </div>
-                <div className="bg-card p-3.5 space-y-0.5 hover:bg-[var(--admin-row-hover)] transition-colors">
+                <div className="bg-card p-3.5 space-y-0.5 hover:bg-muted/50 transition-colors">
                   <span className="text-xs text-muted-foreground block">Kelompok Wilayah</span>
                   <strong className="text-foreground">
                     {result.liveDiagnostics.provinceGroup || "-"}
                   </strong>
                 </div>
-                <div className="bg-card p-3.5 space-y-0.5 hover:bg-[var(--admin-row-hover)] transition-colors">
+                <div className="bg-card p-3.5 space-y-0.5 hover:bg-muted/50 transition-colors">
                   <span className="text-xs text-muted-foreground block">Ambang Tau</span>
                   <strong className="tabular-nums text-foreground">
                     {result.liveDiagnostics.thresholdTau ?? "-"}
@@ -611,7 +613,7 @@ export function WhatIfSimulator() {
           </Card>
 
           {/* Right: SHAP Contributions */}
-          <Card className="lg:col-span-6 admin-surface p-6 sm:p-7 space-y-4">
+          <Card className="lg:col-span-6 rounded-2xl p-6 sm:p-7 space-y-4">
             <div className="border-b border-border pb-4">
               <h3 className="font-display text-base font-bold text-foreground">
                 Faktor Penggerak Simulasi

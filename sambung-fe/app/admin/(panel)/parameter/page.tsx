@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { PageContainer } from "@/components/shared/page-container";
+import { AdminPageHeader } from "@/features/admin/components/admin-page-header";
 import { SettingsFormSkeleton } from "@/components/shared/page-skeletons";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,6 @@ import {
 } from "@/features/admin/hooks/use-admin";
 import type { SystemParameters } from "@/features/admin/domain/admin-types";
 import {
-  Settings2,
   Sliders,
   Check,
   Percent,
@@ -36,7 +35,7 @@ function ParameterFieldHelp({ text }: { text: string }) {
           <button
             type="button"
             aria-label="Penjelasan parameter"
-            className="size-8 rounded-md inline-flex items-center justify-center text-muted-foreground hover:text-[var(--admin-gold-text)] hover:bg-muted active:scale-95 transition-all cursor-pointer"
+            className="size-8 rounded-md inline-flex items-center justify-center text-muted-foreground hover:text-price-caution hover:bg-muted active:scale-95 transition-all cursor-pointer"
           >
             <Info className="w-4 h-4" aria-hidden="true" />
           </button>
@@ -125,13 +124,12 @@ function ParametersForm({
       )}
 
       {/* Ledger Parameter Sistem Terpadu (Gestalt Common Region & Continuity) */}
-      <Card className="admin-surface p-0 gap-0 overflow-hidden divide-y divide-border">
+      <Card className="rounded-2xl p-0 gap-0 overflow-hidden divide-y divide-border">
         {/* 1. Durasi Tenggat Negosiasi */}
         <div className="admin-field-row p-6 sm:p-7 grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
           <div className="lg:col-span-7 space-y-1.5">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold tabular-nums text-[var(--admin-gold-text)]">01</span>
-              <Clock className="w-4 h-4 text-[var(--admin-info-text)] shrink-0" aria-hidden="true" />
+              <Clock className="w-4 h-4 text-primary shrink-0" aria-hidden="true" />
               <h2 className="font-display text-base font-bold text-foreground">
                 Batas Waktu Respons Pesanan
               </h2>
@@ -175,8 +173,7 @@ function ParametersForm({
         <div className="admin-field-row p-6 sm:p-7 grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
           <div className="lg:col-span-7 space-y-1.5">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold tabular-nums text-[var(--admin-gold-text)]">02</span>
-              <Percent className="w-4 h-4 text-[var(--admin-info-text)] shrink-0" aria-hidden="true" />
+              <Percent className="w-4 h-4 text-primary shrink-0" aria-hidden="true" />
               <h2 className="font-display text-base font-bold text-foreground">
                 Batas Toleransi Harga Di Bawah Acuan
               </h2>
@@ -221,8 +218,7 @@ function ParametersForm({
         <div className="admin-field-row p-6 sm:p-7 grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
           <div className="lg:col-span-7 space-y-1.5">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold tabular-nums text-[var(--admin-gold-text)]">03</span>
-              <Scale className="w-4 h-4 text-[var(--admin-info-text)] shrink-0" aria-hidden="true" />
+              <Scale className="w-4 h-4 text-primary shrink-0" aria-hidden="true" />
               <h2 className="font-display text-base font-bold text-foreground">
                 Rasio Rendemen Giling Gabah ke Beras
               </h2>
@@ -298,8 +294,7 @@ function ParametersForm({
         <div className="admin-field-row p-6 sm:p-7 grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
           <div className="lg:col-span-7 space-y-1.5">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold tabular-nums text-[var(--admin-gold-text)]">04</span>
-              <Sliders className="w-4 h-4 text-[var(--admin-info-text)] shrink-0" aria-hidden="true" />
+              <Sliders className="w-4 h-4 text-primary shrink-0" aria-hidden="true" />
               <h2 className="font-display text-base font-bold text-foreground">
                 Harga Pembelian Pemerintah (HPP Dasar)
               </h2>
@@ -348,7 +343,7 @@ function ParametersForm({
           <Button
             type="submit"
             disabled={updateMutation.isPending}
-            className="admin-cta min-h-10 rounded-lg gap-2 font-semibold text-xs px-5 cursor-pointer"
+            className="min-h-11 rounded-md gap-2 font-semibold text-sm px-5 cursor-pointer"
           >
             <Check className="w-4 h-4" aria-hidden="true" />
             <span>{updateMutation.isPending ? "Menyimpan..." : "Simpan Perubahan Pengaturan"}</span>
@@ -363,38 +358,12 @@ export default function AdminParametersPage() {
   const { data: parameters, isLoading } = useAdminParameters();
 
   return (
-    <PageContainer className="py-7 sm:py-9 space-y-7 sm:space-y-8">
-      {/* Header & Breadcrumb */}
-      <header className="border-b border-border pb-6">
-        <nav
-          aria-label="Breadcrumb"
-          className="flex items-center gap-2 text-xs text-muted-foreground mb-2.5"
-        >
-          <Link href="/admin" className="admin-breadcrumb-link font-semibold">
-            Pengawas Sistem
-          </Link>
-          <span className="text-muted-foreground/60" aria-hidden="true">/</span>
-          <span aria-current="page" className="font-medium text-foreground">
-            Pengaturan Acuan Sistem
-          </span>
-        </nav>
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="font-display text-2xl sm:text-[28px] font-bold tracking-tight text-foreground">
-              Pengaturan Batas Waktu &amp; Acuan Harga
-            </h1>
-            <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed max-w-3xl">
-              Atur batas waktu respons pesanan, toleransi lampu harga wajar, rasio rendemen giling, dan acuan dasar HPP pemerintah.
-            </p>
-          </div>
-
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md admin-brand-pill text-xs font-semibold shrink-0 self-start sm:self-auto">
-            <Settings2 className="w-4 h-4 shrink-0 text-white" aria-hidden="true" />
-            <span>Konfigurasi Terpusat</span>
-          </div>
-        </div>
-      </header>
+    <PageContainer>
+      <AdminPageHeader
+        section="Pengaturan Acuan Sistem"
+        title="Pengaturan Batas Waktu & Acuan Harga"
+        description="Atur batas waktu respons pesanan, toleransi lampu harga wajar, rasio rendemen giling, dan acuan dasar HPP pemerintah."
+      />
 
       {isLoading ? (
         <SettingsFormSkeleton label="Memuat pengaturan sistem..." />
